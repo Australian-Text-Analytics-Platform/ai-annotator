@@ -1,2 +1,6 @@
 .idea
 .venv
+
+# jupyter
+.ipynb_checkpoints
+**/*.ipynb
