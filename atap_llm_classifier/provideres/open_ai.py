@@ -3,7 +3,7 @@ from enum import Enum
 from openai import AsyncClient
 from openai.types import Model
 
-from config import api_settings
+from atap_llm_classifier.config import api_settings
 
 aclient = AsyncClient(
     api_key=api_settings.OPENAI_API_KEY,

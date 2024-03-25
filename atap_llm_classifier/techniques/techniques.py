@@ -11,7 +11,7 @@ class TechniqueContext(BaseModel):
     paper_url: str = Field(default="", frozen=True)
 
 
-class Techniques(Enum):
+class Technique(Enum):
     CHAIN_OF_THOUGHT: TechniqueContext = TechniqueContext(
         name="Chain of Thought",
         description="",
