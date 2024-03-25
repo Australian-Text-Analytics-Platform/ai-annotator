@@ -23,7 +23,7 @@ async def a_completion(model: str, msg: str) -> ModelResponse:
 async def a_batch_completions(model: str, msgs: list[str]) -> list[ModelResponse]:
     tasks = [asyncio.create_task(a_completion(model=model, msg=msg)) for msg in msgs]
     results: list[ModelResponse]
-    results = await asyncio.gather(*tasks)
+    results = await asyncio.gather(*tasks, return_exceptions=True)
     return list(results)
 
 
