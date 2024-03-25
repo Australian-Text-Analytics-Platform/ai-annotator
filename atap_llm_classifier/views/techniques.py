@@ -14,7 +14,7 @@ class TechniquesSelectorView(Viewer):
     def __init__(self, **params):
         super().__init__(**params)
         self.selector = pn.widgets.Select(
-            name="Technique",
+            name="Select a technique:",
             options=[t.value.name for t in Technique],
         )
         self.desc = pn.widgets.StaticText(value="placeholder")
