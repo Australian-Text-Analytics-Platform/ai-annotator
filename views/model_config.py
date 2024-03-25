@@ -35,3 +35,5 @@ class ModelConfigView(object):
                 margin=(-43, -120, 50, -170),
             ),
         )
+
+    # todo: the above values should be based on the technique chosen.
