@@ -12,8 +12,8 @@ from typing import Callable
 
 from pydantic import BaseModel, Field
 
-from open_ai import list_models as open_ai_list_models
-from azure_open_ai import list_models as azure_open_ai_list_models
+from provideres.open_ai import list_models as open_ai_list_models
+from provideres.azure_open_ai import list_models as azure_open_ai_list_models
 
 _list_models_registry: dict[str, Callable[..., list[str]]] = {
     "open_ai": open_ai_list_models,
@@ -23,11 +23,11 @@ _list_models_registry: dict[str, Callable[..., list[str]]] = {
 
 class LLMProviderContext(BaseModel):
     name: str = Field(frozen=True)
-    tooltip: str = Field(frozen=True)
+    description: str = Field(frozen=True)
     models: list[str] = Field(frozen=True)
 
 
-def create_llm_context(name: str, tooltip: str, key: str) -> LLMProviderContext:
+def create_llm_context(name: str, description: str, key: str) -> LLMProviderContext:
     try:
         models: list[str] = _list_models_registry[key]()
     except KeyError as ke:
@@ -35,7 +35,7 @@ def create_llm_context(name: str, tooltip: str, key: str) -> LLMProviderContext:
 
     return LLMProviderContext(
         name=name,
-        tooltip=tooltip,
+        description=description,
         models=models,
     )
 
@@ -43,17 +43,17 @@ def create_llm_context(name: str, tooltip: str, key: str) -> LLMProviderContext:
 class LLMProvider(Enum):
     OPENAI: LLMProviderContext = create_llm_context(
         name="OpenAI",
-        tooltip="OpenAI the company.",
+        description="OpenAI the company.",
         key="open_ai",
     )
     AZURE_OPENAI: LLMProviderContext = create_llm_context(
         name="Azure OpenAI",
-        tooltip="Same as OpenAI but hosted in the Azure cloud provider.",
+        description="Same as OpenAI but hosted in the Azure cloud provider.",
         key="azure_open_ai",
     )
     # note: extend here for more providers.
 
 
-def list_llm_providers_as_str() -> list[str]:
+def list_available_llm_providers() -> list[str]:
     """List all available LLM Providers's name."""
     return list(map(lambda llmp: llmp.value.name, (llmp for llmp in LLMProvider)))
