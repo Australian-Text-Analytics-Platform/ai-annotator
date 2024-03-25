@@ -8,6 +8,7 @@ class TechniqueContext(BaseModel):
     name: str = Field(frozen=True)
     description: str = Field(frozen=True)
     explanation: str = Field(frozen=True)
+    paper_url: str = Field(default="", frozen=True)
 
 
 class Techniques(Enum):
@@ -15,9 +16,11 @@ class Techniques(Enum):
         name="Chain of Thought",
         description="",
         explanation="",
+        paper_url="https://arxiv.org/abs/2201.11903",
     )
     SELF_CONSISTENCY: TechniqueContext = TechniqueContext(
         name="Chain of Thought with Self Consistency",
         description="",
         explanation="",
+        paper_url="https://arxiv.org/abs/2203.11171",
     )
