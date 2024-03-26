@@ -9,7 +9,7 @@ class ClassifierConfigView(Viewer):
     def __init__(self, **params):
         super(ClassifierConfigView, self).__init__(**params)
         self.layout = pn.Column(
-            "## Classifier Configuration",
+            "## LLM Classifier Configuration",
             TechniquesSelectorView(),
             pn.Spacer(height=5),
             ProviderSelectorView(),
