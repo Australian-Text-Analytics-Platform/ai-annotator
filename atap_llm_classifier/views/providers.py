@@ -1,7 +1,7 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
-from atap_llm_classifier.providers.providers import LLMProvider
+from atap_llm_classifier.providers.providers import LLMProvider, validate_api_key
 
 _provider_name_to_provider: dict[str, LLMProvider] = {
     llmp.value.name: llmp for llmp in LLMProvider
@@ -19,6 +19,7 @@ class ProviderSelectorView(Viewer):
         self.desc = pn.widgets.StaticText(value="placeholder", margin=3)
         self.models = pn.widgets.StaticText(value="placeholder", margin=3)
         self.api_key = pn.widgets.PasswordInput(placeholder="placeholder", width=450)
+        self.api_key_msg = pn.widgets.StaticText(value="")
         self.layout = pn.Column(
             pn.Row(
                 self.selector,
@@ -27,13 +28,20 @@ class ProviderSelectorView(Viewer):
                     self.models,
                 ),
             ),
-            self.api_key,
+            pn.Row(
+                self.api_key,
+                self.api_key_msg,
+            ),
         )
 
         self._on_select(None)
         self.selector.param.watch(
             self._on_select,
             "value",
+        )
+        self.api_key.param.watch(
+            self._on_api_key_enter,
+            "value",  # value only changes on enter.
         )
 
     def __panel__(self) -> Viewable:
@@ -44,5 +52,15 @@ class ProviderSelectorView(Viewer):
         self.desc.value = llmp.value.description
         self.models.value = "Available Base Models: " + ", ".join(llmp.value.models)
         self.api_key.placeholder = (
-            f"Enter your {llmp.value.name} API Key here. Then press 'Enter'"
+            f"Enter your {llmp.value.name} API Key here. (Then press 'Enter')"
         )
+
+    def _on_api_key_enter(self, _):
+        api_key: str = self.api_key.value
+        if validate_api_key(
+            api_key=api_key,
+            provider=_provider_name_to_provider[self.selector.value],
+        ):
+            self.api_key_msg.value = "Valid API Key. Continuing."
+        else:
+            self.api_key_msg.value = "Invalid API Key. Please try again."

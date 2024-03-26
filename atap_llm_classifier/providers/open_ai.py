@@ -3,6 +3,7 @@ from enum import Enum
 from openai import AsyncClient
 from openai.types import Model
 
+
 # aclient = AsyncClient(
 #     api_key=api_settings.OPENAI_API_KEY,
 # )
@@ -47,4 +48,4 @@ def list_models() -> list[str]:
 
 
 def validate_api_key(key: str) -> bool:
-    pass
+    return True

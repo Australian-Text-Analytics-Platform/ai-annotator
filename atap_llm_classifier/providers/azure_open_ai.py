@@ -7,4 +7,4 @@ def list_models() -> list[str]:
 
 
 def validate_api_key(key: str) -> bool:
-    pass
+    return True
