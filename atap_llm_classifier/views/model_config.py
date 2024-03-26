@@ -1,14 +1,17 @@
 import panel as pn
+from panel.viewable import Viewer, Viewable
 
-from atap_llm_classifier.providers.providers import LLMProviderContext
+from atap_llm_classifier.providers.providers import LLMProviderContext, LLMProvider
 
 
-class ModelConfigView(object):
-    def __init__(self, llm_ctx: LLMProviderContext):
+class ModelConfigView(Viewer):
+    def __init__(self, **params):
+        llm_ctx: LLMProviderContext = params.pop("llm_ctx")
+        super(ModelConfigView, self).__init__(**params)
         self.selector = pn.widgets.Select(
             options=llm_ctx.models,
         )
-        self.mconfig = pn.Column(
+        self.layout = pn.Column(
             "## Model Configuration",
             self.selector,
             pn.widgets.TooltipIcon(
@@ -35,5 +38,8 @@ class ModelConfigView(object):
                 margin=(-43, -120, 50, -170),
             ),
         )
+
+    def __panel__(self) -> Viewable:
+        return self.layout
 
     # todo: the above values should be based on the technique chosen.

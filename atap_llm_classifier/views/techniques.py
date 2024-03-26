@@ -41,3 +41,6 @@ class TechniquesSelectorView(Viewer):
         techq: Technique = _techq_name_to_technique[self.selector.value]
         self.desc.value = techq.value.description
         self.paper_url.object = create_anchor_tag(techq.value.paper_url)
+
+    def disable(self):
+        self.selector.disabled = True
