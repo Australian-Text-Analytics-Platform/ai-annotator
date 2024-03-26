@@ -12,8 +12,8 @@ from typing import Callable
 
 from pydantic import BaseModel, Field
 
-from atap_llm_classifier.provideres.open_ai import list_models as open_ai_list_models
-from atap_llm_classifier.provideres.azure_open_ai import list_models as azure_open_ai_list_models
+from atap_llm_classifier.providers.open_ai import list_models as open_ai_list_models
+from atap_llm_classifier.providers.azure_open_ai import list_models as azure_open_ai_list_models
 
 _list_models_registry: dict[str, Callable[..., list[str]]] = {
     "open_ai": open_ai_list_models,

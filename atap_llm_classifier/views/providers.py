@@ -1,7 +1,7 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
-from atap_llm_classifier.provideres.providers import LLMProvider
+from atap_llm_classifier.providers.providers import LLMProvider
 
 _provider_name_to_provider: dict[str, LLMProvider] = {
     llmp.value.name: llmp for llmp in LLMProvider

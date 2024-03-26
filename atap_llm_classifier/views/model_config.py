@@ -1,6 +1,6 @@
 import panel as pn
 
-from atap_llm_classifier.provideres.providers import LLMProviderContext
+from atap_llm_classifier.providers.providers import LLMProviderContext
 
 
 class ModelConfigView(object):
