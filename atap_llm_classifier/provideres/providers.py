@@ -48,7 +48,7 @@ class LLMProvider(Enum):
     )
     AZURE_OPENAI: LLMProviderContext = create_llm_context(
         name="Azure OpenAI",
-        description="Same as OpenAI but hosted in the Azure cloud provider.",
+        description="Same as OpenAI but hosted in SIH's Azure Cloud.",
         key="azure_open_ai",
     )
     # note: extend here for more providers.

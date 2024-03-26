@@ -12,15 +12,14 @@ def create_anchor_tag(link: str) -> str:
 
 class TechniquesSelectorView(Viewer):
     def __init__(self, **params):
-        super().__init__(**params)
+        super(TechniquesSelectorView, self).__init__(**params)
         self.selector = pn.widgets.Select(
             name="Select a technique:",
             options=[t.value.name for t in Technique],
         )
-        self.desc = pn.widgets.StaticText(value="placeholder")
-        self.paper_url = pn.pane.HTML("placeholder")
-        self.classifier_config = pn.Column(
-            "## Classifier Configuration",
+        self.desc = pn.widgets.StaticText(value="placeholder", margin=3)
+        self.paper_url = pn.pane.HTML("placeholder", margin=3)
+        self.layout = pn.Column(
             pn.Row(
                 self.selector,
                 pn.Column(
@@ -36,7 +35,7 @@ class TechniquesSelectorView(Viewer):
         )
 
     def __panel__(self) -> Viewable:
-        return self.classifier_config
+        return self.layout
 
     def _on_select(self, _):
         techq: Technique = _techq_name_to_technique[self.selector.value]

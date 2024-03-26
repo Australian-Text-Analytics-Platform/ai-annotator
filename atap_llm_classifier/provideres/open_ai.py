@@ -3,11 +3,9 @@ from enum import Enum
 from openai import AsyncClient
 from openai.types import Model
 
-from atap_llm_classifier.config import api_settings
-
-aclient = AsyncClient(
-    api_key=api_settings.OPENAI_API_KEY,
-)
+# aclient = AsyncClient(
+#     api_key=api_settings.OPENAI_API_KEY,
+# )
 
 
 class OpenAIOwnedBy(Enum):
@@ -39,7 +37,13 @@ async def list_gpt_models(client: AsyncClient, openai_only: bool = True) -> list
 
 
 def list_models() -> list[str]:
-    pass
+    # todo: this should really be based on your provided API key.
+    return [
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-16k",
+        "gpt-4",
+        "gpt-4-32k",
+    ]
 
 
 def validate_api_key(key: str) -> bool:
