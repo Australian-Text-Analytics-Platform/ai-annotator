@@ -10,7 +10,7 @@ Provide the core functionalities of the generic LLM classifier.
 from enum import Enum
 from typing import Callable
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl, field_validator, computed_field
 
 from atap_llm_classifier.providers.open_ai import (
     list_models as open_ai_list_models,
@@ -35,11 +35,26 @@ _validate_api_key_registry: dict[str, Callable[..., bool]] = {
 class LLMProviderContext(BaseModel):
     name: str = Field(frozen=True)
     description: str = Field(frozen=True)
-    models: list[str] = Field(frozen=True)
     key: str = Field(frozen=True)
+    privacy_policy_url: HttpUrl | None = Field(default=None, frozen=True)
+
+    @field_validator("key", mode="after")
+    @classmethod
+    def key_must_be_in_registry(cls, v: str):
+        if v not in _list_models_registry.keys():
+            raise KeyError(f"{v} is not valid key for a provider.")
+        return v
+
+    @computed_field
+    def models(self) -> list[str]:
+        return _list_models_registry[self.key]()
 
 
-def create_llm_context(name: str, description: str, key: str) -> LLMProviderContext:
+def create_llm_context(
+    name: str,
+    description: str,
+    key: str,
+) -> LLMProviderContext:
     try:
         models: list[str] = _list_models_registry[key]()
     except KeyError as ke:
@@ -54,15 +69,17 @@ def create_llm_context(name: str, description: str, key: str) -> LLMProviderCont
 
 
 class LLMProvider(Enum):
-    OPENAI: LLMProviderContext = create_llm_context(
+    OPENAI: LLMProviderContext = LLMProviderContext(
         name="OpenAI",
         description="OpenAI the company.",
         key="open_ai",
+        privacy_policy_url="https://openai.com/policies/privacy-policy",
     )
-    AZURE_OPENAI: LLMProviderContext = create_llm_context(
+    AZURE_OPENAI: LLMProviderContext = LLMProviderContext(
         name="Azure OpenAI (SIH)",
         description="Same as OpenAI but hosted in SIH's Azure Cloud.",
         key="azure_open_ai",
+        privacy_policy_url=None,
     )
     # note: extend here for more providers.
 
