@@ -3,27 +3,28 @@ from panel.viewable import Viewer, Viewable
 
 from .classifier_config import ClassifierConfigView
 from .classification import create_classification_widget
+from atap_llm_classifier.providers.providers import LLMProvider
 
 
 class MainWidget(Viewer):
     def __init__(self, **params):
         super(MainWidget, self).__init__(**params)
 
-        self.classifier = ClassifierConfigView()
-        self.classifier.set_provider_valid_api_callback(
+        self.classifier_config = ClassifierConfigView()
+        self.classifier_config.set_provider_valid_api_callback(
             self.classifier_valid_api_key_callback
         )
         self.layout = pn.Column(
-            self.classifier,
+            self.classifier_config,
         )
 
     def classifier_valid_api_key_callback(self):
-        self.classifier.disable()
+        self.classifier_config.disable()
         if len(self.layout) <= 1:
             from .providers import _provider_name_to_provider
 
-            provider = _provider_name_to_provider[
-                self.classifier.provider.selector.value
+            provider: LLMProvider = _provider_name_to_provider[
+                self.classifier_config.provider.selector.value
             ]
             self.layout.append(pn.Spacer(height=10))
             self.layout.append(create_classification_widget(provider.value))
