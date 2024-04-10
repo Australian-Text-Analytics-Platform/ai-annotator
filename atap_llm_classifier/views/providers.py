@@ -66,6 +66,7 @@ class ProviderSelectorView(Viewer):
             provider=_provider_name_to_provider[self.selector.value],
         ):
             self.api_key_msg.value = "👍 Valid API Key."
+            self.api_key.disabled = True
             if self._valid_api_key_callback is not None:
                 self._valid_api_key_callback()
         else:
