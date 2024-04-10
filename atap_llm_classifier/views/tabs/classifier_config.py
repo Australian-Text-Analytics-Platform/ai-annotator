@@ -3,8 +3,8 @@ from typing import Callable
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
-from .techniques import TechniquesSelectorView
-from .providers import ProviderSelectorView
+from atap_llm_classifier.views.techniques import TechniquesSelectorView
+from atap_llm_classifier.views.providers import ProviderSelectorView
 
 
 class ClassifierConfigView(Viewer):

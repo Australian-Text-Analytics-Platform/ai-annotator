@@ -1,8 +1,8 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
-from .classifier_config import ClassifierConfigView
-from .classification import create_classification_widget
+from atap_llm_classifier.views.tabs.classifier_config import ClassifierConfigView
+from atap_llm_classifier.views.tabs.classification import create_classification_widget
 from atap_llm_classifier.providers.providers import LLMProvider
 
 

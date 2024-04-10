@@ -2,7 +2,7 @@ import panel as pn
 from panel.viewable import Viewer, Viewable
 import pandas as pd
 
-from .model_config import ModelConfigView
+from atap_llm_classifier.views.model_config import ModelConfigView
 from atap_llm_classifier.providers.providers import LLMProviderContext
 
 
