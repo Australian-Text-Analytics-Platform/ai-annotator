@@ -1,5 +1,6 @@
 from enum import Enum
 
+import openai
 from openai import AsyncClient
 from openai.types import Model
 from litellm.utils import check_valid_key
@@ -49,4 +50,8 @@ def list_models() -> list[str]:
 
 
 def validate_api_key(key: str) -> bool:
-    return check_valid_key(model="gpt-3.5-turbo", api_key=key)
+    try:
+        openai.Client(api_key=key).models.list()
+        return True
+    except openai.AuthenticationError as e:
+        return False
