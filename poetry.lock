@@ -285,13 +285,13 @@ viz = ["ipywidgets (>=7.7.2,<8.0.0)", "matplotlib (>=3.5.2,<4.0.0)", "panel (>=1
 
 [[package]]
 name = "atap-corpus-loader"
-version = "1.3.3"
+version = "1.4.0"
 description = " A GUI loader for atap_corpus using the Panel library."
 optional = false
 python-versions = "<3.12.0,>=3.10.0"
 files = [
-    {file = "atap_corpus_loader-1.3.3-py3-none-any.whl", hash = "sha256:90ce1aa56a0e9ddc1c8bc0aad657f16ea48ac167765c72b80bfb1a7814f3b09d"},
-    {file = "atap_corpus_loader-1.3.3.tar.gz", hash = "sha256:d6aa989b5991a0948dd697e700b00a47d0ba58c2a1ea16be84c0d3928a67d214"},
+    {file = "atap_corpus_loader-1.4.0-py3-none-any.whl", hash = "sha256:21aa2ae9042338cb3467c7a28aea6e6f88f74d1e4d5aeb3ccc650fdf175babed"},
+    {file = "atap_corpus_loader-1.4.0.tar.gz", hash = "sha256:1eee8165e3c26250efac4aa4ccf32f7326ef259104e5be900b2ecad572188cca"},
 ]
 
 [package.dependencies]
