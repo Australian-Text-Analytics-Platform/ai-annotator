@@ -2,12 +2,9 @@ import panel as pn
 from panel.viewable import Viewer, Viewable
 
 from atap_llm_classifier.techniques.techniques import Technique
+from .utils import create_anchor_tag
 
 _techq_name_to_technique: dict[str, Technique] = {t.value.name: t for t in Technique}
-
-
-def create_anchor_tag(link: str) -> str:
-    return f"<a href={link} target='_blank'>Open link to associated paper🔗</a>"
 
 
 class TechniquesSelectorView(Viewer):
@@ -40,7 +37,9 @@ class TechniquesSelectorView(Viewer):
     def _on_select(self, _):
         techq: Technique = _techq_name_to_technique[self.selector.value]
         self.desc.value = techq.value.description
-        self.paper_url.object = create_anchor_tag(techq.value.paper_url)
+        self.paper_url.object = create_anchor_tag(
+            techq.value.paper_url, "Open link to associated paper🔗"
+        )
 
     def disable(self):
         self.selector.disabled = True

@@ -4,10 +4,15 @@ import panel as pn
 from panel.viewable import Viewer, Viewable
 
 from atap_llm_classifier.providers.providers import LLMProvider, validate_api_key
+from .utils import create_anchor_tag
 
 _provider_name_to_provider: dict[str, LLMProvider] = {
     llmp.value.name: llmp for llmp in LLMProvider
 }
+
+NO_PRIVACY_POLICY_URL_MSG: str = (
+    "Sorry! No Privacy Policy link currently provided. Please search for it."
+)
 
 
 class ProviderSelectorView(Viewer):
@@ -18,8 +23,9 @@ class ProviderSelectorView(Viewer):
             options=[llmp.value.name for llmp in LLMProvider],
         )
 
-        self.desc = pn.widgets.StaticText(value="placeholder", margin=3)
-        self.models = pn.widgets.StaticText(value="placeholder", margin=3)
+        self.desc = pn.widgets.StaticText(value="placeholder", margin=2)
+        self.models = pn.widgets.StaticText(value="placeholder", margin=2)
+        self.privacy_policy = pn.pane.HTML("placeholder", margin=2)
         self.api_key = pn.widgets.PasswordInput(placeholder="placeholder", width=450)
         self.api_key_msg = pn.widgets.StaticText(value="👈 Lock it in.")
         self.layout = pn.Column(
@@ -28,12 +34,10 @@ class ProviderSelectorView(Viewer):
                 pn.Column(
                     self.desc,
                     self.models,
+                    self.privacy_policy,
                 ),
             ),
-            pn.Row(
-                self.api_key,
-                self.api_key_msg,
-            ),
+            pn.Row(self.api_key, self.api_key_msg),
         )
 
         self._on_select(None)
@@ -55,6 +59,13 @@ class ProviderSelectorView(Viewer):
         llmp: LLMProvider = _provider_name_to_provider[self.selector.value]
         self.desc.value = llmp.value.description
         self.models.value = "Available Base Models: " + ", ".join(llmp.value.models)
+        if llmp.value.privacy_policy_url is not None:
+            self.privacy_policy.object = create_anchor_tag(
+                llmp.value.privacy_policy_url, "Open link to privacy policy🔗"
+            )
+        else:
+            self.privacy_policy.object = f"<span style='color: red; font-weight: bold'>{NO_PRIVACY_POLICY_URL_MSG}</span>"
+
         self.api_key.placeholder = (
             f"Enter your {llmp.value.name} API Key here. (Then press 'Enter')"
         )
