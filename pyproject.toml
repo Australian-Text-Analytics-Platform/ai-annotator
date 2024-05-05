@@ -32,25 +32,3 @@ atapllmc = "atap_llm_classifier.cli:main"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.ruff]
-include = ["**/*.py", "**/pyproject.toml"]
-exclude = [
-    ".venv",
-    ".ruff_cache",
-    "**/site-packages",
-    ".git",
-]
-line-length = 88    # same as black
-indent-width = 4 # same as black
-
-[tool.ruff.lint]
-ignore = [
-    "F841", # allow unused variable
-    "F401", # allow unused imports
-]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "auto"
