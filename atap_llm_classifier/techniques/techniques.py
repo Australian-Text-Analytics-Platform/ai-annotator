@@ -3,6 +3,8 @@
 from enum import Enum
 from pydantic import BaseModel, Field
 
+from atap_llm_classifier.assets import Asset
+
 
 class TechniqueContext(BaseModel):
     name: str = Field(frozen=True)
@@ -12,15 +14,10 @@ class TechniqueContext(BaseModel):
 
 
 class Technique(Enum):
-    CHAIN_OF_THOUGHT: TechniqueContext = TechniqueContext(
-        name="Chain of Thought",
-        description="Use a series of intermediate reasoning steps to guide the LLM.",
-        explanation="",
-        paper_url="https://arxiv.org/abs/2201.11903",
-    )
-    SELF_CONSISTENCY: TechniqueContext = TechniqueContext(
-        name="Chain of Thought with Self Consistency",
-        description="Use a series of intermediate reasoning steps to guide the LLM and use majority vote of the multiple LLM outputs.",
-        explanation="",
-        paper_url="https://arxiv.org/abs/2203.11171",
-    )
+    CHAIN_OF_THOUGHT: str = "chain_of_thought"
+
+    def get_context(self):
+        match self:
+            case Technique.CHAIN_OF_THOUGHT:
+                ctx: dict = Asset.TECHNIQUES.get(self.value)
+                return TechniqueContext(**ctx)

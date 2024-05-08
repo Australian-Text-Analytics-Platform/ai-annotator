@@ -3,14 +3,13 @@
 from functools import lru_cache
 from io import IOBase
 from pathlib import Path
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Any
 from enum import Enum
 
 import yaml
 from pydantic import BaseModel
 
-from .techniques.techniques import TechniqueContext
-from .modifiers.modifiers import ModifierContext
+__all__ = ["Asset"]
 
 
 class Asset(Enum):
@@ -24,35 +23,14 @@ class Asset(Enum):
             case Asset.MODIFIERS:
                 return asset_dir / "modifiers.yml"
 
+    def get(self, key: str) -> dict:
+        return load_asset(self)[key]
+
 
 @lru_cache(maxsize=len(Asset))
 def load_asset(asset: Asset) -> dict:
     with open(asset.get_path(), "r", encoding="utf-8") as h:
         return yaml.safe_load(h)
-
-
-@lru_cache()
-def get_modifiers_asset(
-    key: str,
-    **overrides: dict,
-) -> ModifierContext:
-    data: dict = load_asset(Asset.MODIFIERS)
-    datum = data[key]
-    for k, v in overrides.items():
-        datum[k] = v
-    return ModifierContext(**datum)
-
-
-@lru_cache()
-def get_techniques_asset(
-    key: str,
-    **overrides: dict,
-) -> TechniqueContext:
-    data: dict = load_asset(Asset.TECHNIQUES)
-    datum = data[key]
-    for k, v in overrides.items():
-        datum[k] = v
-    return TechniqueContext(**datum)
 
 
 # Below unused: kept for now.

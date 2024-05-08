@@ -1,5 +1,5 @@
 self_consistency:
-  name: "Chain of Thought with Self Consistency"
+  name: "Self Consistency"
   description: "Ask LLM to generate multiple outputs and use the majority vote."
   explanation: ""
   paper_url: "https://arxiv.org/abs/2203.11171"

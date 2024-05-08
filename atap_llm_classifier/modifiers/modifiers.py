@@ -5,6 +5,8 @@ from functools import lru_cache
 
 from pydantic import BaseModel, Field
 
+from atap_llm_classifier.assets import Asset
+
 
 class Order(Enum):
     PRE: str = "applied before classification"
@@ -20,18 +22,12 @@ class ModifierContext(BaseModel):
 
 
 class Modifier(Enum):
-    SELF_CONSISTENCY: str = "self-consistency"
+    SELF_CONSISTENCY: str = "self_consistency"
 
     @lru_cache()
     def get_context(self) -> ModifierContext:
         match self:
             case Modifier.SELF_CONSISTENCY:
-                return ModifierContext(
-                    name="Chain of Thought with Self Consistency",
-                    description="Ask LLM to generate multiple outputs and use the majority vote.",
-                    explanation="",
-                    paper_url="https://arxiv.org/abs/2203.11171",
-                    order=Order.POST,
-                )
-            case _:
-                raise RuntimeError("Not a valid modifier. This should not happen.")
+                ctx: dict = Asset.MODIFIERS.get(self.value)
+                ctx["order"] = Order.POST
+                return ModifierContext(**ctx)
