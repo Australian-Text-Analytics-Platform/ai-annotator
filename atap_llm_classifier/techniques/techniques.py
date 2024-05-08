@@ -5,6 +5,10 @@ from pydantic import BaseModel, Field
 
 from atap_llm_classifier.assets import Asset
 
+__all__ = [
+    "Technique",
+]
+
 
 class TechniqueContext(BaseModel):
     name: str = Field(frozen=True)

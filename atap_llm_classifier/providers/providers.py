@@ -21,6 +21,10 @@ from atap_llm_classifier.providers.azure_open_ai import (
     validate_api_key as azure_open_ai_validate_api_key,
 )
 
+__all__ = [
+    "LLMProvider",
+]
+
 _list_models_registry: dict[str, Callable[..., list[str]]] = {
     "open_ai": open_ai_list_models,
     "azure_open_ai": azure_open_ai_list_models,

@@ -7,6 +7,10 @@ from pydantic import BaseModel, Field
 
 from atap_llm_classifier.assets import Asset
 
+__all__ = [
+    "Modifier",
+]
+
 
 class Order(Enum):
     PRE: str = "applied before classification"
