@@ -16,6 +16,7 @@ pydantic-settings = "^2.2.1"
 ipykernel = "^6.29.3"
 litellm = "^1.33.1"
 atap-corpus-loader = "1.4.0"
+loguru = "^0.7.2"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.1.1"
