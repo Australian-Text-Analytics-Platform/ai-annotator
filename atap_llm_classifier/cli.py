@@ -1,7 +1,7 @@
 import functools
 import typer
 
-from atap_llm_classifier.litellm_utils import pretty_print_model_list
+from atap_llm_classifier.utils.litellm_ import pretty_print_model_list
 
 # subcommand: litellm
 
