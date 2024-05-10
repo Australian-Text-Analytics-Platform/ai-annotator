@@ -4,8 +4,10 @@ Defines the steps of the classification pipeline.
 """
 
 import asyncio
+from asyncio import Future
 from enum import Enum
 
+import litellm
 from pydantic import BaseModel, Field
 from loguru import logger
 
@@ -47,6 +49,13 @@ class Results(BaseModel):
     pass
 
 
+litellm.set_verbose = False
+
+MODEL = "ollama_chat/llama3"
+API_BASE = "http://localhost:11434"
+NUM_MESSAGES = 10
+
+
 @timeit
 def run_batch(
     corpus: Corpus,
@@ -54,14 +63,18 @@ def run_batch(
     modifier: Modifier | None = None,
 ) -> Results:
     # expects corpus is loaded.
-    messages = [[{"role": "user", "content": "good morning? "}] * 10_000]
-    res = batch_completion(
-        model="gpt-3.5-turbo",
+    message = {"role": "user", "content": "good morning? "}
+    messages = [[message]] * NUM_MESSAGES
+    results = batch_completion(
+        model=MODEL,
+        api_base=API_BASE,
         messages=messages,
-        mock_response="a mock response.",
+        # mock_response="a mock response.",
         stream=False,
     )
-    logger.info(res)
+
+    for res in results:
+        logger.info(res)
     return Results()
 
 
@@ -71,18 +84,23 @@ async def a_run_batch(
     modifier: Modifier | None = None,
 ) -> Results:
     # expects corpus is loaded.
-    messages = [[{"role": "user", "content": "good morning? "}] * 10_000]
+    message = {"role": "user", "content": "good morning? "}
+    messages = [[message]] * NUM_MESSAGES
 
     tasks = [
         asyncio.create_task(
             acompletion(
-                model="gpt-3.5-turbo", messages=msg, mock_response="mock response"
+                model=MODEL,
+                api_base=API_BASE,
+                messages=msg,
             )
         )
         for msg in messages
     ]
 
-    await asyncio.gather(*tasks)
+    results: tuple[Future] = await asyncio.gather(*tasks)
+    for res in results:
+        logger.info(res)
     return Results()
 
 
@@ -97,5 +115,7 @@ if __name__ == "__main__":
         Technique.CHAIN_OF_THOUGHT,
         Modifier.SELF_CONSISTENCY,
     )
+    start_a_run_batch(*args)
     run_batch(*args)
     start_a_run_batch(*args)
+    run_batch(*args)
