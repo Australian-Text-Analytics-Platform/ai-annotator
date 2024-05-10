@@ -1,0 +1,9 @@
+openai:
+  name: "OpenAI"
+  description: "OpenAI the company"
+  privacy_policy_url: "https://openai.com/policies/privacy-policy"
+
+openai_azure_sih:
+  name: "OpenAI Azure (SIH)"
+  description: "Same as OpenAI via an Azure proxy geolocated in Sydney."
+  privacy_policy_url: "https://openai.com/policies/privacy-policy"

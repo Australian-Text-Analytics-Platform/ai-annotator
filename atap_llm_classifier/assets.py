@@ -1,9 +1,10 @@
 """utils.py"""
 
+from datetime import datetime
 from functools import lru_cache
 from io import IOBase
 from pathlib import Path
-from typing import TypeVar, Type, Any
+from typing import TypeVar, Type
 from enum import Enum
 
 import yaml
@@ -15,6 +16,7 @@ __all__ = ["Asset"]
 class Asset(Enum):
     TECHNIQUES: str = "techniques"
     MODIFIERS: str = "modifiers"
+    PROVIDERS: str = "providers"
 
     def get_path(self) -> Path:
         match self:
@@ -22,6 +24,8 @@ class Asset(Enum):
                 return asset_dir / "techniques.yml"
             case Asset.MODIFIERS:
                 return asset_dir / "modifiers.yml"
+            case Asset.PROVIDERS:
+                return asset_dir / "providers.yml"
 
     def get(self, key: str) -> dict:
         return load_asset(self)[key]
@@ -31,6 +35,12 @@ class Asset(Enum):
 def load_asset(asset: Asset) -> dict:
     with open(asset.get_path(), "r", encoding="utf-8") as h:
         return yaml.safe_load(h)
+
+
+def _last_update(path: Path) -> datetime:
+    # todo: get the last update of file from git commit, for info related to say...
+    #   why choose this model?
+    pass
 
 
 # Below unused: kept for now.
