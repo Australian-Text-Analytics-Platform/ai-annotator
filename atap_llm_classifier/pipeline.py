@@ -12,13 +12,11 @@ from pydantic import BaseModel, Field
 from loguru import logger
 
 from litellm import batch_completion, completion, acompletion
-from litellm import batch_completion_models_all_responses
 
 from atap_corpus import Corpus
 from atap_corpus._types import Doc
 from atap_llm_classifier.techniques import Technique
 from atap_llm_classifier.modifiers import Modifier
-from atap_llm_classifier.providers import LLMProvider
 
 __all__ = [
     "run_batch",
@@ -56,6 +54,43 @@ API_BASE = "http://localhost:11434"
 NUM_MESSAGES = 10
 
 
+async def a_run_batch(
+    corpus: Corpus,
+    technique: Technique,
+    modifier: Modifier | None = None,
+) -> Results:
+    # expects corpus is loaded.
+    message = {"role": "user", "content": "good morning? "}
+    messages = [[message]] * NUM_MESSAGES
+    # technique.modify_prompt(corpus.docs())
+
+    # modifier to modify ModelArgs
+
+    tasks = [
+        asyncio.create_task(
+            acompletion(
+                model=MODEL,
+                api_base=API_BASE,
+                messages=msg,
+                mock_response="mock response",
+            )
+        )
+        for msg in messages
+    ]
+
+    # modifiers need to modify the result classifications
+
+    results: tuple[Future] = await asyncio.gather(*tasks)
+    for res in results:
+        logger.info(res)
+    return Results()
+
+
+@timeit
+def start_a_run_batch(*args, **kwargs):
+    _ = asyncio.run(a_run_batch(*args, **kwargs))
+
+
 @timeit
 def run_batch(
     corpus: Corpus,
@@ -78,37 +113,6 @@ def run_batch(
     return Results()
 
 
-async def a_run_batch(
-    corpus: Corpus,
-    technique: Technique,
-    modifier: Modifier | None = None,
-) -> Results:
-    # expects corpus is loaded.
-    message = {"role": "user", "content": "good morning? "}
-    messages = [[message]] * NUM_MESSAGES
-
-    tasks = [
-        asyncio.create_task(
-            acompletion(
-                model=MODEL,
-                api_base=API_BASE,
-                messages=msg,
-            )
-        )
-        for msg in messages
-    ]
-
-    results: tuple[Future] = await asyncio.gather(*tasks)
-    for res in results:
-        logger.info(res)
-    return Results()
-
-
-@timeit
-def start_a_run_batch(*args, **kwargs):
-    _ = asyncio.run(a_run_batch(*args, **kwargs))
-
-
 if __name__ == "__main__":
     args = (
         Corpus(["text"]),
@@ -118,4 +122,3 @@ if __name__ == "__main__":
     start_a_run_batch(*args)
     run_batch(*args)
     start_a_run_batch(*args)
-    run_batch(*args)

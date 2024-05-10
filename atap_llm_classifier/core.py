@@ -5,31 +5,29 @@ This depends heavily on the litellm package.
 Provide the functions to call the LLM.
 """
 
-import asyncio
+from pydantic import BaseModel
 
-from litellm import acompletion, ModelResponse
+from atap_corpus import Corpus
 
-
-def create_litellm_msg(msg: str) -> list[dict]:
-    return [{"content": msg, "role": "user"}]
-
-
-async def a_completion(model: str, msg: str) -> ModelResponse:
-    messages = create_litellm_msg(msg)
-    res = await acompletion(model=model, messages=messages)
-    return res
+from atap_llm_classifier.modifiers import Modifier
+from atap_llm_classifier.techniques import Technique
 
 
-async def a_batch_completions(model: str, msgs: list[str]) -> list[ModelResponse]:
-    tasks = [asyncio.create_task(a_completion(model=model, msg=msg)) for msg in msgs]
-    results: list[ModelResponse]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-    return list(results)
+class LLMArgs(BaseModel):
+    model: str
+    temperature: float = 1.0
+    top_p: float = 1.0
+    n_completions: int = 1
 
 
-def batch_completions(
-    model: str,
-    msgs: list[str],
-) -> list[ModelResponse]:
-    results = asyncio.run(a_batch_completions(model, msgs))
-    return results
+async def a_batch_classify(
+    corpus: Corpus,
+    result_col: str,
+    llm_args: LLMArgs,
+    technique: Technique,
+    modifier: Modifier,
+):
+    pass
+    # todo: modifier patterns below:
+    # modifier -> apply_preconditions(llm_args)
+    # modifier -> post_classification_callback(results)
