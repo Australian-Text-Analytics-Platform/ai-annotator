@@ -14,7 +14,7 @@ __all__ = ["Technique", "BaseTechnique"]
 
 class BaseTechnique(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def apply_to_prompt(self, prompt: str) -> str:
+    def make_prompt(self, text: str) -> str:
         raise NotImplementedError()
 
 
