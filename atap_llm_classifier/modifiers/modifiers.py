@@ -36,7 +36,7 @@ class BaseModifier(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def post(
         self,
-        completed: ModelResponse,
+        response: ModelResponse,
     ) -> str:
         raise NotImplementedError()
 
@@ -53,8 +53,8 @@ class NoModifier(BaseModifier):
         llm_config.n_completions = 1
         return prompt, llm_config
 
-    def post(self, completed: ModelResponse) -> str:
-        return completed.choices[0].message.content
+    def post(self, response: ModelResponse) -> str:
+        return response.choices[0].message.content
 
 
 class Order(Enum):

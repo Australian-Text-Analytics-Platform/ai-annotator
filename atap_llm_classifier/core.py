@@ -31,6 +31,7 @@ class Result(BaseModel):
     text: str
     classification: str
     prompt: str
+    response: ModelResponse
 
 
 async def a_classify(
@@ -47,8 +48,13 @@ async def a_classify(
     msg = LiteLLMMessage(content=prompt, role=LiteLLMRole.USER)
     args = LiteLLMArgs(model=model, messages=[msg], stream=False)
 
-    completed: ModelResponse = await acompletion(**args.to_fn_args())
+    response: ModelResponse = await acompletion(**args.to_fn_args())
 
-    classification: str = modifier.post(completed=completed)
+    classification: str = modifier.post(response=response)
 
-    return Result(text=text, classification=classification, prompt=prompt)
+    return Result(
+        text=text,
+        classification=classification,
+        prompt=prompt,
+        response=response,
+    )
