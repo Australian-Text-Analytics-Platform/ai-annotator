@@ -45,7 +45,6 @@ def run(
 
 async def a_run(
     corpus: Corpus,
-    provider: LLMProvider,
     technique: Technique | None = None,
     modifier: Modifier | None = None,
 ):
