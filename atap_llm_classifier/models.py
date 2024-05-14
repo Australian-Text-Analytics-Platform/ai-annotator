@@ -27,7 +27,7 @@ class LiteLLMArgs(BaseModel):
     model: str
     messages: list[LiteLLMMessage]
     stream: bool = False
-    temperature: str
+    temperature: float
     top_p: float
     n: int
     api_key: str

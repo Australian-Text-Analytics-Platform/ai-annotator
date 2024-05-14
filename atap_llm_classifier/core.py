@@ -26,6 +26,8 @@ from atap_llm_classifier.models import (
     LiteLLMRole,
 )
 
+__all__ = ["a_classify", "Result"]
+
 
 class Result(BaseModel):
     text: str
@@ -46,9 +48,18 @@ async def a_classify(
 
     # preconditions: technique, modifier applied to prompt and llm configs.
     msg = LiteLLMMessage(content=prompt, role=LiteLLMRole.USER)
-    args = LiteLLMArgs(model=model, messages=[msg], stream=False)
-
-    response: ModelResponse = await acompletion(**args.to_fn_args())
+    response: ModelResponse = await acompletion(
+        **LiteLLMArgs(
+            model=model,
+            messages=[msg],
+            stream=False,
+            temperature=llm_config.temperature,
+            top_p=llm_config.top_p,
+            n=llm_config.n_completions,
+            api_key="",
+        ).to_fn_args(),
+        mock_response="a mock response.",
+    )
 
     classification: str = modifier.post(response=response)
 
