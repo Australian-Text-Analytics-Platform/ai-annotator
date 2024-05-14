@@ -9,13 +9,18 @@ from pydantic import BaseModel, Field
 
 from atap_llm_classifier.assets import Asset
 
-__all__ = ["Technique", "BaseTechnique"]
+__all__ = ["Technique", "BaseTechnique", "NoTechnique"]
 
 
 class BaseTechnique(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def make_prompt(self, text: str) -> str:
         raise NotImplementedError()
+
+
+class NoTechnique(BaseTechnique):
+    def make_prompt(self, text: str) -> str:
+        return text
 
 
 class TechniqueProperties(BaseModel):
