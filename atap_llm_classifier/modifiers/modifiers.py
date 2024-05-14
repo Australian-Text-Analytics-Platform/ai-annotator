@@ -15,7 +15,6 @@ from atap_llm_classifier.models import (
     LiteLLMMessage,
     LiteLLMArgs,
     LiteLLMRole,
-    Result,
 )
 
 __all__ = [
