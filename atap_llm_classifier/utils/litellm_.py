@@ -1,9 +1,21 @@
+from functools import lru_cache
+
 import pandas as pd
 from litellm import model_cost
 
+__all__ = [
+    "get_available_models",
+    "pretty_print_model_list",
+]
+
+
+@lru_cache()
+def load_model_cost_as_df() -> pd.DataFrame:
+    return pd.DataFrame.from_dict(model_cost, orient="index")
+
 
 def pretty_print_model_list(html: bool = False):
-    df = pd.DataFrame.from_dict(model_cost, orient="index")
+    df = load_model_cost_as_df()
     df.sort_values(by="litellm_provider", inplace=True)
 
     df = df[df["mode"].isin(["chat", "completion", "embedding"])]
@@ -31,3 +43,15 @@ def pretty_print_model_list(html: bool = False):
         print(df.reset_index().rename(columns={"index": "model"}).to_html(index=False))
     else:
         print(df)
+
+
+def get_available_models(provider: str) -> list[str]:
+    df = load_model_cost_as_df()
+    mask = df["litellm_provider"] == provider
+    mask = df["mode"].isin(["chat", "completion"]) & mask
+    return df[mask].index.tolist()
+
+
+def get_context_window(model: str) -> int:
+    df = load_model_cost_as_df()
+    return int(df.loc[model, "max_input_tokens"])
