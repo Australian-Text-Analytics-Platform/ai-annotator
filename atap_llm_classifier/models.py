@@ -1,9 +1,9 @@
 import enum
 import json
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 
-class LLMModelConfig(BaseModel):
+class LLMConfig(BaseModel):
     temperature: float = 1.0
     top_p: float = 1.0
     n_completions: int = Field(1, gt=0)

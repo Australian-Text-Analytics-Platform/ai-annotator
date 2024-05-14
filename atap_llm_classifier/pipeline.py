@@ -14,7 +14,7 @@ from atap_corpus._types import Docs
 from pydantic import BaseModel, SecretStr
 
 from atap_llm_classifier import core
-from atap_llm_classifier.core import LLMModelConfig
+from atap_llm_classifier.core import LLMConfig
 from atap_llm_classifier.modifiers import Modifier, NoModifier, BaseModifier
 from atap_llm_classifier.providers import LLMProvider
 from atap_llm_classifier.techniques import Technique, NoTechnique, BaseTechnique
@@ -78,7 +78,7 @@ async def a_run(
                 text=str(doc),
                 model=model,
                 api_key=api_key,
-                llm_config=LLMModelConfig(),
+                llm_config=LLMConfig(),
                 technique=technique,
                 modifier=modifier,
             )

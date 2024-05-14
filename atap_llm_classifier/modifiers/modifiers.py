@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.models import (
-    LLMModelConfig,
+    LLMConfig,
     LiteLLMMessage,
     LiteLLMArgs,
     LiteLLMRole,
@@ -29,8 +29,8 @@ class BaseModifier(metaclass=abc.ABCMeta):
     def pre(
         self,
         prompt: str,
-        llm_config: LLMModelConfig,
-    ) -> tuple[str, LLMModelConfig]:
+        llm_config: LLMConfig,
+    ) -> tuple[str, LLMConfig]:
         return prompt, llm_config
 
     @abc.abstractmethod
@@ -43,8 +43,8 @@ class BaseModifier(metaclass=abc.ABCMeta):
 
 class NoModifier(BaseModifier):
     def pre(
-        self, prompt: str, llm_config: LLMModelConfig
-    ) -> tuple[str, LLMModelConfig]:
+        self, prompt: str, llm_config: LLMConfig
+    ) -> tuple[str, LLMConfig]:
         n = llm_config.n_completions
         if n != 1:
             logger.warning(

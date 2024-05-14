@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from atap_llm_classifier.modifiers import BaseModifier, NoModifier
 from atap_llm_classifier.techniques import BaseTechnique
 from atap_llm_classifier.models import (
-    LLMModelConfig,
+    LLMConfig,
     LiteLLMMessage,
     LiteLLMArgs,
     LiteLLMRole,
@@ -40,7 +40,7 @@ async def a_classify(
     text: str,
     model: str,
     api_key: str,
-    llm_config: LLMModelConfig,
+    llm_config: LLMConfig,
     technique: BaseTechnique,
     modifier: BaseModifier,
 ) -> Result:
