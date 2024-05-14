@@ -39,6 +39,7 @@ class Result(BaseModel):
 async def a_classify(
     text: str,
     model: str,
+    api_key: str,
     llm_config: LLMModelConfig,
     technique: BaseTechnique,
     modifier: BaseModifier,
@@ -56,7 +57,7 @@ async def a_classify(
             temperature=llm_config.temperature,
             top_p=llm_config.top_p,
             n=llm_config.n_completions,
-            api_key="",
+            api_key=api_key,
         ).to_fn_args(),
         mock_response="a mock response.",
     )
