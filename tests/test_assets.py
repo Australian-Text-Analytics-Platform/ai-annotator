@@ -10,5 +10,5 @@ def test_modifier_assets_all_exist_and_valid():
 
 def test_technique_assets_all_exist_and_valid():
     for technique in Technique:
-        props = technique.get_context()
+        props = technique.get_properties()
     # pass if no exceptions raised.
