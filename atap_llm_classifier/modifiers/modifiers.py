@@ -1,15 +1,61 @@
 """Prompting Modifiers"""
 
+import abc
 from enum import Enum
-from functools import lru_cache
+from functools import lru_cache, singledispatchmethod
+from typing import Any
 
+from litellm import ModelResponse
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from atap_llm_classifier.assets import Asset
+from atap_llm_classifier.models import (
+    LLMModelConfig,
+    LiteLLMMessage,
+    LiteLLMArgs,
+    LiteLLMRole,
+    Result,
+)
 
 __all__ = [
     "Modifier",
+    "BaseModifier",
+    "NoModifier",
 ]
+
+
+class BaseModifier(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def pre(
+        self,
+        prompt: str,
+        llm_config: LLMModelConfig,
+    ) -> tuple[str, LLMModelConfig]:
+        return prompt, llm_config
+
+    @abc.abstractmethod
+    def post(
+        self,
+        completed: ModelResponse,
+    ) -> str:
+        raise NotImplementedError()
+
+
+class NoModifier(BaseModifier):
+    def pre(
+        self, prompt: str, llm_config: LLMModelConfig
+    ) -> tuple[str, LLMModelConfig]:
+        n = llm_config.n_completions
+        if n != 1:
+            logger.warning(
+                f"Using modifier: {self.__class__.__name__}. Setting number of completions from {n} to 1."
+            )
+        llm_config.n_completions = 1
+        return prompt, llm_config
+
+    def post(self, completed: ModelResponse) -> str:
+        return completed.choices[0].message.content
 
 
 class Order(Enum):

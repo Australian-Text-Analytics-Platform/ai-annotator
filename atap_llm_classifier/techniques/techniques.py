@@ -1,5 +1,7 @@
 """Prompting Techniques"""
 
+import abc
+from abc import ABCMeta
 from enum import Enum
 from functools import lru_cache
 
@@ -7,9 +9,13 @@ from pydantic import BaseModel, Field
 
 from atap_llm_classifier.assets import Asset
 
-__all__ = [
-    "Technique",
-]
+__all__ = ["Technique", "BaseTechnique"]
+
+
+class BaseTechnique(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def apply_to_prompt(self, prompt: str) -> str:
+        raise NotImplementedError()
 
 
 class TechniqueProperties(BaseModel):
@@ -23,8 +29,11 @@ class Technique(Enum):
     CHAIN_OF_THOUGHT: str = "chain_of_thought"
 
     @lru_cache
-    def get_properties(self):
+    def get_properties(self) -> TechniqueProperties:
         match self:
             case Technique.CHAIN_OF_THOUGHT:
                 ctx: dict = Asset.TECHNIQUES.get(self.value)
                 return TechniqueProperties(**ctx)
+
+    def get(self) -> BaseTechnique:
+        pass
