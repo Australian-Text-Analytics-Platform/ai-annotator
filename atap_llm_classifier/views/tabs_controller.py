@@ -3,7 +3,7 @@ from panel.viewable import Viewer, Viewable
 import pandas as pd
 
 from atap_llm_classifier.views.model_config import ModelConfigView
-from atap_llm_classifier.providers.providers import LLMProviderContext
+from atap_llm_classifier.providers.providers import LLMProviderProperties
 
 
 class ClassificationWidget(Viewer):
@@ -88,5 +88,5 @@ class ClassificationWidget(Viewer):
         return self.layout
 
 
-def create_classification_widget(llm_ctx: LLMProviderContext) -> ClassificationWidget:
+def create_classification_widget(llm_ctx: LLMProviderProperties) -> ClassificationWidget:
     return ClassificationWidget(llm_ctx=llm_ctx)

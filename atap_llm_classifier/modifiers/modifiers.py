@@ -17,7 +17,7 @@ class Order(Enum):
     POST: str = "applied after classification"
 
 
-class ModifierContext(BaseModel):
+class ModifierProperties(BaseModel):
     name: str = Field(frozen=True)
     description: str = Field(frozen=True)
     explanation: str = Field(frozen=True)
@@ -29,9 +29,9 @@ class Modifier(Enum):
     SELF_CONSISTENCY: str = "self_consistency"
 
     @lru_cache()
-    def get_context(self) -> ModifierContext:
+    def get_properties(self) -> ModifierProperties:
         match self:
             case Modifier.SELF_CONSISTENCY:
                 ctx: dict = Asset.MODIFIERS.get(self.value)
                 ctx["order"] = Order.POST
-                return ModifierContext(**ctx)
+                return ModifierProperties(**ctx)

@@ -1,12 +1,12 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
-from atap_llm_classifier.providers.providers import LLMProviderContext, LLMProvider
+from atap_llm_classifier.providers.providers import LLMProviderProperties, LLMProvider
 
 
 class ModelConfigView(Viewer):
     def __init__(self, **params):
-        llm_ctx: LLMProviderContext = params.pop("llm_ctx")
+        llm_ctx: LLMProviderProperties = params.pop("llm_ctx")
         super(ModelConfigView, self).__init__(**params)
         self.selector = pn.widgets.Select(
             options=llm_ctx.models,
