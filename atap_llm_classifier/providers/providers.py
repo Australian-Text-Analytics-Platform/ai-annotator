@@ -2,6 +2,7 @@
 
 from enum import Enum
 from functools import lru_cache, cached_property
+import re
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -33,23 +34,32 @@ class LLMProvider(Enum):
     @cached_property
     def properties(self):
         match self:
-            case LLMProvider.OPENAI:
-                props = Asset.PROVIDERS.get(self.value)
-                available = litellm_utils.get_available_models(self.value)
-                models = set(props.get("models").keys()).union(set(available))
-                for model in models:
-                    props["models"][model] = props["models"].get(
-                        model, dict()
-                    )
-                    props["models"][model]["context_window"] = (
-                        litellm_utils.get_context_window(model)
-                    )
-                return LLMProviderProperties(**props)
             case LLMProvider.OPENAI_AZURE_SIH:
                 return LLMProviderProperties(
                     **Asset.PROVIDERS.get(self.value),
                     models=dict(),
                 )
+            case _:
+                props = Asset.PROVIDERS.get(self.value)
+                available = litellm_utils.get_available_models(self.value)
+                model_regex_ptns: list[re.Pattern] = [
+                    re.compile(ptn) for ptn in props.get("models")
+                ]
+                models = dict()
+                for model_key in available:
+                    models[model_key] = dict()
+                    models[model_key]["context_window"] = (
+                        litellm_utils.get_context_window(model_key)
+                    )
+                    models[model_key]["description"] = None
+                    for pattern in model_regex_ptns:
+                        if pattern.match(model_key) is not None:
+                            models[model_key]["description"] = props.get("models").get(
+                                "description"
+                            )
+                            break
+                props["models"] = models
+                return LLMProviderProperties(**props)
 
 
 def validate_api_key(

@@ -3,7 +3,7 @@ openai:
   description: "OpenAI the company"
   privacy_policy_url: "https://openai.com/policies/privacy-policy"
   models:
-    gpt-3.5-turbo:
+    .*gpt-3.5-turbo.*:
       description: "This is the weaker but cheapest model from OpenAI."
 
 
