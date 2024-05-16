@@ -15,6 +15,8 @@ class ModelConfigView(Viewer):
         model_props = provider.properties.models
         self.selector = pn.widgets.Select(
             options=sorted(model_props),
+            width=250,
+            max_width=250,
         )
         model_info = pn.bind(
             lambda selected: pn.pane.Markdown(f"""
@@ -32,7 +34,7 @@ class ModelConfigView(Viewer):
             self.selector,
             pn.widgets.TooltipIcon(
                 value=asset.get("select_model_tooltip"),
-                margin=(-33, -500, 20, -170),
+                margin=(-33, -450, 20, -170),
             ),
             model_info,
             pn.widgets.FloatSlider(
@@ -45,7 +47,7 @@ class ModelConfigView(Viewer):
             ),
             pn.widgets.TooltipIcon(
                 value=asset.get("top_p_tooltip"),
-                margin=(-43, -40, 30, -170),
+                margin=(-43, -450, 30, -170),
             ),
             pn.widgets.FloatSlider(
                 name=asset.get("temperature_title"),
@@ -57,7 +59,7 @@ class ModelConfigView(Viewer):
             ),
             pn.widgets.TooltipIcon(
                 value=asset.get("temperature_tooltip"),
-                margin=(-43, -120, 50, -170),
+                margin=(-43, -450, 50, -170),
             ),
         )
 

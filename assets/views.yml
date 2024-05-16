@@ -11,4 +11,6 @@ model_config:
   top_p_title: "Top p"
   top_p_tooltip: "Limit model to only output tokens within the top p probabilities"
   temperature_title: "Temperature"
-  temperature_tooltip: "The higher the more creative the output. Set to 0 for deterministic output."
+  temperature_tooltip: |
+    The higher the more creative the output. 
+    Set to 0 for deterministic output.
