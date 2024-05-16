@@ -1,7 +1,7 @@
 """providers.py"""
 
 from enum import Enum
-from functools import lru_cache
+from functools import lru_cache, cached_property
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -30,15 +30,17 @@ class LLMProvider(Enum):
     OPENAI: str = "openai"
     OPENAI_AZURE_SIH: str = "openai_azure_sih"
 
-    @lru_cache
-    def get_properties(self):
+    @cached_property
+    def properties(self):
         match self:
             case LLMProvider.OPENAI:
                 props = Asset.PROVIDERS.get(self.value)
                 available = litellm_utils.get_available_models(self.value)
                 models = set(props.get("models").keys()).union(set(available))
                 for model in models:
-                    props["models"][model] = props["models"].get(model, dict())
+                    props["models"][model] = props["models"].get(
+                        model, dict()
+                    )
                     props["models"][model]["context_window"] = (
                         litellm_utils.get_context_window(model)
                     )
@@ -48,3 +50,12 @@ class LLMProvider(Enum):
                     **Asset.PROVIDERS.get(self.value),
                     models=dict(),
                 )
+
+
+def validate_api_key(
+    provider: LLMProvider,
+    api_key: str,
+) -> bool:
+    match provider:
+        case _:
+            return True

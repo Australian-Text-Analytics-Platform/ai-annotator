@@ -2,7 +2,7 @@ import panel as pn
 from panel.viewable import Viewer, Viewable
 
 from atap_llm_classifier.views.classifier_config import ClassifierConfigView
-from atap_llm_classifier.views.classification import create_classification_widget
+from atap_llm_classifier.views.tabs_controller import create_classification_widget
 from atap_llm_classifier.providers.providers import LLMProvider
 
 
@@ -21,13 +21,10 @@ class MainWidget(Viewer):
     def classifier_valid_api_key_callback(self):
         self.classifier_config.disable()
         if len(self.layout) <= 1:
-            from .providers import _provider_name_to_provider
-
-            provider: LLMProvider = _provider_name_to_provider[
-                self.classifier_config.provider.selector.value
-            ]
             self.layout.append(pn.Spacer(height=10))
-            self.layout.append(create_classification_widget(provider.value))
+            self.layout.append(
+                create_classification_widget(self.classifier_config.provider.selected)
+            )
 
     def __panel__(self) -> Viewable:
         return self.layout

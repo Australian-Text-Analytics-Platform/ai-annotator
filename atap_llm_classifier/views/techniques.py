@@ -4,15 +4,13 @@ from panel.viewable import Viewer, Viewable
 from atap_llm_classifier.techniques.techniques import Technique
 from .utils import create_anchor_tag
 
-_techq_name_to_technique: dict[str, Technique] = {t.value.name: t for t in Technique}
-
 
 class TechniquesSelectorView(Viewer):
     def __init__(self, **params):
-        super(TechniquesSelectorView, self).__init__(**params)
+        super().__init__(**params)
         self.selector = pn.widgets.Select(
             name="Select a technique:",
-            options=[t.value.name for t in Technique],
+            options=[t.value for t in Technique],
         )
         self.desc = pn.widgets.StaticText(value="placeholder", margin=3)
         self.paper_url = pn.pane.HTML("placeholder", margin=3)
@@ -35,10 +33,10 @@ class TechniquesSelectorView(Viewer):
         return self.layout
 
     def _on_select(self, _):
-        techq: Technique = _techq_name_to_technique[self.selector.value]
-        self.desc.value = techq.value.description
+        technique: Technique = Technique(self.selector.value)
+        self.desc.value = technique.properties.description
         self.paper_url.object = create_anchor_tag(
-            techq.value.paper_url, "Open link to associated paper🔗"
+            technique.properties.paper_url, "Open link to associated paper🔗"
         )
 
     def disable(self):

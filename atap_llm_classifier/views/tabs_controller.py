@@ -3,12 +3,12 @@ from panel.viewable import Viewer, Viewable
 import pandas as pd
 
 from atap_llm_classifier.views.model_config import ModelConfigView
-from atap_llm_classifier.providers.providers import LLMProviderProperties
+from atap_llm_classifier.providers.providers import LLMProviderProperties, LLMProvider
 
 
 class ClassificationWidget(Viewer):
     def __init__(self, **params):
-        llm_ctx = params.pop("llm_ctx")
+        provider: LLMProvider = params.pop("provider")
         super(ClassificationWidget, self).__init__(**params)
 
         df = pd.DataFrame()
@@ -25,7 +25,7 @@ class ClassificationWidget(Viewer):
         {instructions}
         """
 
-        mconfig = ModelConfigView(llm_ctx=llm_ctx)
+        mconfig = ModelConfigView(provider=provider)
 
         clz_collapsible = pn.Accordion(
             (
@@ -88,5 +88,7 @@ class ClassificationWidget(Viewer):
         return self.layout
 
 
-def create_classification_widget(llm_ctx: LLMProviderProperties) -> ClassificationWidget:
-    return ClassificationWidget(llm_ctx=llm_ctx)
+def create_classification_widget(
+    provider: LLMProvider,
+) -> ClassificationWidget:
+    return ClassificationWidget(provider=provider)

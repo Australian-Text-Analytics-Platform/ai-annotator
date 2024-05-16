@@ -6,10 +6,10 @@ from atap_llm_classifier.providers.providers import LLMProviderProperties, LLMPr
 
 class ModelConfigView(Viewer):
     def __init__(self, **params):
-        llm_ctx: LLMProviderProperties = params.pop("llm_ctx")
-        super(ModelConfigView, self).__init__(**params)
+        provider: LLMProvider = params.pop("provider")
+        super().__init__(**params)
         self.selector = pn.widgets.Select(
-            options=llm_ctx.models,
+            options=sorted(provider.properties.models),
         )
         self.layout = pn.Column(
             "## Model Configuration",

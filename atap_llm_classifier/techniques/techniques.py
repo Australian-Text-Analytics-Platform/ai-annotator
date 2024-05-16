@@ -3,7 +3,7 @@
 import abc
 from abc import ABCMeta
 from enum import Enum
-from functools import lru_cache
+from functools import lru_cache, cached_property
 
 from pydantic import BaseModel, Field
 
@@ -33,12 +33,12 @@ class TechniqueProperties(BaseModel):
 class Technique(Enum):
     CHAIN_OF_THOUGHT: str = "chain_of_thought"
 
-    @lru_cache
-    def get_properties(self) -> TechniqueProperties:
+    @cached_property
+    def properties(self) -> TechniqueProperties:
         match self:
             case Technique.CHAIN_OF_THOUGHT:
-                ctx: dict = Asset.TECHNIQUES.get(self.value)
-                return TechniqueProperties(**ctx)
+                props: dict = Asset.TECHNIQUES.get(self.value)
+                return TechniqueProperties(**props)
 
-    def get(self) -> BaseTechnique:
+    def get_behaviour(self) -> BaseTechnique:
         pass
