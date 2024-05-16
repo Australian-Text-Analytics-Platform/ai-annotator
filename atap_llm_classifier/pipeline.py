@@ -7,6 +7,7 @@ The output
 
 import asyncio
 from asyncio import Future
+from typing import Sequence
 
 import litellm
 from atap_corpus import Corpus
@@ -16,7 +17,6 @@ from pydantic import BaseModel, SecretStr
 from atap_llm_classifier import core
 from atap_llm_classifier.core import LLMConfig
 from atap_llm_classifier.modifiers import Modifier, NoModifier, BaseModifier
-from atap_llm_classifier.providers import LLMProvider
 from atap_llm_classifier.techniques import Technique, NoTechnique, BaseTechnique
 
 litellm.set_verbose = False
@@ -41,18 +41,19 @@ def run(
     api_key: str,
     technique: Technique | None = None,
     modifier: Modifier | None = None,
-) -> PipelineResults:
-    results = asyncio.run(
+) -> Sequence[core.Result]:
+    loop = asyncio.get_event_loop()
+    task = asyncio.run_coroutine_threadsafe(
         a_run(
             corpus,
             model,
             api_key,
             technique,
             modifier,
-        )
+        ),
+        loop,
     )
-    print(results)
-    return PipelineResults()
+    return task.result()
 
 
 async def a_run(
@@ -61,9 +62,8 @@ async def a_run(
     api_key: str,
     technique: Technique | None = None,
     modifier: Modifier | None = None,
-):
+) -> Sequence[core.Result]:
     docs: Docs = corpus[:1]
-    print(docs)
 
     if technique is None:
         technique: BaseTechnique = NoTechnique()
@@ -78,13 +78,44 @@ async def a_run(
                 text=str(doc),
                 model=model,
                 api_key=api_key,
-                llm_config=LLMConfig(),
+                llm_config=LLMConfig(seed=42),
+                technique=technique,
+                modifier=modifier,
+            )
+        )
+        # todo: callback -> classifying...
+        tasks.append(task)
+
+    results = await asyncio.gather(*tasks)
+    # todo: callback -> classified.
+    return results
+
+
+async def a_run_multi_llm(
+    corpus: Corpus,
+    models: Sequence[str],
+    api_keys: Sequence[SecretStr],
+    technique: Technique | None = None,
+    modifier: Modifier | None = None,
+):
+    # todo: make model, api_key, sys prompt, a BaseModel
+    #   allow multiple sys prompts to be used.
+    #
+    # todo: this basically runs a_run len(models) times.
+    #   then, just add an extra column that takes highest classified.
+    tasks = list()
+    for model, api_key in zip(models, api_keys):
+        task: Future = asyncio.create_task(
+            core.a_classify(
+                text=corpus[:1],  # todo: use the corpus docs
+                model=model,
+                api_key=api_key,
+                llm_config=LLMConfig(seed=42),
                 technique=technique,
                 modifier=modifier,
             )
         )
         tasks.append(task)
-
     results = await asyncio.gather(*tasks)
     return results
 
