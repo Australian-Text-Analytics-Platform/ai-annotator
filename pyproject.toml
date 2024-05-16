@@ -15,7 +15,7 @@ openai = "^1.13.3"
 pydantic-settings = "^2.2.1"
 ipykernel = "^6.29.3"
 litellm = "^1.33.1"
-atap-corpus-loader = "1.4.0"
+atap-corpus-loader = ">=1.5.0"
 loguru = "^0.7.2"
 
 [tool.poetry.group.test.dependencies]
