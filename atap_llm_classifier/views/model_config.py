@@ -12,9 +12,21 @@ class ModelConfigView(Viewer):
     def __init__(self, **params):
         provider: LLMProvider = params.pop("provider")
         super().__init__(**params)
+        model_props = provider.properties.models
         self.selector = pn.widgets.Select(
-            options=sorted(provider.properties.models),
+            options=sorted(model_props),
         )
+        model_info = pn.bind(
+            lambda selected: pn.pane.Markdown(f"""
+        Maximum input tokens: {model_props[selected].context_window}
+        $USD per input token: {model_props[selected].input_token_cost}
+        $USD per output token: {model_props[selected].output_token_cost}
+        
+        {model_props[selected].description if model_props[selected].description is not None else ""}
+        """),
+            self.selector,
+        )
+
         self.layout = pn.Column(
             asset.get("title"),
             self.selector,
@@ -22,6 +34,7 @@ class ModelConfigView(Viewer):
                 value=asset.get("select_model_tooltip"),
                 margin=(-33, -500, 20, -170),
             ),
+            model_info,
             pn.widgets.FloatSlider(
                 name=asset.get("top_p_title"),
                 start=0.1,
@@ -47,6 +60,10 @@ class ModelConfigView(Viewer):
                 margin=(-43, -120, 50, -170),
             ),
         )
+
+    @property
+    def selected(self) -> str:
+        return self.selector.value
 
     def __panel__(self) -> Viewable:
         return self.layout

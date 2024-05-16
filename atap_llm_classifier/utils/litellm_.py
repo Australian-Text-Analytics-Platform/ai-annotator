@@ -55,3 +55,11 @@ def get_available_models(provider: str) -> list[str]:
 def get_context_window(model: str) -> int:
     df = load_model_cost_as_df()
     return int(df.loc[model, "max_input_tokens"])
+
+
+def get_price(model: str) -> tuple[float, float]:
+    df = load_model_cost_as_df()
+    return (
+        float(df.loc[model, "input_cost_per_token"]),
+        float(df.loc[model, "output_cost_per_token"]),
+    )

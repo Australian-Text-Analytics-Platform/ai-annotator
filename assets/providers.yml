@@ -4,7 +4,7 @@ openai:
   privacy_policy_url: "https://openai.com/policies/privacy-policy"
   models:
     .*gpt-3.5-turbo.*:
-      description: "This is the weaker but cheapest model from OpenAI."
+      description: "This is the weaker but cheapest model."
 
 
 openai_azure_sih:

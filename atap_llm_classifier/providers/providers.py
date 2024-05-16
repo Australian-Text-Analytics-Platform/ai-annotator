@@ -16,8 +16,10 @@ __all__ = [
 
 
 class LLMModelProperties(BaseModel):
-    context_window: int | None = None
     description: str | None = None
+    context_window: int | None = None
+    input_token_cost: float
+    output_token_cost: float
 
 
 class LLMProviderProperties(BaseModel):
@@ -43,21 +45,24 @@ class LLMProvider(Enum):
                 props = Asset.PROVIDERS.get(self.value)
                 available = litellm_utils.get_available_models(self.value)
                 model_regex_ptns: list[re.Pattern] = [
-                    re.compile(ptn) for ptn in props.get("models")
+                    re.compile(ptn) for ptn in props.get("models").keys()
                 ]
                 models = dict()
                 for model_key in available:
-                    models[model_key] = dict()
-                    models[model_key]["context_window"] = (
-                        litellm_utils.get_context_window(model_key)
+                    values = dict()
+                    values["description"] = None
+                    values["context_window"] = litellm_utils.get_context_window(
+                        model_key
                     )
-                    models[model_key]["description"] = None
-                    for pattern in model_regex_ptns:
-                        if pattern.match(model_key) is not None:
-                            models[model_key]["description"] = props.get("models").get(
-                                "description"
-                            )
+                    inp_cost, out_cost = litellm_utils.get_price(model_key)
+                    values["input_token_cost"] = inp_cost
+                    values["output_token_cost"] = out_cost
+                    for ptn in model_regex_ptns:
+                        if ptn.match(model_key) is not None:
+                            d = props.get("models")[ptn.pattern]["description"]
+                            values["description"] = d
                             break
+                    models[model_key] = values
                 props["models"] = models
                 return LLMProviderProperties(**props)
 
