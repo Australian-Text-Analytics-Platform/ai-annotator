@@ -23,7 +23,7 @@ class ProviderSelectorView(Viewer):
         self.models = pn.widgets.StaticText(value="placeholder", margin=2)
         self.privacy_policy = pn.pane.HTML("placeholder", margin=2)
         self.api_key = pn.widgets.PasswordInput(placeholder="placeholder", width=450)
-        self.api_key_msg = pn.widgets.StaticText(value="👈 Lock it in.")
+        self.api_key_msg = pn.widgets.StaticText(value="👈")
         self.layout = pn.Column(
             pn.Row(
                 self.selector,
