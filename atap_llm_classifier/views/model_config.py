@@ -18,9 +18,9 @@ class ModelConfigView(Viewer):
         )
         model_info = pn.bind(
             lambda selected: pn.pane.Markdown(f"""
-        Maximum input tokens: {model_props[selected].context_window}
-        $USD per input token: {model_props[selected].input_token_cost}
-        $USD per output token: {model_props[selected].output_token_cost}
+        {asset.get("model_info_context_window")} {model_props[selected].context_window}
+        {asset.get("model_info_price_per_input_token")} {model_props[selected].input_token_cost}
+        {asset.get("model_info_price_per_output_token")} {model_props[selected].output_token_cost}
         
         {model_props[selected].description if model_props[selected].description is not None else ""}
         """),

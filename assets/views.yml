@@ -5,6 +5,9 @@ techniques:
 model_config:
   title: "## Model Configuration"
   select_model_tooltip: "Select the model you want to use"
+  model_info_context_window: "Maximum input tokens: "
+  model_info_price_per_input_token: "$USD per input token"
+  model_info_price_per_output_token: "$USD per output token"
   top_p_title: "Top p"
   top_p_tooltip: "Limit model to only output tokens within the top p probabilities"
   temperature_title: "Temperature"
