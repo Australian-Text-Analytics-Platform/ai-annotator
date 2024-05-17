@@ -7,7 +7,7 @@ from atap_llm_classifier.providers.providers import LLMProvider, validate_api_ke
 from .utils import create_anchor_tag
 
 NO_PRIVACY_POLICY_URL_MSG: str = (
-    "Sorry! No Privacy Policy link currently provided. Please search for it."
+    "Sorry! No Privacy Policy link currently provided."
 )
 
 
