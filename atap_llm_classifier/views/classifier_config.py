@@ -6,6 +6,10 @@ from panel.viewable import Viewer, Viewable
 from atap_llm_classifier.views.techniques import TechniquesSelectorView
 from atap_llm_classifier.views.providers import ProviderSelectorView
 
+from atap_llm_classifier.assets import Asset
+
+asset: dict = Asset.VIEWS.get("classifier_config")
+
 
 class ClassifierConfigView(Viewer):
     def __init__(self, **params):
@@ -14,7 +18,7 @@ class ClassifierConfigView(Viewer):
         self.techniques = TechniquesSelectorView()
         self.provider = ProviderSelectorView()
         self.layout = pn.Column(
-            "## LLM Classifier Configuration",
+            asset.get("title"),
             self.techniques,
             pn.Spacer(height=5),
             self.provider,
