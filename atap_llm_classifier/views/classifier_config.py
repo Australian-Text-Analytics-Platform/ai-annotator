@@ -101,7 +101,8 @@ class ProviderSelectorView(Viewer):
         self.desc.value = provider.properties.description
         if provider.properties.privacy_policy_url is not None:
             self.privacy_policy.object = utils.create_anchor_tag(
-                provider.properties.privacy_policy_url, "Open link to privacy policy🔗"
+                provider.properties.privacy_policy_url,
+                props.provider.privacy_url,
             )
         else:
             self.privacy_policy.object = (
@@ -110,9 +111,7 @@ class ProviderSelectorView(Viewer):
                 f"</span>"
             )
 
-        self.api_key.placeholder = (
-            f"Enter your {provider.value} API Key here. (Then press 'Enter')"
-        )
+        self.api_key.placeholder = props.provider.api_key.placeholder
 
     def _on_api_key_enter(self, _):
         api_key: str = self.api_key.value
