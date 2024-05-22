@@ -1,1 +1,1 @@
-from .main import MainWidget as Widget
+from .entry import EntryWidget

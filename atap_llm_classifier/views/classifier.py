@@ -12,10 +12,14 @@ class ClassificationWidget(Viewer):
 
         self.mconfig = ModelConfigView(provider=provider)
 
-        # todo: create Accordions after prompt have been uploaded.
+        # independent dataframe from corpus.
+        df = corpus.docs().to_frame(name="document")
 
-        df = corpus.to_dataframe()
-        dataset_widget = pn.widgets.DataFrame(
+        # what is the thing that needs to be reactive here?
+        # ok, well i'll need to define some states to react to which are...
+        #
+
+        self.df_widget = pn.widgets.DataFrame(
             df,
             show_index=False,
             height=400,
@@ -44,7 +48,7 @@ class ClassificationWidget(Viewer):
             ),
             (
                 "Classifications",
-                dataset_widget,
+                self.df_widget,
             ),
         )
 
@@ -63,6 +67,9 @@ class ClassificationWidget(Viewer):
 
     def __panel__(self) -> Viewable:
         return self.layout
+
+    def rerender_df_widget(self):
+        self.df_widget.value = self.df_widget.value
 
 
 def create_classifier(

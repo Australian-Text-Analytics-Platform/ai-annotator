@@ -1,9 +1,30 @@
-techniques:
-  chain_of_thought:
-    name: "Chain Of Thought"
+entry:
+  title: "## ATAP LLM Classifier"
+  dataset:
+    selector:
+      name: "Select your dataset:"
+      description: |
+        For detailed information:
+        Please scroll back to the Corpus Loader.
+
 
 classifier_config:
-  title: "## ATAP LLM Classifier"
+  technique:
+    selector:
+      name: "Select a technique:"
+    paper_url: "Open link to associated paper🔗"
+  provider:
+    selector:
+      name: "Select an LLM provider:"
+    privacy_url: "Open link to privacy policy🔗"
+    no_privacy_url: "Please first search and understand their privacy policy."
+    api_key:
+      placeholder: "Enter your API key here. (Then press 'Enter')"
+      start_message: "👈"
+      success_message: "👍 Valid API Key."
+      error_message: "🙅 Invalid API Key. Please try again."
+
+
 
 model_config:
   title: "## Model Configuration"
@@ -17,3 +38,8 @@ model_config:
   temperature_tooltip: |
     The higher the more creative the output. 
     Set to 0 for deterministic output.
+
+
+techniques:
+  chain_of_thought:
+    name: "Chain Of Thought"
