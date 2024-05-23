@@ -1,10 +1,10 @@
 """providers.py"""
 
 from enum import Enum
-from functools import lru_cache, cached_property
+from functools import cached_property
 import re
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.utils import litellm_ as litellm_utils
@@ -16,10 +16,15 @@ __all__ = [
 
 
 class LLMModelProperties(BaseModel):
-    description: str | None = None
+    description: str = Field("")
     context_window: int | None = None
     input_token_cost: float
     output_token_cost: float
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def ensure_str(cls, v):
+        return "" if v is None else str(v)
 
 
 class LLMProviderProperties(BaseModel):

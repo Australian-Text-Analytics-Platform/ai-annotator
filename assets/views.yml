@@ -30,7 +30,7 @@ classifier_config:
 
 
 
-model_config:
+model_configx:
   title: "## Model Configuration"
   select_model_tooltip: "Select the model you want to use"
   model_info_context_window: "Maximum input tokens: "
@@ -43,6 +43,24 @@ model_config:
     The higher the more creative the output. 
     Set to 0 for deterministic output.
 
+model_config:
+  title: "## Model Configuration"
+  llm:
+    selector:
+      name: "Select the model:"
+      tooltip: "Providers have many variants of LLM models"
+    info:
+      context_window_prefix: "Maximum input tokens: "
+      price_per_input_token_prefix: "$USD per input token: "
+      price_per_output_token_prefix: "$USD per output token: "
+  temperature:
+    name: "Temperature"
+    tooltip: |
+      The higher the more creative the output.
+      Set to 0 for deterministic output.
+  top_p:
+    name: "Top P"
+    tooltip: "Limit model to only output tokens within the Top P probabilities."
 
 techniques:
   chain_of_thought:

@@ -1,11 +1,10 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
-from pydantic import BaseModel
 
 from atap_corpus_loader import CorpusLoader
 from atap_corpus import Corpus
-from atap_llm_classifier.views.classifier_config import ClassifierConfigView
-from atap_llm_classifier.views.classifier import create_classifier
+from atap_llm_classifier.views.parts.classifier_config import ClassifierConfigView
+from atap_llm_classifier.views.parts.classifier import create_classifier
 from atap_llm_classifier.views.props import ViewProp, EntryProps
 from atap_llm_classifier.views import utils
 

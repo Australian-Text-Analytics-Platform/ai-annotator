@@ -15,6 +15,7 @@ __all__ = [
 class ViewProp(enum.Enum):
     ENTRY: str = "entry"
     CLASSIFIER_CONFIG: str = "classifier_config"
+    MODEL_CONFIG: str = "model_config"
 
     @cached_property
     def properties(self):
@@ -24,6 +25,8 @@ class ViewProp(enum.Enum):
                 cls = props.EntryProps
             case ViewProp.CLASSIFIER_CONFIG:
                 cls = props.ClassifierConfigProps
+            case ViewProp.MODEL_CONFIG:
+                cls = props.ModelConfigProps
             case _:
                 raise NotImplementedError()
 

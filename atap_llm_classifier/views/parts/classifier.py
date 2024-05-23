@@ -1,9 +1,13 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
-from atap_llm_classifier.views.model_config import ModelConfigView
-from atap_llm_classifier.providers.providers import LLMProviderProperties, LLMProvider
+from atap_llm_classifier.views.parts.model_config import ModelConfigView
+from atap_llm_classifier.providers.providers import LLMProvider
 from atap_corpus import Corpus
+
+__all__ = [
+    "ClassificationWidget",
+]
 
 
 class ClassificationWidget(Viewer):

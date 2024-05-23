@@ -198,3 +198,4 @@ class ClassifierConfigView(Viewer):
     def disable(self):
         self.provider.disable()
         self.techniques.disable()
+        self.modifier.disable()

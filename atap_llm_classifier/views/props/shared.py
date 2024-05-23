@@ -7,3 +7,7 @@ class SelectorProps(BaseModel):
 
 class SelectorPropsWithDesc(SelectorProps):
     description: str
+
+
+class SelectorPropsWithTooltip(SelectorProps):
+    tooltip: str

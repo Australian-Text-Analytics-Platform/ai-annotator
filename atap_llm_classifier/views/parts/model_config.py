@@ -1,10 +1,18 @@
+import sys
+
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
 from atap_llm_classifier.assets import Asset
+from atap_llm_classifier.views.props import ViewProp, ModelConfigProps
 from atap_llm_classifier.providers.providers import LLMProvider
 
 asset: dict = Asset.VIEWS.get("model_config")
+props: ModelConfigProps = ViewProp.MODEL_CONFIG.properties
+
+__all__ = [
+    "ModelConfigView",
+]
 
 
 # todo: sensible defaults based on technique
@@ -13,32 +21,37 @@ class ModelConfigView(Viewer):
         provider: LLMProvider = params.pop("provider")
         super().__init__(**params)
         model_props = provider.properties.models
+        mprops_rx = pn.rx(provider.properties.models)
         self.selector = pn.widgets.Select(
+            name=props.llm.selector.name,
             options=sorted(model_props),
             width=250,
             max_width=250,
         )
-        model_info = pn.bind(
-            lambda selected: pn.pane.Markdown(f"""
-        {asset.get("model_info_context_window")} {model_props[selected].context_window}
-        {asset.get("model_info_price_per_input_token")} {model_props[selected].input_token_cost}
-        {asset.get("model_info_price_per_output_token")} {model_props[selected].output_token_cost}
-        
-        {model_props[selected].description if model_props[selected].description is not None else ""}
-        """),
-            self.selector,
-        )
+        mprop_rx = mprops_rx[self.selector.rx()]
+
+        model_info_rx = pn.rx("""
+        {mprop.description}
+
+        {props.llm.info.context_window_prefix} {mprop.context_window}
+        {props.llm.info.price_per_input_token_prefix} {mprop.input_token_cost}
+        {props.llm.info.price_per_output_token_prefix} {mprop.output_token_cost}
+        """).format(mprop=mprop_rx, props=props)
+        model_info_md = pn.pane.Markdown(model_info_rx)
 
         self.layout = pn.Column(
-            asset.get("title"),
+            # asset.get("title"),
+            props.title,
             self.selector,
             pn.widgets.TooltipIcon(
-                value=asset.get("select_model_tooltip"),
+                # value=asset.get("select_model_tooltip"),
+                value=props.llm.selector.tooltip,
                 margin=(-33, -450, 20, -170),
             ),
-            model_info,
+            model_info_md,
             pn.widgets.FloatSlider(
-                name=asset.get("top_p_title"),
+                # name=asset.get("top_p_title"),
+                name=props.top_p.name,
                 start=0.1,
                 end=1.0,
                 step=0.1,
@@ -46,11 +59,13 @@ class ModelConfigView(Viewer):
                 tooltips=True,
             ),
             pn.widgets.TooltipIcon(
-                value=asset.get("top_p_tooltip"),
+                # value=asset.get("top_p_tooltip"),
+                value=props.top_p.tooltip,
                 margin=(-43, -450, 30, -170),
             ),
             pn.widgets.FloatSlider(
-                name=asset.get("temperature_title"),
+                # name=asset.get("temperature_title"),
+                name=props.temperature.name,
                 start=0.0,
                 end=2.0,
                 step=0.1,
@@ -58,7 +73,8 @@ class ModelConfigView(Viewer):
                 tooltips=False,
             ),
             pn.widgets.TooltipIcon(
-                value=asset.get("temperature_tooltip"),
+                # value=asset.get("temperature_tooltip"),
+                value=props.temperature.tooltip,
                 margin=(-43, -450, 50, -170),
             ),
         )
@@ -68,6 +84,10 @@ class ModelConfigView(Viewer):
     @property
     def selected(self) -> str:
         return self.selector.value
+
+    @property
+    def rselected(self):
+        return self.selector.param.value
 
     def __panel__(self) -> Viewable:
         return self.layout
