@@ -3,6 +3,7 @@ from typing import Callable
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
+from atap_llm_classifier import Modifier
 from atap_llm_classifier.techniques.techniques import Technique
 from atap_llm_classifier.providers.providers import LLMProvider, validate_api_key
 from atap_llm_classifier.views.props import ViewProp, ClassifierConfigProps
@@ -22,7 +23,7 @@ class TechniquesSelectorView(Viewer):
             name=props.technique.selector.name,
             options=[t.value for t in Technique],
         )
-        self.desc = pn.pane.Markdown("placeholder", margin=3)
+        self.desc = pn.pane.Markdown("placeholder", margin=3, height=25)
         self.paper_url = pn.pane.HTML("placeholder", margin=3)
         self.layout = pn.Column(
             pn.Row(
@@ -54,6 +55,45 @@ class TechniquesSelectorView(Viewer):
         self.selector.disabled = True
 
 
+class ModifierSelectorView(Viewer):
+    def __init__(self, **params):
+        super().__init__(**params)
+        self.selector = pn.widgets.Select(
+            name=props.modifier.selector.name,
+            options=[m.value for m in Modifier],
+        )
+        self.desc = pn.pane.Markdown("placeholder", margin=3, height=25)
+        self.paper_url = pn.pane.HTML("placeholder", margin=3)
+        self.layout = pn.Column(
+            pn.Row(
+                self.selector,
+                pn.Column(
+                    self.desc,
+                    self.paper_url,
+                ),
+            ),
+        )
+        self._on_select(None)
+        self.selector.param.watch(
+            self._on_select,
+            "value",
+        )
+
+    def __panel__(self) -> Viewable:
+        return self.layout
+
+    def _on_select(self, _):
+        mod: Modifier = Modifier(self.selector.value)
+        self.desc.object = mod.properties.description
+        self.paper_url.object = utils.create_anchor_tag(
+            mod.properties.paper_url,
+            props.modifier.paper_url,
+        )
+
+    def disable(self):
+        self.selector.disabled = True
+
+
 class ProviderSelectorView(Viewer):
     def __init__(self, **params):
         super().__init__(**params)
@@ -62,8 +102,8 @@ class ProviderSelectorView(Viewer):
             options=[llmp.value for llmp in LLMProvider],
         )
 
-        self.desc = pn.widgets.StaticText(value="placeholder", margin=2)
-        self.privacy_policy = pn.pane.HTML("placeholder", margin=2)
+        self.desc = pn.widgets.StaticText(value="placeholder", margin=3)
+        self.privacy_policy = pn.pane.HTML("placeholder", margin=3)
         self.api_key = pn.widgets.PasswordInput(placeholder="placeholder", width=450)
         self.api_key_msg = pn.pane.Markdown(object=props.provider.api_key.start_message)
         self.layout = pn.Column(
@@ -135,14 +175,18 @@ class ProviderSelectorView(Viewer):
 
 class ClassifierConfigView(Viewer):
     def __init__(self, **params):
-        super(ClassifierConfigView, self).__init__(**params)
+        super().__init__(**params)
 
         self.techniques = TechniquesSelectorView()
+        self.modifier = ModifierSelectorView()
         self.provider = ProviderSelectorView()
         self.layout = pn.Column(
             self.techniques,
             pn.Spacer(height=5),
+            self.modifier,
+            pn.Spacer(height=5),
             self.provider,
+            pn.Spacer(height=5),
         )
 
     def __panel__(self) -> Viewable:

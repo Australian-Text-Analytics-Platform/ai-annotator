@@ -2,7 +2,7 @@
 
 import abc
 from enum import Enum
-from functools import lru_cache, singledispatchmethod
+from functools import lru_cache, singledispatchmethod, cached_property
 from typing import Any
 
 from litellm import ModelResponse
@@ -42,9 +42,7 @@ class BaseModifier(metaclass=abc.ABCMeta):
 
 
 class NoModifier(BaseModifier):
-    def pre(
-        self, prompt: str, llm_config: LLMConfig
-    ) -> tuple[str, LLMConfig]:
+    def pre(self, prompt: str, llm_config: LLMConfig) -> tuple[str, LLMConfig]:
         n = llm_config.n_completions
         if n != 1:
             logger.warning(
@@ -73,8 +71,8 @@ class ModifierProperties(BaseModel):
 class Modifier(Enum):
     SELF_CONSISTENCY: str = "self_consistency"
 
-    @lru_cache()
-    def get_properties(self) -> ModifierProperties:
+    @cached_property
+    def properties(self) -> ModifierProperties:
         match self:
             case Modifier.SELF_CONSISTENCY:
                 ctx: dict = Asset.MODIFIERS.get(self.value)

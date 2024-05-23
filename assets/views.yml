@@ -13,6 +13,10 @@ classifier_config:
     selector:
       name: "Select a technique:"
     paper_url: "Open link to associated paper🔗"
+  modifier:
+    selector:
+      name: "Select an modifier:"
+    paper_url: "Open link to associated paper🔗"
   provider:
     selector:
       name: "Select an LLM provider:"

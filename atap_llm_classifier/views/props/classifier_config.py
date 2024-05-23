@@ -26,6 +26,12 @@ class TechniqueConfigProps(BaseModel):
     paper_url: str
 
 
+class ModifierConfigProps(BaseModel):
+    selector: SelectorProps
+    paper_url: str
+
+
 class ClassifierConfigProps(BaseModel):
     technique: TechniqueConfigProps
+    modifier: ModifierConfigProps
     provider: ProviderConfigProps

@@ -63,6 +63,8 @@ class ModelConfigView(Viewer):
             ),
         )
 
+        # todo: bind model config to a Paramterised class of LLMConfigs
+
     @property
     def selected(self) -> str:
         return self.selector.value
