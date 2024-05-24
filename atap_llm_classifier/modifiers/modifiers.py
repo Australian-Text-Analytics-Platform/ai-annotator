@@ -55,7 +55,7 @@ class NoModifier(BaseModifier):
         return response.choices[0].message.content
 
 
-class ModifierProperties(BaseModel):
+class ModifierInfo(BaseModel):
     name: str = Field(frozen=True)
     description: str = Field(frozen=True)
     explanation: str = Field(frozen=True)
@@ -69,9 +69,9 @@ class Modifier(Enum):
     SELF_CONSISTENCY: str = "self_consistency"
 
     @cached_property
-    def properties(self) -> ModifierProperties:
+    def properties(self) -> ModifierInfo:
         props: dict = Asset.MODIFIERS.get(self.value)
-        return ModifierProperties(**props)
+        return ModifierInfo(**props)
 
     def get_behaviour(self) -> BaseModifier:
         match self:
