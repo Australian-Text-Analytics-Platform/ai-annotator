@@ -7,6 +7,11 @@ zero_shot:
     name: 
     description: 
     </class>
+    
+    Below are the classes:
+    
+    {classes}
+    
     Referencing the above classes, your task is to classify the following query into one of them.
     
     query: {text}
@@ -18,7 +23,7 @@ zero_shot:
     clazz: |
       <class>
       name: {name}
-      description {description}
+      description: {description}
       </class>
 
   output_formats:
@@ -44,7 +49,7 @@ chain_of_thought:
     
     Below are the classes.
     
-    {clazzes}
+    {classes}
     
     Below are the examples.
     
@@ -62,7 +67,7 @@ chain_of_thought:
     clazz: |
       <class>
       name: {name}
-      description {description}
+      description: {description}
       </class>
 
     example: |
