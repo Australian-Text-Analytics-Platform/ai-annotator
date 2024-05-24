@@ -61,15 +61,21 @@ async def a_run(
     model: str,
     api_key: str,
     technique: Technique | None = None,
+    technique_prompt: BaseModel | None = None,
     modifier: Modifier | None = None,
+    modifier_config: None = None,
 ) -> Sequence[core.Result]:
     docs: Docs = corpus[:1]
 
     if technique is None:
         technique: BaseTechnique = NoTechnique()
+    else:
+        technique: BaseTechnique = technique.get_behaviour(technique_prompt)
 
     if modifier is None:
         modifier: BaseModifier = NoModifier()
+    else:
+        modifier: BaseModifier = modifier.get_behaviour()
 
     tasks = list()
     for doc in docs:

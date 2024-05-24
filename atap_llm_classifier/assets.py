@@ -18,6 +18,7 @@ class Asset(Enum):
     MODIFIERS: str = "modifiers"
     PROVIDERS: str = "providers"
     VIEWS: str = "views"
+    TECH_TEMPLATES: str = "tech_templates"
 
     def get_path(self) -> Path:
         match self:
@@ -29,6 +30,8 @@ class Asset(Enum):
                 return asset_dir / "providers.yml"
             case Asset.VIEWS:
                 return asset_dir / "views.yml"
+            case Asset.TECH_TEMPLATES:
+                return asset_dir / "tech_templates.yml"
 
     def get(self, key: str) -> dict:
         return load_asset(self)[key]

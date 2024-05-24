@@ -52,6 +52,7 @@ class EntryWidget(Viewer):
         if len(self.layout) <= self.layout_init_len:
             self.classifier = create_classifier(
                 self.classifier_config.provider.selected,
+                # todo: pass on self.select_dataset.param.value, or even the selector itself.
                 self.loader.get_corpus(corpus_name=self.select_dataset.value),
             )
             self.layout.extend(

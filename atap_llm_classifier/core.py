@@ -44,7 +44,7 @@ async def a_classify(
     technique: BaseTechnique,
     modifier: BaseModifier,
 ) -> Result:
-    prompt = technique.make_prompt(text)
+    prompt: str = technique.make_prompt(text)
     prompt, llm_config = modifier.pre(prompt=prompt, llm_config=llm_config)
 
     # preconditions: technique, modifier applied to prompt and llm configs.

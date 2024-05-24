@@ -7,7 +7,6 @@ entry:
         For detailed information:
         Please scroll back to the Corpus Loader.
 
-
 classifier_config:
   technique:
     selector:
@@ -28,21 +27,6 @@ classifier_config:
       success_message: "👍 Valid API Key."
       error_message: "🙅 Invalid API Key. Please try again."
 
-
-
-model_configx:
-  title: "## Model Configuration"
-  select_model_tooltip: "Select the model you want to use"
-  model_info_context_window: "Maximum input tokens: "
-  model_info_price_per_input_token: "$USD per input token"
-  model_info_price_per_output_token: "$USD per output token"
-  top_p_title: "Top p"
-  top_p_tooltip: "Limit model to only output tokens within the top p probabilities"
-  temperature_title: "Temperature"
-  temperature_tooltip: |
-    The higher the more creative the output. 
-    Set to 0 for deterministic output.
-
 model_config:
   title: "## Model Configuration"
   llm:
@@ -62,6 +46,15 @@ model_config:
     name: "Top P"
     tooltip: "Limit model to only output tokens within the Top P probabilities."
 
+classifier:
+  tabs:
+    prompt:
+      title: "Prompt"
+    classifications:
+      title: "Classifications"
+
+
+# todo: for remapping enums
 techniques:
   chain_of_thought:
     name: "Chain Of Thought"

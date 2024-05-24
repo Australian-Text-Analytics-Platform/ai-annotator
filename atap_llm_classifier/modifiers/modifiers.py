@@ -78,3 +78,6 @@ class Modifier(Enum):
                 ctx: dict = Asset.MODIFIERS.get(self.value)
                 ctx["order"] = Order.POST
                 return ModifierProperties(**ctx)
+
+    def get_behaviour(self) -> BaseModifier:
+        pass

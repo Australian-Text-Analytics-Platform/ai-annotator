@@ -1,0 +1,45 @@
+chain_of_thought:
+  template:
+    class: |
+      <class>
+      name: {name}
+      description {description}
+      </class>
+
+    example: |
+      <example>
+      query: {example}
+      class: {classification}
+      reason: {reason}
+      </example>
+  
+
+  structure: |
+    You are provided with {num_classes} classes with a description of each. 
+    Followed by examples with a query, class and reason.
+    Each class is demarcated with the format: 
+    <class>
+    name: 
+    description: 
+    </class>
+    Each example is demarcated with the format:
+    <example>
+    query: 
+    class:
+    reason: 
+    </example>
+    
+    Below are the classes.
+    
+    {template.classes}
+    
+    Below are the examples.
+    
+    {template.examples}
+    
+    Referencing each of the classes and the examples provided above, your task is to classify the following 
+    query into one of the provided classes and provide your reasoning.
+    query: {text}
+    class:
+    reason: 
+    

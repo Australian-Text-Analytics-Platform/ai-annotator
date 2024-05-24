@@ -19,10 +19,6 @@ class ClassificationWidget(Viewer):
         # independent dataframe from corpus.
         df = corpus.docs().to_frame(name="document")
 
-        # what is the thing that needs to be reactive here?
-        # ok, well i'll need to define some states to react to which are...
-        #
-
         self.df_widget = pn.widgets.DataFrame(
             df,
             show_index=False,
@@ -33,21 +29,12 @@ class ClassificationWidget(Viewer):
 
         progress_bar = pn.widgets.Tqdm()
 
-        # note: removed 'dataset' tab - allow classifications to be streamed to the widget.
         # todo: improve prompt tab: include sample prompt for chosen technique. then preview prompt.
         self.tabs = pn.Tabs(
             (
                 "Prompt",
                 pn.Column(
                     pn.widgets.FileInput(accept=".yaml,.yml"),
-                    pn.Accordion(
-                        (
-                            "placeholder",
-                            pn.Column(
-                                pn.pane.HTML("Just a placeholder"),
-                            ),
-                        )
-                    ),
                 ),
             ),
             (
@@ -60,7 +47,6 @@ class ClassificationWidget(Viewer):
             pn.Row(
                 pn.Column(
                     self.mconfig,
-                    pn.widgets.Button(name="Run classification", button_type="primary"),
                 ),
                 pn.Spacer(width=20),
                 self.tabs,
@@ -71,9 +57,6 @@ class ClassificationWidget(Viewer):
 
     def __panel__(self) -> Viewable:
         return self.layout
-
-    def rerender_df_widget(self):
-        self.df_widget.value = self.df_widget.value
 
 
 def create_classifier(
