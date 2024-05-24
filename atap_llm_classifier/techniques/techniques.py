@@ -14,11 +14,11 @@ from atap_llm_classifier.techniques.templates import (
 
 __all__ = [
     "Technique",
-    "TechniqueProperties",
+    "TechniqueInfo",
 ]
 
 
-class TechniqueProperties(BaseModel):
+class TechniqueInfo(BaseModel):
     name: str = Field(frozen=True)
     description: str = Field(frozen=True)
     explanation: str = Field(frozen=True)
@@ -30,8 +30,8 @@ class Technique(Enum):
     CHAIN_OF_THOUGHT: str = "chain_of_thought"
 
     @cached_property
-    def properties(self) -> TechniqueProperties:
-        return TechniqueProperties(**Asset.TECHNIQUES.get(self.value))
+    def info(self) -> TechniqueInfo:
+        return TechniqueInfo(**Asset.TECHNIQUES.get(self.value))
 
     @cached_property
     def template(self) -> ZeroShotTemplate | CoTTemplate:

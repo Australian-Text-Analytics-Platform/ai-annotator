@@ -11,7 +11,7 @@ def test_modifier_props_all_exist_and_valid():
 
 def test_technique_props_all_exist_and_valid():
     for technique in Technique:
-        props = technique.properties
+        props = technique.info
     # pass if no exceptions raised.
 
 
