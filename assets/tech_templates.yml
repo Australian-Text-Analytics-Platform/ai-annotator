@@ -1,19 +1,32 @@
-chain_of_thought:
-  template:
-    class: |
+zero_shot:
+  structure: |
+    You are provided with {num_classes} classes with a description of each. 
+    Followed by examples with a query, class and reason.
+    Each class is demarcated with the format: 
+    <class>
+    name: 
+    description: 
+    </class>
+    Referencing the above classes, your task is to classify the following query into one of them.
+    
+    query: {text}
+    
+    When providing your answer you must follow the following structure:
+    {output_format}
+
+  user_schema_templates:
+    clazz: |
       <class>
       name: {name}
       description {description}
       </class>
 
-    example: |
-      <example>
-      query: {example}
-      class: {classification}
-      reason: {reason}
-      </example>
-  
+  output_formats:
+    yaml: |
+      query: 
+      answer:
 
+chain_of_thought:
   structure: |
     You are provided with {num_classes} classes with a description of each. 
     Followed by examples with a query, class and reason.
@@ -31,15 +44,36 @@ chain_of_thought:
     
     Below are the classes.
     
-    {template.classes}
+    {clazzes}
     
     Below are the examples.
     
-    {template.examples}
+    {examples}
     
     Referencing each of the classes and the examples provided above, your task is to classify the following 
     query into one of the provided classes and provide your reasoning.
-    query: {text}
-    class:
-    reason: 
     
+    query: {text}
+    
+    When providing your answer you must follow the following structure:
+    {output_format}
+  
+  user_schema_templates:
+    clazz: |
+      <class>
+      name: {name}
+      description {description}
+      </class>
+
+    example: |
+      <example>
+      query: {example}
+      class: {classification}
+      reason: {reason}
+      </example>
+
+  output_formats:
+    yaml: |
+      query: 
+      answer: 
+      reason: 

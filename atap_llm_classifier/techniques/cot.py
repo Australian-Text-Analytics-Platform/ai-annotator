@@ -7,16 +7,16 @@ import pydantic
 from pydantic import BaseModel, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
-from atap_llm_classifier.assets import Asset
-
-from atap_llm_classifier.techniques.techniques import BaseTechnique
+from atap_llm_classifier.techniques import BaseTechnique
+from atap_llm_classifier.techniques.templates import CoTTemplate
+from atap_llm_classifier.techniques.techniques import Technique
+from atap_llm_classifier.techniques import parsers
 
 __all__ = [
-    "CoTExample",
+    "ChainOfThought",
 ]
 
-
-# todo: here get the template from assets.
+template: CoTTemplate = Technique.CHAIN_OF_THOUGHT.template
 
 
 class CoTExample(BaseModel):
@@ -49,30 +49,47 @@ class CoTSchema(BaseModel):
         return v
 
 
-def make_prompt_head(schema: CoTSchema) -> str:
-    ex_joined = "\n".join(
+def make_prompt_examples(user_schema: CoTSchema) -> str:
+    return "\n".join(
         map(
-            lambda ex: Asset.TECH_TEMPLATES.get("").format(
+            lambda ex: template.user_schema_templates.example.format(
                 example=ex.query,
                 classification=ex.classification,
             ),
-            schema.examples,
+            user_schema.examples,
         )
     )
-    return ex_joined
+
+
+def make_prompt_classes(user_schema: CoTSchema) -> str:
+    return "\n".join(
+        map(
+            lambda c: template.user_schema_templates.clazz.format(
+                name=c.name,
+                description=c.description,
+            ),
+            user_schema.classes,
+        ),
+    )
 
 
 class ChainOfThought(BaseTechnique):
-    prompt_schema = CoTSchema
+    schema = CoTSchema
 
     def make_prompt(self, text: str) -> str:
-        prompt: CoTSchema = self.prompt
-        head: str = make_prompt_head(prompt)
+        examples: str = make_prompt_examples(user_schema=self.user_schema)
+        classes: str = make_prompt_classes(user_schema=self.user_schema)
+        output_format: str = parsers.make_output_format(template.outputs_format)
+        return template.structure.format(
+            examples=examples,
+            classes=classes,
+            output_format=output_format,
+        )
 
     @property
     def examples(self) -> list[CoTExample]:
-        return self.prompt.examples
+        return self.user_schema.examples
 
     @property
     def classes(self) -> list[CoTClass]:
-        return self.prompt.classes
+        return self.user_schema.classes

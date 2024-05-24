@@ -1,39 +1,21 @@
 """Prompting Techniques"""
 
-import abc
-from typing import Type, Union
 from enum import Enum
 from functools import cached_property
 
-import pydantic
 from pydantic import BaseModel, Field
 
 from atap_llm_classifier.assets import Asset
-from atap_llm_classifier.techniques.cot import ChainOfThought
+from atap_llm_classifier.techniques import BaseTechnique
+from atap_llm_classifier.techniques.templates import (
+    ZeroShotTemplate,
+    CoTTemplate,
+)
 
-__all__ = ["Technique", "BaseTechnique", "NoTechnique"]
-
-
-class BaseTechnique(metaclass=abc.ABCMeta):
-    prompt_schema: Type[BaseModel]
-
-    def __init__(self, prompt: Union["BaseTechnique.prompt_schema", dict, None]):
-        try:
-            self.prompt = self.prompt_schema.model_validate(prompt)
-        except pydantic.ValidationError as e:
-            raise ValueError("Invalid prompt provided for given technique.") from e
-
-    @abc.abstractmethod
-    def make_prompt(self, text: str) -> str:
-        raise NotImplementedError()
-
-
-class NoTechnique(BaseTechnique):
-    def __init__(self):
-        super().__init__(prompt=None)
-
-    def make_prompt(self, text: str) -> str:
-        return text
+__all__ = [
+    "Technique",
+    "TechniqueProperties",
+]
 
 
 class TechniqueProperties(BaseModel):
@@ -44,16 +26,29 @@ class TechniqueProperties(BaseModel):
 
 
 class Technique(Enum):
+    ZERO_SHOT: str = "zero_shot"
     CHAIN_OF_THOUGHT: str = "chain_of_thought"
 
     @cached_property
     def properties(self) -> TechniqueProperties:
-        match self:
-            case Technique.CHAIN_OF_THOUGHT:
-                props: dict = Asset.TECHNIQUES.get(self.value)
-                return TechniqueProperties(**props)
+        return TechniqueProperties(**Asset.TECHNIQUES.get(self.value))
 
-    def get_behaviour(self, prompt: BaseModel | dict) -> BaseTechnique:
+    @cached_property
+    def template(self) -> ZeroShotTemplate | CoTTemplate:
+        template: dict = Asset.TECH_TEMPLATES.get(self.value)
         match self:
+            case Technique.ZERO_SHOT:
+                return ZeroShotTemplate(**template)
             case Technique.CHAIN_OF_THOUGHT:
-                return ChainOfThought(prompt)
+                return CoTTemplate(**template)
+
+    def get_prompt_maker(self, user_schema: BaseModel | dict) -> BaseTechnique:
+        match self:
+            case Technique.ZERO_SHOT:
+                from .zeroshot import ZeroShot
+
+                return ZeroShot(user_schema)
+            case Technique.CHAIN_OF_THOUGHT:
+                from .cot import ChainOfThought
+
+                return ChainOfThought(user_schema)

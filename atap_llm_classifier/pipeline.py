@@ -70,7 +70,7 @@ async def a_run(
     if technique is None:
         technique: BaseTechnique = NoTechnique()
     else:
-        technique: BaseTechnique = technique.get_behaviour(technique_prompt)
+        technique: BaseTechnique = technique.get_prompt_maker(technique_prompt)
 
     if modifier is None:
         modifier: BaseModifier = NoModifier()
