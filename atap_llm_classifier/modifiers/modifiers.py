@@ -31,7 +31,7 @@ class BaseModifier(metaclass=abc.ABCMeta):
         prompt: str,
         llm_config: LLMConfig,
     ) -> tuple[str, LLMConfig]:
-        return prompt, llm_config
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def post(
@@ -55,29 +55,29 @@ class NoModifier(BaseModifier):
         return response.choices[0].message.content
 
 
-class Order(Enum):
-    PRE: str = "applied before classification"
-    POST: str = "applied after classification"
-
-
 class ModifierProperties(BaseModel):
     name: str = Field(frozen=True)
     description: str = Field(frozen=True)
     explanation: str = Field(frozen=True)
     paper_url: str = Field(default="", frozen=True)
-    order: Order
+    pre_behaviour: str
+    post_behaviour: str
 
 
 class Modifier(Enum):
+    NO_MODIFIER: str = "no_modifier"
     SELF_CONSISTENCY: str = "self_consistency"
 
     @cached_property
     def properties(self) -> ModifierProperties:
-        match self:
-            case Modifier.SELF_CONSISTENCY:
-                ctx: dict = Asset.MODIFIERS.get(self.value)
-                ctx["order"] = Order.POST
-                return ModifierProperties(**ctx)
+        props: dict = Asset.MODIFIERS.get(self.value)
+        return ModifierProperties(**props)
 
     def get_behaviour(self) -> BaseModifier:
-        pass
+        match self:
+            case Modifier.NO_MODIFIER:
+                return NoModifier()
+            case Modifier.SELF_CONSISTENCY:
+                from .self_consistency import SelfConsistencyModifier
+
+                return SelfConsistencyModifier()

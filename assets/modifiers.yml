@@ -1,6 +1,16 @@
+no_modifier:
+  name: "No Modifier"
+  description: "No modifications done to prompt or llm response."
+  explanation: ""
+  paper_url: ""
+  pre_behaviour: ""
+  post_behaviour: ""
+
 self_consistency:
   name: "Self Consistency"
   description: "Ask LLM to generate multiple outputs and use the majority vote."
   explanation: ""
   paper_url: "https://arxiv.org/abs/2203.11171"
+  pre_behaviour: ""
+  post_behaviour: "Selects the majority as the classification."
 
