@@ -18,7 +18,7 @@ from litellm import acompletion, ModelResponse
 from pydantic import BaseModel, Field
 
 from atap_llm_classifier.modifiers import BaseModifier, NoModifier
-from atap_llm_classifier.techniques import BaseTechnique
+from atap_llm_classifier.techniques import BaseTechnique, parsers
 from atap_llm_classifier.models import (
     LLMConfig,
     LiteLLMMessage,
@@ -58,10 +58,11 @@ async def a_classify(
             top_p=llm_config.top_p,
             n=llm_config.n_completions,
             api_key=api_key,
-        ).to_fn_args(),
-        mock_response="a mock response.",
+        ).to_kwargs(),
+        mock_response=parsers.make_mock_from_settings(
+            technique.template.output_formats
+        ),
     )
-
     classification: str = modifier.post(response=response)
 
     return Result(

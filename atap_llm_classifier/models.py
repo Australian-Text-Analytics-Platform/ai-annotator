@@ -32,6 +32,6 @@ class LiteLLMArgs(BaseModel):
     n: int
     api_key: str
 
-    def to_fn_args(self):
+    def to_kwargs(self) -> dict:
         # note: so Enums are converted to str. - just being lazy.
         return json.loads(self.model_dump_json())

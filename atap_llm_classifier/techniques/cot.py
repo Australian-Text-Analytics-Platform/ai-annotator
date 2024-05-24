@@ -16,8 +16,6 @@ __all__ = [
     "ChainOfThought",
 ]
 
-template: CoTTemplate = Technique.CHAIN_OF_THOUGHT.template
-
 
 class CoTExample(BaseModel):
     query: str
@@ -52,7 +50,7 @@ class CoTSchema(BaseModel):
 def make_prompt_examples(user_schema: CoTSchema) -> str:
     return "\n".join(
         map(
-            lambda ex: template.user_schema_templates.example.format(
+            lambda ex: ChainOfThought.template.user_schema_templates.example.format(
                 example=ex.query,
                 classification=ex.classification,
             ),
@@ -64,7 +62,7 @@ def make_prompt_examples(user_schema: CoTSchema) -> str:
 def make_prompt_classes(user_schema: CoTSchema) -> str:
     return "\n".join(
         map(
-            lambda c: template.user_schema_templates.clazz.format(
+            lambda c: ChainOfThought.template.user_schema_templates.clazz.format(
                 name=c.name,
                 description=c.description,
             ),
@@ -75,12 +73,13 @@ def make_prompt_classes(user_schema: CoTSchema) -> str:
 
 class ChainOfThought(BaseTechnique):
     schema = CoTSchema
+    template: CoTTemplate = Technique.CHAIN_OF_THOUGHT.template
 
     def make_prompt(self, text: str) -> str:
         examples: str = make_prompt_examples(user_schema=self.user_schema)
         classes: str = make_prompt_classes(user_schema=self.user_schema)
-        output_format: str = parsers.make_output_format(template.outputs_format)
-        return template.structure.format(
+        output_format: str = parsers.make_output_format_from_settings(self.template.outputs_format)
+        return self.template.structure.format(
             examples=examples,
             classes=classes,
             output_format=output_format,

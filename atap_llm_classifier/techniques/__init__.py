@@ -4,9 +4,12 @@ from typing import Type, Union
 import pydantic
 from pydantic import BaseModel
 
+from .templates import BasePromptTemplate
+
 
 class BaseTechnique(metaclass=abc.ABCMeta):
     schema: Type[BaseModel]
+    template: BasePromptTemplate
 
     def __init__(self, user_schema: Union["BaseTechnique.schema", dict, None]):
         try:

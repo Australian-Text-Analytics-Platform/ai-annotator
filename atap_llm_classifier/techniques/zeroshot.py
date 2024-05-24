@@ -37,7 +37,7 @@ class ZeroShot(BaseTechnique):
 
     def make_prompt(self, text: str) -> str:
         classes: str = make_prompt_classes(user_schema=self.user_schema)
-        output_format: str = parsers.make_output_format(template.outputs_format)
+        output_format: str = parsers.make_output_format_from_settings(template.outputs_format)
         return template.structure.format(
             classes=classes,
             output_format=output_format,
