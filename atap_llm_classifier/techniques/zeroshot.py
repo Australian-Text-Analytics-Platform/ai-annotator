@@ -34,11 +34,20 @@ def make_prompt_classes(user_schema: ZeroShotSchema) -> str:
 
 class ZeroShot(BaseTechnique):
     schema = ZeroShotSchema
+    template = Technique.ZERO_SHOT.template
 
     def make_prompt(self, text: str) -> str:
         classes: str = make_prompt_classes(user_schema=self.user_schema)
-        output_format: str = parsers.make_output_format_from_settings(template.outputs_format)
+        output_format: str = parsers.make_output_format_from_settings(
+            template.output_formats
+        )
         return template.structure.format(
+            num_classes=len(self.classes),
             classes=classes,
             output_format=output_format,
+            text=text,
         )
+
+    @property
+    def classes(self) -> list[ZeroShotClass]:
+        return self.user_schema.classes
