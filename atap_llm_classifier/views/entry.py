@@ -44,21 +44,21 @@ class EntryWidget(Viewer):
             self.classifier_config,
         )
         self.layout_init_len = len(self.layout)
-        self.classifier = None
+        self.pipeline = None
 
     def classifier_valid_api_key_callback(self):
         self.select_dataset.disabled = True
         self.classifier_config.disable()
         if len(self.layout) <= self.layout_init_len:
-            self.classifier = create_pipeline(
-                self.classifier_config.provider.selected,
-                # todo: pass on self.select_dataset.param.value, or even the selector itself.
-                self.loader.get_corpus(corpus_name=self.select_dataset.value),
+            self.pipeline = create_pipeline(
+                corpus=self.loader.get_corpus(corpus_name=self.select_dataset.value),
+                provider=self.classifier_config.provider.selected,
+                technique=self.classifier_config.technique.selected,
             )
             self.layout.extend(
                 [
                     pn.Spacer(height=10),
-                    self.classifier,
+                    self.pipeline,
                 ]
             )
 

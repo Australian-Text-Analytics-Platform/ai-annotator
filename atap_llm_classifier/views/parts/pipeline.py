@@ -1,6 +1,7 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
+from atap_llm_classifier.techniques import Technique
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
 from atap_llm_classifier.providers.providers import LLMProvider
 from atap_corpus import Corpus
@@ -11,8 +12,17 @@ __all__ = [
 
 
 class PipelineWidget(Viewer):
-    def __init__(self, provider: LLMProvider, corpus: Corpus, **params):
+    def __init__(
+        self,
+        corpus: Corpus,
+        provider: LLMProvider,
+        technique: Technique,
+        **params,
+    ):
         super(PipelineWidget, self).__init__(**params)
+        self.corpus = (corpus,)
+        self.provider = provider
+        self.technique = technique
 
         self.mconfig = PipelineModelConfigView(provider=provider)
 
@@ -60,7 +70,8 @@ class PipelineWidget(Viewer):
 
 
 def create_pipeline(
-    provider: LLMProvider,
     corpus: Corpus,
+    provider: LLMProvider,
+    technique: Technique,
 ) -> PipelineWidget:
-    return PipelineWidget(provider=provider, corpus=corpus)
+    return PipelineWidget(corpus=corpus, provider=provider, technique=technique)

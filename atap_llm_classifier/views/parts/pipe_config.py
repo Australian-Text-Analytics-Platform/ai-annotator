@@ -16,7 +16,7 @@ __all__ = [
 props: PipeConfigProps = ViewProp.PIPE_CONFIG.properties
 
 
-class TechniquesSelectorView(Viewer):
+class TechniqueSelectorView(Viewer):
     def __init__(self, **params):
         super().__init__(**params)
         self.selector = pn.widgets.Select(
@@ -39,6 +39,10 @@ class TechniquesSelectorView(Viewer):
             self._on_select,
             "value",
         )
+
+    @property
+    def selected(self) -> Technique:
+        return Technique(self.selector.value)
 
     def __panel__(self) -> Viewable:
         return self.layout
@@ -78,6 +82,10 @@ class ModifierSelectorView(Viewer):
             self._on_select,
             "value",
         )
+
+    @property
+    def selected(self) -> Modifier:
+        return Modifier(self.selector.value)
 
     def __panel__(self) -> Viewable:
         return self.layout
@@ -178,11 +186,11 @@ class PipeConfigView(Viewer):
     def __init__(self, **params):
         super().__init__(**params)
 
-        self.techniques = TechniquesSelectorView()
+        self.technique = TechniqueSelectorView()
         self.modifier = ModifierSelectorView()
         self.provider = ProviderSelectorView()
         self.layout = pn.Column(
-            self.techniques,
+            self.technique,
             pn.Spacer(height=5),
             self.modifier,
             pn.Spacer(height=5),
@@ -198,5 +206,5 @@ class PipeConfigView(Viewer):
 
     def disable(self):
         self.provider.disable()
-        self.techniques.disable()
+        self.technique.disable()
         self.modifier.disable()
