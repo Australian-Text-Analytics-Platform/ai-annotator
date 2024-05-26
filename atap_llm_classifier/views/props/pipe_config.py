@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from atap_llm_classifier.views.props.shared import SelectorProps
 
 __all__ = [
-    "ClassifierConfigProps",
+    "PipeConfigProps",
 ]
 
 
@@ -31,7 +31,7 @@ class ModifierConfigProps(BaseModel):
     paper_url: str
 
 
-class ClassifierConfigProps(BaseModel):
+class PipeConfigProps(BaseModel):
     technique: TechniqueConfigProps
     modifier: ModifierConfigProps
     provider: ProviderConfigProps

@@ -1,4 +1,5 @@
 from .entry import *
-from .classifier_config import *
-from .model_config import *
+from .pipe_model import *
+from .pipe_config import *
+from .pipeline import *
 from .props import *

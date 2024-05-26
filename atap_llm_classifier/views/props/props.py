@@ -14,8 +14,8 @@ __all__ = [
 
 class ViewProp(enum.Enum):
     ENTRY: str = "entry"
-    CLASSIFIER_CONFIG: str = "classifier_config"
-    MODEL_CONFIG: str = "model_config"
+    PIPE_CONFIG: str = "pipe_config"
+    PIPE_MODEL: str = "pipe_model"
 
     @cached_property
     def properties(self):
@@ -23,10 +23,10 @@ class ViewProp(enum.Enum):
         match self:
             case ViewProp.ENTRY:
                 cls = props.EntryProps
-            case ViewProp.CLASSIFIER_CONFIG:
-                cls = props.ClassifierConfigProps
-            case ViewProp.MODEL_CONFIG:
-                cls = props.ModelConfigProps
+            case ViewProp.PIPE_CONFIG:
+                cls = props.PipeConfigProps
+            case ViewProp.PIPE_MODEL:
+                cls = props.PipeModelProps
             case _:
                 raise NotImplementedError()
 

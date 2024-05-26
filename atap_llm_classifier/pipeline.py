@@ -13,7 +13,7 @@ import litellm
 from atap_corpus import Corpus
 from atap_corpus._types import Docs
 from loguru import logger
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel
 
 from atap_llm_classifier import core
 from atap_llm_classifier.core import LLMConfig
@@ -21,19 +21,6 @@ from atap_llm_classifier.modifiers import Modifier, BaseModifier
 from atap_llm_classifier.techniques import Technique, BaseTechnique
 
 litellm.set_verbose = False
-
-MODEL = "ollama_chat/llama3"
-API_BASE = "http://localhost:11434"
-NUM_MESSAGES = 10
-
-
-class UserInput(BaseModel):
-    model: str
-    api_key: SecretStr
-
-
-class PipelineResults(BaseModel):
-    pass
 
 
 def run(

@@ -7,13 +7,13 @@ from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.providers.providers import LLMProvider, validate_api_key
 from atap_llm_classifier.techniques.techniques import Technique
 from atap_llm_classifier.views import utils
-from atap_llm_classifier.views.props import ViewProp, ClassifierConfigProps
+from atap_llm_classifier.views.props import ViewProp, PipeConfigProps
 
 __all__ = [
-    "ClassifierConfigView",
+    "PipeConfigView",
 ]
 
-props: ClassifierConfigProps = ViewProp.CLASSIFIER_CONFIG.properties
+props: PipeConfigProps = ViewProp.PIPE_CONFIG.properties
 
 
 class TechniquesSelectorView(Viewer):
@@ -171,9 +171,10 @@ class ProviderSelectorView(Viewer):
 
     def disable(self):
         self.selector.disabled = True
+        self.api_key.disabled = True
 
 
-class ClassifierConfigView(Viewer):
+class PipeConfigView(Viewer):
     def __init__(self, **params):
         super().__init__(**params)
 

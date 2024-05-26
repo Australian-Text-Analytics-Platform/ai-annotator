@@ -3,8 +3,17 @@ openai:
   description: "OpenAI the company"
   privacy_policy_url: "https://openai.com/policies/privacy-policy"
   models:
+    # regex match prioritised in order
     .*gpt-3.5-turbo.*:
       description: "This is the weaker but cheapest model."
+    .*gpt-4o.*:
+      description: |
+        This is the latest GPT4 model.
+        Cheaper than previous GPT4s.
+    .*gpt-4.*:
+      description: |
+        This is an older GPT4 model.
+        More expensive than the latest GPT4o.
 
 
 openai_azure_sih:

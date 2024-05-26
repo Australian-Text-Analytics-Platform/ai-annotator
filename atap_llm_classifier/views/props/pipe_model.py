@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from atap_llm_classifier.views.props.shared import SelectorPropsWithTooltip
 
 __all__ = [
-    "ModelConfigProps",
+    "PipeModelProps",
 ]
 
 
@@ -18,7 +18,7 @@ class LLMConfigProps(BaseModel):
     info: LLMInfoProps
 
 
-class ModelConfigProps(BaseModel):
+class PipeModelProps(BaseModel):
     title: str
     llm: LLMConfigProps
     temperature: SelectorPropsWithTooltip

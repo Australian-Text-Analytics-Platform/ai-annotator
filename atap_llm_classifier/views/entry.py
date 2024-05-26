@@ -3,8 +3,8 @@ from panel.viewable import Viewer, Viewable
 
 from atap_corpus_loader import CorpusLoader
 from atap_corpus import Corpus
-from atap_llm_classifier.views.parts.classifier_config import ClassifierConfigView
-from atap_llm_classifier.views.parts.classifier import create_classifier
+from atap_llm_classifier.views.parts.pipe_config import PipeConfigView
+from atap_llm_classifier.views.parts.pipeline import create_pipeline
 from atap_llm_classifier.views.props import ViewProp, EntryProps
 from atap_llm_classifier.views import utils
 
@@ -31,7 +31,7 @@ class EntryWidget(Viewer):
             options=self.r_loader_corpus_names,
         )
 
-        self.classifier_config = ClassifierConfigView()
+        self.classifier_config = PipeConfigView()
         self.classifier_config.set_provider_valid_api_callback(
             self.classifier_valid_api_key_callback
         )
@@ -50,7 +50,7 @@ class EntryWidget(Viewer):
         self.select_dataset.disabled = True
         self.classifier_config.disable()
         if len(self.layout) <= self.layout_init_len:
-            self.classifier = create_classifier(
+            self.classifier = create_pipeline(
                 self.classifier_config.provider.selected,
                 # todo: pass on self.select_dataset.param.value, or even the selector itself.
                 self.loader.get_corpus(corpus_name=self.select_dataset.value),

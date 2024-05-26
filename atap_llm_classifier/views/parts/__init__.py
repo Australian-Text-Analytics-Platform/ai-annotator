@@ -1,2 +1,2 @@
-from .classifier_config import *
-from .model_config import *
+from .pipe_config import *
+from .pipeline import *

@@ -7,7 +7,7 @@ entry:
         For detailed information:
         Please scroll back to the Corpus Loader.
 
-classifier_config:
+pipe_config:
   technique:
     selector:
       name: "Select a technique:"
@@ -27,7 +27,7 @@ classifier_config:
       success_message: "👍 Valid API Key."
       error_message: "🙅 Invalid API Key. Please try again."
 
-model_config:
+pipe_model:
   title: "## Model Configuration"
   llm:
     selector:
@@ -46,15 +46,3 @@ model_config:
     name: "Top P"
     tooltip: "Limit model to only output tokens within the Top P probabilities."
 
-classifier:
-  tabs:
-    prompt:
-      title: "Prompt"
-    classifications:
-      title: "Classifications"
-
-
-# todo: for remapping enums
-techniques:
-  chain_of_thought:
-    name: "Chain Of Thought"

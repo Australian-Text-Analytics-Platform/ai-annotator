@@ -1,20 +1,20 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
-from atap_llm_classifier.views.parts.model_config import ModelConfigView
+from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
 from atap_llm_classifier.providers.providers import LLMProvider
 from atap_corpus import Corpus
 
 __all__ = [
-    "ClassificationWidget",
+    "PipelineWidget",
 ]
 
 
-class ClassificationWidget(Viewer):
+class PipelineWidget(Viewer):
     def __init__(self, provider: LLMProvider, corpus: Corpus, **params):
-        super(ClassificationWidget, self).__init__(**params)
+        super(PipelineWidget, self).__init__(**params)
 
-        self.mconfig = ModelConfigView(provider=provider)
+        self.mconfig = PipelineModelConfigView(provider=provider)
 
         # independent dataframe from corpus.
         df = corpus.docs().to_frame(name="document")
@@ -59,8 +59,8 @@ class ClassificationWidget(Viewer):
         return self.layout
 
 
-def create_classifier(
+def create_pipeline(
     provider: LLMProvider,
     corpus: Corpus,
-) -> ClassificationWidget:
-    return ClassificationWidget(provider=provider, corpus=corpus)
+) -> PipelineWidget:
+    return PipelineWidget(provider=provider, corpus=corpus)
