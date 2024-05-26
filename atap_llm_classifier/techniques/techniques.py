@@ -34,7 +34,7 @@ class Technique(Enum):
         return TechniqueInfo(**Asset.TECHNIQUES.get(self.value))
 
     @cached_property
-    def template(self) -> ZeroShotPromptTemplate | CoTPromptTemplate:
+    def prompt_template(self) -> ZeroShotPromptTemplate | CoTPromptTemplate:
         template: dict = Asset.PROMPT_TEMPLATES.get(self.value)
         match self:
             case Technique.ZERO_SHOT:

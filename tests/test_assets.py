@@ -15,9 +15,9 @@ def test_technique_props_all_exist_and_valid():
     # pass if no exceptions raised.
 
 
-def test_technique_templates_all_exist_and_valid():
+def test_prompt_templates_all_exist_and_valid():
     for technique in Technique:
-        template = technique.template
+        template = technique.prompt_template
 
 
 def test_view_props_all_exist_and_valid():

@@ -108,7 +108,7 @@ def unformat_output(
     output_keys: list[str],
 ) -> LLMoutputModel:
     output_format = atap.get_settings().LLM_OUTPUT_FORMAT
-    ptn = output_format.template.unformat_regex_compiled
+    ptn = output_format.prompt_template.unformat_regex_compiled
     found = ptn.findall(string=llm_output)
     match len(found):
         case 0:

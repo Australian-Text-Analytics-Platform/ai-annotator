@@ -7,7 +7,7 @@ __all__ = [
     "ZeroShot",
 ]
 
-template: ZeroShotPromptTemplate = Technique.ZERO_SHOT.template
+template: ZeroShotPromptTemplate = Technique.ZERO_SHOT.prompt_template
 
 
 class ZeroShotClass(BaseModel):
@@ -33,7 +33,7 @@ def make_prompt_classes(user_schema: ZeroShotUserSchema) -> str:
 
 class ZeroShot(BaseTechnique):
     schema = ZeroShotUserSchema
-    template = Technique.ZERO_SHOT.template
+    template = Technique.ZERO_SHOT.prompt_template
 
     def make_prompt(self, text: str) -> str:
         classes: str = make_prompt_classes(user_schema=self.user_schema)

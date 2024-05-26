@@ -42,7 +42,7 @@ def make_prompt_classes(user_schema: CoTUserSchema) -> str:
 
 class ChainOfThought(BaseTechnique):
     schema = CoTUserSchema
-    template: CoTPromptTemplate = Technique.CHAIN_OF_THOUGHT.template
+    template: CoTPromptTemplate = Technique.CHAIN_OF_THOUGHT.prompt_template
 
     def make_prompt(self, text: str) -> str:
         examples: str = make_prompt_examples(user_schema=self.user_schema)
