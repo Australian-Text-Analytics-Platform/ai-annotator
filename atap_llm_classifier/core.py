@@ -20,6 +20,7 @@ from atap_llm_classifier.models import (
     LiteLLMRole,
 )
 from atap_llm_classifier.modifiers import BaseModifier
+from atap_llm_classifier.settings import get_settings
 from atap_llm_classifier.techniques import BaseTechnique
 from atap_llm_classifier.techniques.schemas import LLMoutputModel
 
@@ -55,7 +56,7 @@ async def a_classify(
         output_keys=technique.template.output_keys,
     )
 
-    # preconditions: technique, modifier applied to prompt and llm configs.
+    # preconditions: technique, modifier, formatter applied to prompt and llm configs.
     msg = LiteLLMMessage(content=prompt, role=LiteLLMRole.USER)
     response: ModelResponse = await acompletion(
         **LiteLLMArgs(
@@ -67,7 +68,9 @@ async def a_classify(
             n=llm_config.n_completions,
             api_key=api_key,
         ).to_kwargs(),
-        mock_response=formatter.make_mock_response(technique.template.output_keys),
+        mock_response=formatter.make_mock_response(technique.template.output_keys)
+        if get_settings().USE_MOCK
+        else None,
     )
 
     unformatted_outputs: list[LLMoutputModel | None] = list()
