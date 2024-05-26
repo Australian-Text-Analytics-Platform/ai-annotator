@@ -3,8 +3,9 @@ import io
 import yaml
 from loguru import logger
 
-from atap_llm_classifier import errors, registry
+from atap_llm_classifier import errors
 from atap_llm_classifier.formatter.models import OutputFormat
+from atap_llm_classifier.settings import get_settings
 from atap_llm_classifier.techniques.schemas import LLMoutputModel
 
 
@@ -13,7 +14,7 @@ def format_prompt(
     output_keys: list[str],
 ) -> str:
     value_format = OutputFormat.infos().value_format
-    output_format = registry.get_settings().LLM_OUTPUT_FORMAT
+    output_format = get_settings().LLM_OUTPUT_FORMAT
     output_dict = {k: value_format.format(k) for k in output_keys}
     match output_format:
         case OutputFormat.YAML:
@@ -35,7 +36,7 @@ def unformat_output(
     llm_output: str,
     output_keys: list[str],
 ) -> LLMoutputModel:
-    output_format = registry.get_settings().LLM_OUTPUT_FORMAT
+    output_format = get_settings().LLM_OUTPUT_FORMAT
     ptn = output_format.template.unformat_regex_compiled
     found = ptn.findall(string=llm_output)
     match len(found):
@@ -69,7 +70,7 @@ def unformat_output(
 
 def make_mock_response(output_keys: list[str]) -> str:
     output_dict = {k: "This is a mock value for {}".format(k) for k in output_keys}
-    output_format = registry.get_settings().LLM_OUTPUT_FORMAT
+    output_format = get_settings().LLM_OUTPUT_FORMAT
     match output_format:
         case OutputFormat.YAML:
             str_io = io.StringIO()
