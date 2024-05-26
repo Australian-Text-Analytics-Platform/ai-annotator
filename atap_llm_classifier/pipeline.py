@@ -10,9 +10,9 @@ from asyncio import Future
 from typing import Sequence
 
 import litellm
-from loguru import logger
 from atap_corpus import Corpus
 from atap_corpus._types import Docs
+from loguru import logger
 from pydantic import BaseModel, SecretStr
 
 from atap_llm_classifier import core
@@ -95,59 +95,31 @@ async def a_run(
     return results
 
 
-# if __name__ == "__main__":
-#     import os
-#
-#     os.environ["USE_MOCK"] = "true"
-#     os.environ["LLM_OUTPUT_FORMAT"] = "yaml"
-#
-#     import atap_llm_classifier as atap
-#
-#     logger.info(f"Settings: {atap.get_settings()}")
-#
-#     from atap_llm_classifier.techniques.zeroshot import (
-#         ZeroShotUserSchema,
-#         ZeroShotClass,
-#     )
-#
-#     user_schema_ = ZeroShotUserSchema(
-#         classes=[ZeroShotClass(name="class 1", description="the first class")]
-#     )
-#     res = run(
-#         corpus=Corpus([f"test sentence {i}" for i in range(3)]),
-#         model="gpt-3.5-turbo",
-#         api_key="",
-#         user_schema=user_schema_,
-#         technique=Technique.ZERO_SHOT,
-#         modifier=Modifier.NO_MODIFIER,
-#     )
-#     print(res)
+if __name__ == "__main__":
+    import os
+    from atap_llm_classifier.settings import get_settings
+    from atap_llm_classifier.techniques.zeroshot import (
+        ZeroShotUserSchema,
+        ZeroShotClass,
+    )
 
-# # todo: do not use this - not implemented.
-# async def a_run_multi_llm(
-#     corpus: Corpus,
-#     models: Sequence[str],
-#     api_keys: Sequence[SecretStr],
-#     technique: Technique | None = None,
-#     modifier: Modifier | None = None,
-# ):
-#     # todo: make model, api_key, sys prompt, a BaseModel
-#     #   allow multiple sys prompts to be used.
-#     #
-#     # todo: this basically runs a_run len(models) times.
-#     #   then, just add an extra column that takes highest classified.
-#     tasks = list()
-#     for model, api_key in zip(models, api_keys):
-#         task: Future = asyncio.create_task(
-#             core.a_classify(
-#                 text=corpus[:1],  # todo: use the corpus docs
-#                 model=model,
-#                 api_key=api_key,
-#                 llm_config=LLMConfig(seed=42),
-#                 technique=technique,
-#                 modifier=modifier,
-#             )
-#         )
-#         tasks.append(task)
-#     results = await asyncio.gather(*tasks)
-#     return results
+    os.environ["USE_MOCK"] = "true"
+    os.environ["LLM_OUTPUT_FORMAT"] = "yaml"
+
+    logger.info(f"Settings: {get_settings()}")
+
+    user_schema_ = ZeroShotUserSchema(
+        classes=[ZeroShotClass(name="class 1", description="the first class")]
+    )
+
+    results = run(
+        corpus=Corpus([f"test sentence {i}" for i in range(3)]),
+        model="gpt-3.5-turbo",
+        api_key="",
+        user_schema=user_schema_,
+        technique=Technique.ZERO_SHOT,
+        modifier=Modifier.NO_MODIFIER,
+    )
+
+    for res in results:
+        print(res)

@@ -12,7 +12,7 @@ class LLMoutputModel(BaseModel):
 class BasePromptTemplate(BaseModel, metaclass=abc.ABCMeta):
     structure: str
     output_classification_key: str = Field("classification", frozen=True)
-    additional_output_keys: list[str] | None = None
+    additional_output_keys: list[str] = list()
 
     @cached_property
     def output_keys(self) -> list[str]:

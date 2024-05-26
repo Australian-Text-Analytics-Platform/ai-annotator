@@ -75,13 +75,11 @@ def unformat_output(
 
 
 def make_mock_response(output_keys: list[str]) -> str:
-    output_dict = {k: "This is a mock value for {}".format(k) for k in output_keys}
+    output_dict = {k: "This is a mock {}.".format(k) for k in output_keys}
     output_format = get_settings().LLM_OUTPUT_FORMAT
     match output_format:
         case OutputFormat.YAML:
-            str_io = io.StringIO()
-            yaml.safe_dump(output_dict, str_io)
-            mock_res: str = str_io.read()
+            mock_res: str = yaml.safe_dump(output_dict)
         case _:
             raise NotImplementedError()
-    return mock_res
+    return output_format.template.format_str.format(mock_res)

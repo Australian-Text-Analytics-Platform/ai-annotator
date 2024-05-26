@@ -43,7 +43,13 @@ async def a_classify(
     # todo: Add output format here
 ) -> Result:
     prompt: str = technique.make_prompt(text)
-    prompt, llm_config = modifier.pre(prompt=prompt, llm_config=llm_config)
+    prompt, llm_config = modifier.pre(
+        text=text,
+        model=model,
+        prompt=prompt,
+        technique=technique,
+        llm_config=llm_config,
+    )
     prompt: str = formatter.format_prompt(
         prompt=prompt,
         output_keys=technique.template.output_keys,
@@ -61,9 +67,7 @@ async def a_classify(
             n=llm_config.n_completions,
             api_key=api_key,
         ).to_kwargs(),
-        mock_response=formatter.make_mock_response(
-            technique.template.output_model
-        ),
+        mock_response=formatter.make_mock_response(technique.template.output_keys),
     )
 
     unformatted_outputs: list[LLMoutputModel | None] = list()
