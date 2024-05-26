@@ -1,11 +1,10 @@
 """utils.py"""
 
-from datetime import datetime
+from enum import Enum
 from functools import lru_cache
 from io import IOBase
 from pathlib import Path
 from typing import TypeVar, Type
-from enum import Enum
 
 import yaml
 from pydantic import BaseModel
@@ -22,7 +21,7 @@ class Asset(Enum):
     PROVIDERS: str = "providers"
     VIEWS: str = "views"
     PROMPT_TEMPLATES: str = "prompt_templates"
-    OUTPUT_FORMATTER: str = "outputer_formatter"
+    FORMATTER: str = "formatter"
 
     def get_path(self) -> Path:
         return asset_dir / f"{self.value}.yml"

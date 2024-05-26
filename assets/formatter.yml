@@ -6,8 +6,7 @@ templates:
       ```yaml
       {}
       ```
-    unformat_regex: ```yaml\n(.*)```
+    unformat_regex: "```yaml\n(.*)```"
 structure: |
   {instruction}
   {templated}
-  
