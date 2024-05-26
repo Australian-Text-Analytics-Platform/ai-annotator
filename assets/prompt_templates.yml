@@ -15,9 +15,6 @@ zero_shot:
     Referencing the above classes, your task is to classify the following query into one of them.
     
     query: {text}
-    
-    When providing your answer you must follow the following structure:
-    {output_format}
 
   user_schema_templates:
     clazz: |
@@ -26,10 +23,8 @@ zero_shot:
       description: {description}
       </class>
 
-  output_formats:
-    yaml: |
-      query: 
-      answer:
+  output_keys:
+    - classification
 
 chain_of_thought:
   structure: |
@@ -59,10 +54,7 @@ chain_of_thought:
     query into one of the provided classes and provide your reasoning.
     
     query: {text}
-    
-    When providing your answer you must follow the following structure:
-    {output_format}
-  
+
   user_schema_templates:
     clazz: |
       <class>
@@ -77,8 +69,6 @@ chain_of_thought:
       reason: {reason}
       </example>
 
-  output_formats:
-    yaml: |
-      query: 
-      answer: 
-      reason: 
+  output_keys:
+    - classification
+    - reason

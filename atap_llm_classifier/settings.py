@@ -3,7 +3,7 @@ import tempfile
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from atap_llm_classifier.techniques.parsers import OutputFormat
+from atap_llm_classifier.output_formatter import OutputFormat
 
 __all__ = [
     "Settings",

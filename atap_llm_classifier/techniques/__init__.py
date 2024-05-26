@@ -4,7 +4,7 @@ from typing import Type, Union
 import pydantic
 from pydantic import BaseModel
 
-from .templates import BasePromptTemplate
+from .schemas import BasePromptTemplate
 
 
 class BaseTechnique(metaclass=abc.ABCMeta):

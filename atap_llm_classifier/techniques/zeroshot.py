@@ -1,14 +1,14 @@
 from pydantic import BaseModel
 
 from atap_llm_classifier import Technique
-from atap_llm_classifier.techniques import BaseTechnique, parsers
-from atap_llm_classifier.techniques.templates import ZeroShotTemplate
+from atap_llm_classifier.techniques import BaseTechnique
+from atap_llm_classifier.techniques.schemas import ZeroShotPromptTemplate
 
 __all__ = [
     "ZeroShot",
 ]
 
-template: ZeroShotTemplate = Technique.ZERO_SHOT.template
+template: ZeroShotPromptTemplate = Technique.ZERO_SHOT.template
 
 
 class ZeroShotClass(BaseModel):
@@ -16,11 +16,11 @@ class ZeroShotClass(BaseModel):
     description: str
 
 
-class ZeroShotSchema(BaseModel):
+class ZeroShotUserSchema(BaseModel):
     classes: list[ZeroShotClass]
 
 
-def make_prompt_classes(user_schema: ZeroShotSchema) -> str:
+def make_prompt_classes(user_schema: ZeroShotUserSchema) -> str:
     return "\n".join(
         map(
             lambda c: template.user_schema_templates.clazz.format(
@@ -33,18 +33,14 @@ def make_prompt_classes(user_schema: ZeroShotSchema) -> str:
 
 
 class ZeroShot(BaseTechnique):
-    schema = ZeroShotSchema
+    schema = ZeroShotUserSchema
     template = Technique.ZERO_SHOT.template
 
     def make_prompt(self, text: str) -> str:
         classes: str = make_prompt_classes(user_schema=self.user_schema)
-        output_format: str = parsers.make_output_format_for_prompt(
-            template.output_formats
-        )
         return template.structure.format(
             num_classes=len(self.classes),
             classes=classes,
-            output_format=output_format,
             text=text,
         )
 

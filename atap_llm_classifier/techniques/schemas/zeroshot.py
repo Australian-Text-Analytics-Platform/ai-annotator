@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
-from atap_llm_classifier.techniques.templates import BasePromptTemplate
+from atap_llm_classifier.techniques.schemas import BasePromptTemplate
 
 __all__ = [
-    "ZeroShotTemplate",
+    "ZeroShotPromptTemplate",
 ]
 
 
@@ -11,5 +11,5 @@ class ZeroShotUserSchemaTemplates(BaseModel):
     clazz: str
 
 
-class ZeroShotTemplate(BasePromptTemplate):
+class ZeroShotPromptTemplate(BasePromptTemplate):
     user_schema_templates: ZeroShotUserSchemaTemplates

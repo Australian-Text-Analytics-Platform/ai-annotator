@@ -21,38 +21,23 @@ class Asset(Enum):
     MODIFIERS: str = "modifiers"
     PROVIDERS: str = "providers"
     VIEWS: str = "views"
-    TECH_TEMPLATES: str = "tech_templates"
-    PARSER_TEMPLATES: str = "parser_template"
+    PROMPT_TEMPLATES: str = "prompt_templates"
+    OUTPUT_FORMATTER: str = "outputer_formatter"
 
     def get_path(self) -> Path:
-        match self:
-            case Asset.TECHNIQUES:
-                return asset_dir / "techniques.yml"
-            case Asset.MODIFIERS:
-                return asset_dir / "modifiers.yml"
-            case Asset.PROVIDERS:
-                return asset_dir / "providers.yml"
-            case Asset.VIEWS:
-                return asset_dir / "views.yml"
-            case Asset.TECH_TEMPLATES:
-                return asset_dir / "tech_templates.yml"
-            case Asset.PARSER_TEMPLATES:
-                return asset_dir / "parser_templates.yml"
+        return asset_dir / f"{self.value}.yml"
 
     def get(self, key: str) -> dict | str:
         return load_asset(self)[key]
+
+    def load(self) -> dict:
+        return load_asset(self)
 
 
 @lru_cache(maxsize=len(Asset))
 def load_asset(asset: Asset) -> dict:
     with open(asset.get_path(), "r", encoding="utf-8") as h:
         return yaml.safe_load(h)
-
-
-def _last_update(path: Path) -> datetime:
-    # todo: get the last update of file from git commit, for info related to say...
-    #   why choose this model?
-    pass
 
 
 # Below unused: kept for now.

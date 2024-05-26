@@ -105,9 +105,12 @@ if __name__ == "__main__":
 
     logger.info(f"Settings: {atap.get_settings()}")
 
-    from atap_llm_classifier.techniques.zeroshot import ZeroShotSchema, ZeroShotClass
+    from atap_llm_classifier.techniques.zeroshot import (
+        ZeroShotUserSchema,
+        ZeroShotClass,
+    )
 
-    user_schema_ = ZeroShotSchema(
+    user_schema_ = ZeroShotUserSchema(
         classes=[ZeroShotClass(name="class 1", description="the first class")]
     )
     res = run(

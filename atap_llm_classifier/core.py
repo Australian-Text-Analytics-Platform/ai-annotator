@@ -8,17 +8,14 @@ Note:
     performance of litellm's batch classification v.s. running multiple async is the equivalent.
 """
 
-import json
-import enum
-import asyncio
-from asyncio import Future
-from typing import Iterable
+from litellm import acompletion, ModelResponse, Choices
+from loguru import logger
+from pydantic import BaseModel
 
-from litellm import acompletion, ModelResponse
-from pydantic import BaseModel, Field
-
-from atap_llm_classifier.modifiers import BaseModifier, NoModifier
-from atap_llm_classifier.techniques import BaseTechnique, parsers
+import atap_llm_classifier as atap
+from atap_llm_classifier.modifiers import BaseModifier
+from atap_llm_classifier.techniques import BaseTechnique
+from atap_llm_classifier import output_formatter, Settings, errors
 from atap_llm_classifier.models import (
     LLMConfig,
     LiteLLMMessage,
@@ -43,11 +40,14 @@ async def a_classify(
     llm_config: LLMConfig,
     technique: BaseTechnique,
     modifier: BaseModifier,
+    # todo: Add output format here
 ) -> Result:
     prompt: str = technique.make_prompt(text)
     prompt, llm_config = modifier.pre(prompt=prompt, llm_config=llm_config)
-
-    # todo: parser Add output format here.
+    prompt: str = output_formatter.format_prompt(
+        prompt=prompt,
+        output_keys=technique.template.output_keys,
+    )
 
     # preconditions: technique, modifier applied to prompt and llm configs.
     msg = LiteLLMMessage(content=prompt, role=LiteLLMRole.USER)
@@ -61,11 +61,24 @@ async def a_classify(
             n=llm_config.n_completions,
             api_key=api_key,
         ).to_kwargs(),
-        mock_response=parsers.make_mock_from_settings(
-            technique.template.output_formats
+        mock_response=output_formatter.make_mock_response(
+            technique.template.output_model
         ),
     )
-    # todo: parse the response here.
+
+    unformatted_outputs: list[BaseModel | None] = list()
+    choice: Choices
+    for choice in response.choices:
+        llm_output: str = choice.message.content
+        try:
+            unformatted = output_formatter.unformat_output(
+                llm_output=llm_output,
+                output_keys=technique.template.output_keys,
+            )
+            unformatted_outputs.append(unformatted)
+        except errors.CorruptedLLMFormattedOutput as e:
+            unformatted_outputs.append(None)
+            logger.error(f"Corrupted LLM output format. Error: - {e}")
 
     classification: str = modifier.post(response=response)
 

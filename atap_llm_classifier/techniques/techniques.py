@@ -7,9 +7,9 @@ from pydantic import BaseModel, Field
 
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.techniques import BaseTechnique
-from atap_llm_classifier.techniques.templates import (
-    ZeroShotTemplate,
-    CoTTemplate,
+from atap_llm_classifier.techniques.schemas import (
+    ZeroShotPromptTemplate,
+    CoTPromptTemplate,
 )
 
 __all__ = [
@@ -34,13 +34,13 @@ class Technique(Enum):
         return TechniqueInfo(**Asset.TECHNIQUES.get(self.value))
 
     @cached_property
-    def template(self) -> ZeroShotTemplate | CoTTemplate:
-        template: dict = Asset.TECH_TEMPLATES.get(self.value)
+    def template(self) -> ZeroShotPromptTemplate | CoTPromptTemplate:
+        template: dict = Asset.PROMPT_TEMPLATES.get(self.value)
         match self:
             case Technique.ZERO_SHOT:
-                return ZeroShotTemplate(**template)
+                return ZeroShotPromptTemplate(**template)
             case Technique.CHAIN_OF_THOUGHT:
-                return CoTTemplate(**template)
+                return CoTPromptTemplate(**template)
 
     def get_prompt_maker(self, user_schema: BaseModel | dict) -> BaseTechnique:
         match self:

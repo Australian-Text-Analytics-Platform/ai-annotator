@@ -1,0 +1,13 @@
+instruction: "You must closely follow the format given below in your output:"
+value_format: "Your {} goes here."  # {} is output_key from supplied prompt template
+templates:
+  yaml:
+    format_str: |
+      ```yaml
+      {}
+      ```
+    unformat_regex: ```yaml\n(.*)```
+structure: |
+  {instruction}
+  {templated}
+  
