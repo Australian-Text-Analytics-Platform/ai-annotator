@@ -8,7 +8,7 @@ from loguru import logger
 from pydantic import BaseModel, create_model, field_validator
 
 import atap_llm_classifier as atap
-from atap_llm_classifier import Settings
+from atap_llm_classifier.settings import Settings
 from atap_llm_classifier.techniques.schemas import LLMoutputModel
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier import errors

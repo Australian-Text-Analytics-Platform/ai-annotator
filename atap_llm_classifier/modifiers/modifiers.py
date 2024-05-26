@@ -2,21 +2,17 @@
 
 import abc
 from enum import Enum
-from functools import lru_cache, singledispatchmethod, cached_property
-from typing import Any
+from functools import cached_property
 
 from litellm import ModelResponse
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from atap_llm_classifier import BaseTechnique
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.models import (
     LLMConfig,
-    LiteLLMMessage,
-    LiteLLMArgs,
-    LiteLLMRole,
 )
+from atap_llm_classifier.techniques import BaseTechnique
 from atap_llm_classifier.techniques.schemas import LLMoutputModel
 
 __all__ = [

@@ -6,7 +6,7 @@ from functools import cached_property
 from pydantic import BaseModel, Field
 
 from atap_llm_classifier.assets import Asset
-from atap_llm_classifier.techniques import BaseTechnique
+from atap_llm_classifier.techniques.base import BaseTechnique
 from atap_llm_classifier.techniques.schemas import (
     ZeroShotPromptTemplate,
     CoTPromptTemplate,

@@ -7,6 +7,7 @@ from atap_llm_classifier.output_formatter import OutputFormat
 
 __all__ = [
     "Settings",
+    "get_settings",
 ]
 
 
@@ -18,3 +19,6 @@ class Settings(BaseSettings):
     CHECKPOINT_DIR: str = Field(
         default=tempfile.mkdtemp(), description="Default checkpoint directory."
     )
+
+def get_settings() -> Settings:
+    return Settings()

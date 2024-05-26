@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 
-from atap_llm_classifier import Technique
-from atap_llm_classifier.techniques import BaseTechnique
+from atap_llm_classifier.techniques import Technique, BaseTechnique
 from atap_llm_classifier.techniques.schemas import ZeroShotPromptTemplate
 
 __all__ = [

@@ -1,12 +1,9 @@
-from typing import Type
-
 import pydantic
 from pydantic import BaseModel, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
 from atap_llm_classifier.techniques.schemas import (
     BasePromptTemplate,
-    LLMOutputModel,
 )
 
 __all__ = [

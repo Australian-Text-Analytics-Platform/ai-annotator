@@ -3,11 +3,11 @@ from typing import Callable
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
-from atap_llm_classifier import Modifier
-from atap_llm_classifier.techniques.techniques import Technique
+from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.providers.providers import LLMProvider, validate_api_key
-from atap_llm_classifier.views.props import ViewProp, ClassifierConfigProps
+from atap_llm_classifier.techniques.techniques import Technique
 from atap_llm_classifier.views import utils
+from atap_llm_classifier.views.props import ViewProp, ClassifierConfigProps
 
 __all__ = [
     "ClassifierConfigView",

@@ -12,16 +12,16 @@ from litellm import acompletion, ModelResponse, Choices
 from loguru import logger
 from pydantic import BaseModel
 
-from atap_llm_classifier.modifiers import BaseModifier
-from atap_llm_classifier.techniques import BaseTechnique
-from atap_llm_classifier.techniques.schemas import LLMoutputModel
-from atap_llm_classifier import output_formatter, Settings, errors
+from atap_llm_classifier import output_formatter, errors
 from atap_llm_classifier.models import (
     LLMConfig,
     LiteLLMMessage,
     LiteLLMArgs,
     LiteLLMRole,
 )
+from atap_llm_classifier.modifiers import BaseModifier
+from atap_llm_classifier.techniques import BaseTechnique
+from atap_llm_classifier.techniques.schemas import LLMoutputModel
 
 __all__ = ["a_classify", "Result"]
 

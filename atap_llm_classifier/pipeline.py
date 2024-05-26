@@ -95,33 +95,33 @@ async def a_run(
     return results
 
 
-if __name__ == "__main__":
-    import os
-
-    os.environ["USE_MOCK"] = "true"
-    os.environ["LLM_OUTPUT_FORMAT"] = "yaml"
-
-    import atap_llm_classifier as atap
-
-    logger.info(f"Settings: {atap.get_settings()}")
-
-    from atap_llm_classifier.techniques.zeroshot import (
-        ZeroShotUserSchema,
-        ZeroShotClass,
-    )
-
-    user_schema_ = ZeroShotUserSchema(
-        classes=[ZeroShotClass(name="class 1", description="the first class")]
-    )
-    res = run(
-        corpus=Corpus([f"test sentence {i}" for i in range(3)]),
-        model="gpt-3.5-turbo",
-        api_key="",
-        user_schema=user_schema_,
-        technique=Technique.ZERO_SHOT,
-        modifier=Modifier.NO_MODIFIER,
-    )
-    print(res)
+# if __name__ == "__main__":
+#     import os
+#
+#     os.environ["USE_MOCK"] = "true"
+#     os.environ["LLM_OUTPUT_FORMAT"] = "yaml"
+#
+#     import atap_llm_classifier as atap
+#
+#     logger.info(f"Settings: {atap.get_settings()}")
+#
+#     from atap_llm_classifier.techniques.zeroshot import (
+#         ZeroShotUserSchema,
+#         ZeroShotClass,
+#     )
+#
+#     user_schema_ = ZeroShotUserSchema(
+#         classes=[ZeroShotClass(name="class 1", description="the first class")]
+#     )
+#     res = run(
+#         corpus=Corpus([f"test sentence {i}" for i in range(3)]),
+#         model="gpt-3.5-turbo",
+#         api_key="",
+#         user_schema=user_schema_,
+#         technique=Technique.ZERO_SHOT,
+#         modifier=Modifier.NO_MODIFIER,
+#     )
+#     print(res)
 
 # # todo: do not use this - not implemented.
 # async def a_run_multi_llm(
