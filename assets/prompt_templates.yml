@@ -23,9 +23,6 @@ zero_shot:
       description: {description}
       </class>
 
-  output_keys:
-    - classification
-
 chain_of_thought:
   structure: |
     You are provided with {num_classes} classes with a description of each. 
@@ -69,6 +66,5 @@ chain_of_thought:
       reason: {reason}
       </example>
 
-  output_keys:
-    - classification
+  additional_output_keys:
     - reason

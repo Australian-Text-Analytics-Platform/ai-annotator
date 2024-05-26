@@ -9,6 +9,7 @@ from pydantic import BaseModel, create_model, field_validator
 
 import atap_llm_classifier as atap
 from atap_llm_classifier import Settings
+from atap_llm_classifier.techniques.schemas import LLMoutputModel
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier import errors
 
@@ -105,7 +106,7 @@ def format_prompt(
 def unformat_output(
     llm_output: str,
     output_keys: list[str],
-) -> BaseModel:
+) -> LLMoutputModel:
     output_format = atap.get_settings().LLM_OUTPUT_FORMAT
     ptn = output_format.template.unformat_regex_compiled
     found = ptn.findall(string=llm_output)
@@ -127,13 +128,15 @@ def unformat_output(
         case _:
             raise NotImplementedError()
 
-    LLMOutput = create_model("LLMOutput", **{k: (str,) for k in output_keys})
-    try:
-        return LLMOutput(**unformatted_dict)
-    except pydantic.ValidationError as e:
+    missing: list[str] = list()
+    for k in output_keys:
+        if k not in unformatted_dict:
+            missing.append(k)
+    if len(missing) > 0:
         raise errors.CorruptedLLMFormattedOutput(
-            f"Invalid LLM output. Content: {content}. Keys: {output_keys}"
-        ) from e
+            f"Incomplete output keys. Missing {','.join(missing)}. Required: {','.join(output_keys)}."
+        )
+    return LLMoutputModel(**unformatted_dict)
 
 
 def make_mock_response(output_keys: list[str]) -> str:

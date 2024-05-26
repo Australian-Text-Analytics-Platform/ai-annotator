@@ -12,9 +12,9 @@ from litellm import acompletion, ModelResponse, Choices
 from loguru import logger
 from pydantic import BaseModel
 
-import atap_llm_classifier as atap
 from atap_llm_classifier.modifiers import BaseModifier
 from atap_llm_classifier.techniques import BaseTechnique
+from atap_llm_classifier.techniques.schemas import LLMoutputModel
 from atap_llm_classifier import output_formatter, Settings, errors
 from atap_llm_classifier.models import (
     LLMConfig,
@@ -66,9 +66,9 @@ async def a_classify(
         ),
     )
 
-    unformatted_outputs: list[BaseModel | None] = list()
+    unformatted_outputs: list[LLMoutputModel | None] = list()
     choice: Choices
-    for choice in response.choices:
+    for i, choice in enumerate(response.choices):
         llm_output: str = choice.message.content
         try:
             unformatted = output_formatter.unformat_output(
@@ -79,8 +79,18 @@ async def a_classify(
         except errors.CorruptedLLMFormattedOutput as e:
             unformatted_outputs.append(None)
             logger.error(f"Corrupted LLM output format. Error: - {e}")
+            logger.warning(
+                f"None is added as output for choice {i}/{len(response.choices)}."
+            )
 
-    classification: str = modifier.post(response=response)
+    classification: str = modifier.post(
+        response=response,
+        outputs=unformatted_outputs,
+        technique=technique,
+        llm_config=llm_config,
+        text=text,
+        model=model,
+    )
 
     return Result(
         text=text,

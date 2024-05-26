@@ -9,6 +9,7 @@ from litellm import ModelResponse
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from atap_llm_classifier import BaseTechnique
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.models import (
     LLMConfig,
@@ -16,6 +17,7 @@ from atap_llm_classifier.models import (
     LiteLLMArgs,
     LiteLLMRole,
 )
+from atap_llm_classifier.techniques.schemas import LLMoutputModel
 
 __all__ = [
     "Modifier",
@@ -28,7 +30,10 @@ class BaseModifier(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def pre(
         self,
+        text: str,
+        model: str,
         prompt: str,
+        technique: BaseTechnique,
         llm_config: LLMConfig,
     ) -> tuple[str, LLMConfig]:
         raise NotImplementedError()
@@ -37,12 +42,24 @@ class BaseModifier(metaclass=abc.ABCMeta):
     def post(
         self,
         response: ModelResponse,
+        outputs: list[LLMoutputModel],
+        technique: BaseTechnique,
+        llm_config: LLMConfig,
+        text: str,
+        model: str,
     ) -> str:
         raise NotImplementedError()
 
 
 class NoModifier(BaseModifier):
-    def pre(self, prompt: str, llm_config: LLMConfig) -> tuple[str, LLMConfig]:
+    def pre(
+        self,
+        text: str,
+        model: str,
+        prompt: str,
+        technique: BaseTechnique,
+        llm_config: LLMConfig,
+    ) -> tuple[str, LLMConfig]:
         n = llm_config.n_completions
         if n != 1:
             logger.warning(
@@ -51,8 +68,24 @@ class NoModifier(BaseModifier):
         llm_config.n_completions = 1
         return prompt, llm_config
 
-    def post(self, response: ModelResponse) -> str:
-        return response.choices[0].message.content
+    def post(
+        self,
+        response: ModelResponse,
+        outputs: list[LLMoutputModel],
+        technique: BaseTechnique,
+        llm_config: LLMConfig,
+        text: str,
+        model: str,
+    ) -> str:
+        if len(outputs) > 1:
+            logger.warning(
+                f"Modifier: {self.__class__} used. Expecting 1 output but got {len(outputs)}."
+            )
+        output = outputs[0]
+        if output is None:
+            logger.warning("Output is None. Using full llm response as classification.")
+            return response.choices[0].message.content
+        return output.classification
 
 
 class ModifierInfo(BaseModel):
