@@ -78,7 +78,7 @@ class ChainOfThought(BaseTechnique):
     def make_prompt(self, text: str) -> str:
         examples: str = make_prompt_examples(user_schema=self.user_schema)
         classes: str = make_prompt_classes(user_schema=self.user_schema)
-        output_format: str = parsers.make_output_format_from_settings(
+        output_format: str = parsers.make_output_format_for_prompt(
             self.template.outputs_format
         )
         return self.template.structure.format(

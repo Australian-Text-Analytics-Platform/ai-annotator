@@ -12,6 +12,9 @@ from pydantic import BaseModel
 
 __all__ = ["Asset"]
 
+asset_dir: Path = Path(__file__).parent.parent / "assets"
+assert asset_dir.exists(), f"Asset directory: {asset_dir.absolute()} not found."
+
 
 class Asset(Enum):
     TECHNIQUES: str = "techniques"
@@ -19,6 +22,7 @@ class Asset(Enum):
     PROVIDERS: str = "providers"
     VIEWS: str = "views"
     TECH_TEMPLATES: str = "tech_templates"
+    PARSER_TEMPLATES: str = "parser_template"
 
     def get_path(self) -> Path:
         match self:
@@ -32,8 +36,10 @@ class Asset(Enum):
                 return asset_dir / "views.yml"
             case Asset.TECH_TEMPLATES:
                 return asset_dir / "tech_templates.yml"
+            case Asset.PARSER_TEMPLATES:
+                return asset_dir / "parser_templates.yml"
 
-    def get(self, key: str) -> dict:
+    def get(self, key: str) -> dict | str:
         return load_asset(self)[key]
 
 
@@ -71,7 +77,3 @@ def load_model_from_yaml(
     else:
         model_data = yaml.safe_load(path_or_stream)
     return model_cls.model_validate(model_data)
-
-
-asset_dir: Path = Path(__file__).parent.parent / "assets"
-assert asset_dir.exists(), f"Asset directory: {asset_dir.absolute()} not found."

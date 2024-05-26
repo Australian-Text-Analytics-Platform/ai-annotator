@@ -9,8 +9,7 @@ from atap_llm_classifier.techniques.templates import (
     BasePromptTemplate,
     PromptTemplateOutputFormats,
 )
-
-Parsed = TypeVar("Parsed", bound=BasePromptTemplate)
+from atap_llm_classifier.assets import Asset
 
 
 class OutputFormat(enum.StrEnum):
@@ -18,16 +17,10 @@ class OutputFormat(enum.StrEnum):
 
     @property
     def template(self) -> str:
-        match self:
-            case OutputFormat.YAML:
-                return """
-```yaml
-{}
-```
-"""
+        return Asset.PARSER_TEMPLATES.get(self.value)
 
 
-def make_output_format_from_settings(
+def make_output_format_for_prompt(
     out_formats_templates: PromptTemplateOutputFormats,
 ) -> str:
     match atap.get_settings().LLM_OUTPUT_FORMAT:
@@ -35,13 +28,7 @@ def make_output_format_from_settings(
             return OutputFormat.YAML.template.format(out_formats_templates.yaml)
 
 
-def parse_yaml(llm_out: str, model: Parsed) -> Parsed:
-    # todo:
-    pass
-
-
-def parse_json(llm_out: str, model: Parsed) -> Parsed:
-    # todo:
+def parse_yaml(llm_out: str, out_format: PromptTemplateOutputFormats):
     pass
 
 
@@ -51,4 +38,4 @@ def make_mock_from_settings(out_formats_templates: PromptTemplateOutputFormats) 
             struct: dict = yaml.safe_load(io.StringIO(out_formats_templates.yaml))
             for k in struct.keys():
                 struct[k] = f"mock value for {k}"
-            return OutputFormat.YAML.format(yaml.dump(struct))
+            return OutputFormat.YAML.template.format(yaml.dump(struct))

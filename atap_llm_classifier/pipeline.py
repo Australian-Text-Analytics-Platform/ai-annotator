@@ -107,18 +107,18 @@ if __name__ == "__main__":
 
     from atap_llm_classifier.techniques.zeroshot import ZeroShotSchema, ZeroShotClass
 
-    print(
-        run(
-            corpus=Corpus([f"test sentence {i}" for i in range(10)]),
-            model="gpt-3.5-turbo",
-            api_key="",
-            technique=Technique.ZERO_SHOT,
-            user_schema=ZeroShotSchema(
-                classes=[ZeroShotClass(name="class 1", description="the first class")]
-            ),
-            modifier=Modifier.NO_MODIFIER,
-        )
+    user_schema_ = ZeroShotSchema(
+        classes=[ZeroShotClass(name="class 1", description="the first class")]
     )
+    res = run(
+        corpus=Corpus([f"test sentence {i}" for i in range(3)]),
+        model="gpt-3.5-turbo",
+        api_key="",
+        user_schema=user_schema_,
+        technique=Technique.ZERO_SHOT,
+        modifier=Modifier.NO_MODIFIER,
+    )
+    print(res)
 
 # # todo: do not use this - not implemented.
 # async def a_run_multi_llm(

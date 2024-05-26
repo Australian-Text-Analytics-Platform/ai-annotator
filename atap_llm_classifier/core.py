@@ -47,6 +47,8 @@ async def a_classify(
     prompt: str = technique.make_prompt(text)
     prompt, llm_config = modifier.pre(prompt=prompt, llm_config=llm_config)
 
+    # todo: parser Add output format here.
+
     # preconditions: technique, modifier applied to prompt and llm configs.
     msg = LiteLLMMessage(content=prompt, role=LiteLLMRole.USER)
     response: ModelResponse = await acompletion(
@@ -63,6 +65,8 @@ async def a_classify(
             technique.template.output_formats
         ),
     )
+    # todo: parse the response here.
+
     classification: str = modifier.post(response=response)
 
     return Result(
