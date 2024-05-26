@@ -8,6 +8,12 @@ from atap_llm_classifier.formatter.models import OutputFormat
 from atap_llm_classifier.settings import get_settings
 from atap_llm_classifier.techniques.schemas import LLMoutputModel
 
+__all__ = [
+    "format_prompt",
+    "unformat_output",
+    "make_mock_response",
+]
+
 
 def format_prompt(
     prompt: str,
