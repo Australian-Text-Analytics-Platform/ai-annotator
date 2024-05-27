@@ -14,6 +14,8 @@ class BasePromptTemplate(BaseModel, metaclass=abc.ABCMeta):
     output_classification_key: str = Field("classification", frozen=True)
     additional_output_keys: list[str] = list()
 
+    user_schema_templates: BaseModel
+
     @cached_property
     def output_keys(self) -> list[str]:
         return [self.output_classification_key] + self.additional_output_keys

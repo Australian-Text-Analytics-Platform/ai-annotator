@@ -1,6 +1,7 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
+from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.techniques import Technique
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
 from atap_llm_classifier.providers.providers import LLMProvider
@@ -17,12 +18,28 @@ class PipelineWidget(Viewer):
         corpus: Corpus,
         provider: LLMProvider,
         technique: Technique,
+        modifier: Modifier,
         **params,
     ):
         super(PipelineWidget, self).__init__(**params)
-        self.corpus = (corpus,)
-        self.provider = provider
-        self.technique = technique
+        self.corpus: Corpus = corpus
+        self.provider: LLMProvider = provider
+        self.technique: Technique = technique
+        self.modifier: Modifier = modifier
+
+        # todo: get model from mconfig.
+        # todo: get user_schema from prompt.
+
+        """
+    def run(
+    corpus: Corpus,
+    model: str,
+    api_key: str,
+    technique: Technique,
+    user_schema: BaseModel,
+    modifier: Modifier,
+    )
+        """
 
         self.mconfig = PipelineModelConfigView(provider=provider)
 
@@ -73,5 +90,11 @@ def create_pipeline(
     corpus: Corpus,
     provider: LLMProvider,
     technique: Technique,
+    modifier: Modifier,
 ) -> PipelineWidget:
-    return PipelineWidget(corpus=corpus, provider=provider, technique=technique)
+    return PipelineWidget(
+        corpus=corpus,
+        provider=provider,
+        technique=technique,
+        modifier=modifier,
+    )

@@ -54,6 +54,7 @@ class EntryWidget(Viewer):
                 corpus=self.loader.get_corpus(corpus_name=self.select_dataset.value),
                 provider=self.classifier_config.provider.selected,
                 technique=self.classifier_config.technique.selected,
+                modifier=self.classifier_config.modifier.selected,
             )
             self.layout.extend(
                 [
