@@ -21,7 +21,19 @@ class PipelinePromptTab(Viewer):
 
 
 def create_live_edit(technique: Technique) -> Viewable:
-    pass
+    match technique:
+        case Technique.ZERO_SHOT:
+            raise NotImplementedError()
+        case Technique.CHAIN_OF_THOUGHT:
+            from atap_llm_classifier.techniques.schemas.cot import (
+                CoTClass,
+                CoTExample,
+            )
+            # todo: create text input based on the classes and examples
+
+
+        case _:
+            raise NotImplementedError()
 
 
 def create_preview() -> Viewable:
