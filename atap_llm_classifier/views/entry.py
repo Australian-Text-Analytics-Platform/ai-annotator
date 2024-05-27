@@ -31,8 +31,8 @@ class EntryWidget(Viewer):
             options=self.r_loader_corpus_names,
         )
 
-        self.classifier_config = PipeConfigView()
-        self.classifier_config.set_provider_valid_api_callback(
+        self.pipe_config = PipeConfigView()
+        self.pipe_config.set_provider_valid_api_callback(
             self.classifier_valid_api_key_callback
         )
         self.layout = pn.Column(
@@ -41,20 +41,20 @@ class EntryWidget(Viewer):
                 self.select_dataset,
                 pn.pane.Markdown(props.dataset.selector.description),
             ),
-            self.classifier_config,
+            self.pipe_config,
         )
         self.layout_init_len = len(self.layout)
         self.pipeline = None
 
     def classifier_valid_api_key_callback(self):
         self.select_dataset.disabled = True
-        self.classifier_config.disable()
+        self.pipe_config.disable()
         if len(self.layout) <= self.layout_init_len:
             self.pipeline = create_pipeline(
                 corpus=self.loader.get_corpus(corpus_name=self.select_dataset.value),
-                provider=self.classifier_config.provider.selected,
-                technique=self.classifier_config.technique.selected,
-                modifier=self.classifier_config.modifier.selected,
+                provider=self.pipe_config.provider.selected,
+                technique=self.pipe_config.technique.selected,
+                modifier=self.pipe_config.modifier.selected,
             )
             self.layout.extend(
                 [
