@@ -4,7 +4,7 @@ from atap_llm_classifier.techniques.schemas import BasePromptTemplate
 
 __all__ = [
     "ZeroShotPromptTemplate",
-    "ZeroShotSchema",
+    "ZeroShotUserSchema",
     "ZeroShotClass",
 ]
 
@@ -25,5 +25,5 @@ class ZeroShotClass(BaseModel):
     description: str
 
 
-class ZeroShotSchema(BaseModel):
+class ZeroShotUserSchema(BaseModel):
     classes: list[ZeroShotClass]

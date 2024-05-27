@@ -1,28 +1,24 @@
 from pydantic import BaseModel
 
-from atap_llm_classifier.techniques import Technique, BaseTechnique
-from atap_llm_classifier.techniques.schemas import ZeroShotPromptTemplate
+from atap_llm_classifier.techniques import (
+    Technique,
+    BaseTechnique,
+    ZeroShotPromptTemplate,
+)
+from atap_llm_classifier.techniques.schemas import (
+    ZeroShotUserSchema,
+    ZeroShotClass,
+)
 
 __all__ = [
     "ZeroShot",
 ]
 
-template: ZeroShotPromptTemplate = Technique.ZERO_SHOT.prompt_template
-
-
-class ZeroShotClass(BaseModel):
-    name: str
-    description: str
-
-
-class ZeroShotUserSchema(BaseModel):
-    classes: list[ZeroShotClass]
-
 
 def make_prompt_classes(user_schema: ZeroShotUserSchema) -> str:
     return "\n".join(
         map(
-            lambda c: template.user_schema_templates.clazz.format(
+            lambda c: ZeroShot.template.user_schema_templates.clazz.format(
                 name=c.name,
                 description=c.description,
             ),
@@ -32,12 +28,12 @@ def make_prompt_classes(user_schema: ZeroShotUserSchema) -> str:
 
 
 class ZeroShot(BaseTechnique):
-    schema = ZeroShotUserSchema
-    template = Technique.ZERO_SHOT.prompt_template
+    schema: ZeroShotUserSchema = ZeroShotUserSchema
+    template: ZeroShotPromptTemplate = Technique.ZERO_SHOT.prompt_template
 
     def make_prompt(self, text: str) -> str:
         classes: str = make_prompt_classes(user_schema=self.user_schema)
-        return template.structure.format(
+        return self.template.structure.format(
             num_classes=len(self.classes),
             classes=classes,
             text=text,
