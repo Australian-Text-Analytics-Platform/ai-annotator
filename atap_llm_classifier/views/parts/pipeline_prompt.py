@@ -1,40 +1,147 @@
+from collections import namedtuple
+
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
 from atap_llm_classifier.techniques import Technique
+from atap_llm_classifier.techniques.schemas import (
+    CoTClass,
+    CoTExample,
+    ZeroShotClass,
+    ZeroShotUserSchema,
+)
+
+LIVE_UPDATE: bool = True
+text_input_key = "value_input" if LIVE_UPDATE else "value"
 
 
-class PipelinePromptTab(Viewer):
-    def __init__(self, **params):
+class PipelinePrompt(Viewer):
+    def __init__(self, technique: Technique, **params):
         super().__init__(**params)
+        self.technique: Technique = technique
+        self.user_schema_rx = pn.rx(create_dummy_user_schema(self.technique))
 
-        self.live_edit = None
-        self.preview = None
-
+        self.live_edit = create_live_edit(
+            technique=self.technique,
+            user_schema_rx=self.user_schema_rx,
+        )
+        self.preview = pn.Column(
+            pn.pane.Markdown("## Prompt Preview"),
+            pn.pane.Str(
+                self.user_schema_rx.classes.rx.map(lambda s: s.name).rx.pipe("_".join),
+                sizing_mode="stretch_width",
+            ),
+        )
         self.layout = pn.Row(
             self.live_edit,
             self.preview,
+            sizing_mode="stretch_both",
         )
 
     def __panel__(self) -> Viewable:
         return self.layout
 
+    def get_prompt_maker(self):
+        return self.technique.get_prompt_maker(user_schema=self.user_schema_rx.rx.value)
 
-def create_live_edit(technique: Technique) -> Viewable:
+
+def create_dummy_user_schema(technique: Technique):
     match technique:
         case Technique.ZERO_SHOT:
-            raise NotImplementedError()
-        case Technique.CHAIN_OF_THOUGHT:
-            from atap_llm_classifier.techniques.schemas.cot import (
-                CoTClass,
-                CoTExample,
-            )
-            # todo: create text input based on the classes and examples
+            from atap_llm_classifier.techniques.schemas import ZeroShotUserSchema
 
-
+            return ZeroShotUserSchema(classes=[])
         case _:
             raise NotImplementedError()
 
 
-def create_preview() -> Viewable:
-    pass
+def create_live_edit(technique: Technique, user_schema_rx) -> Viewable:
+    match technique:
+        case Technique.ZERO_SHOT:
+            Row = namedtuple("Row", ["widget", "name", "description", "plus", "minus"])
+
+            def new_row() -> Row:
+                name_title = ZeroShotClass.schema()["properties"]["name"]["title"]
+                desc_title = ZeroShotClass.schema()["properties"]["description"][
+                    "title"
+                ]
+
+                name_inp = pn.widgets.TextInput(
+                    name=name_title + ":", height=50, width=200
+                )
+                desc_inp = pn.widgets.TextInput(
+                    name=desc_title + ":",
+                    height=name_inp.height,
+                    # min_width=int(name_inp.width * 1.5),
+                    sizing_mode="stretch_width",
+                )
+
+                plus = pn.widgets.Button(
+                    name="+",
+                    width=25,
+                    height=int(name_inp.height * 0.6),
+                    margin=(10, 5),
+                )
+                minus = pn.widgets.Button(
+                    name="-", width=plus.width, height=plus.height, margin=plus.margin
+                )
+
+                row = pn.layout.Row(
+                    name_inp, desc_inp, plus, minus, height=name_inp.height, margin=5
+                )
+                return Row(
+                    widget=row,
+                    name=name_inp,
+                    description=desc_inp,
+                    plus=plus,
+                    minus=minus,
+                )
+
+            rows = list()
+            classes = pn.Column(
+                sizing_mode="stretch_both",
+            )
+
+            live_edit = pn.Column(
+                pn.pane.Markdown("## Classes"),
+                classes,
+                sizing_mode="stretch_both",
+            )
+
+            def update(*args):
+                zshot_classes = list(
+                    map(
+                        lambda r: ZeroShotClass(
+                            name=r.name.value_input,
+                            description=r.description.value_input,
+                        ),
+                        rows,
+                    )
+                )
+                user_schema_rx.rx.value = ZeroShotUserSchema(classes=zshot_classes)
+
+            def insert_new_row(idx: int):
+                row = new_row()
+                rows.append(row)
+                classes.insert(idx, row.widget)
+                row.name.param.watch(update, text_input_key)
+                row.description.param.watch(update, text_input_key)
+
+                def pop_row(*args):
+                    classes.remove(row.widget)
+                    rows.remove(row)
+                    update()
+
+                row.minus.on_click(pop_row)
+                row.plus.on_click(
+                    lambda *args: insert_new_row(classes.index(row.widget) + 1)
+                )
+                return row
+
+            row = insert_new_row(0)
+            row.minus.disabled = True
+            return live_edit
+        case Technique.CHAIN_OF_THOUGHT:
+            raise NotImplementedError()
+        case _:
+            raise NotImplementedError()

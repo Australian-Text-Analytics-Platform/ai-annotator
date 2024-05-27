@@ -2,6 +2,7 @@
 
 from enum import Enum
 from functools import cached_property
+from typing import Type
 
 from pydantic import BaseModel, Field
 
@@ -42,13 +43,17 @@ class Technique(Enum):
             case Technique.CHAIN_OF_THOUGHT:
                 return CoTPromptTemplate(**template)
 
-    def get_prompt_maker(self, user_schema: BaseModel | dict) -> BaseTechnique:
+    @property
+    def prompt_maker_cls(self) -> Type[BaseTechnique]:
         match self:
             case Technique.ZERO_SHOT:
                 from .zeroshot import ZeroShot
 
-                return ZeroShot(user_schema)
+                return ZeroShot
             case Technique.CHAIN_OF_THOUGHT:
                 from .cot import ChainOfThought
 
-                return ChainOfThought(user_schema)
+                return ChainOfThought
+
+    def get_prompt_maker(self, user_schema: BaseModel | dict) -> BaseTechnique:
+        return self.prompt_maker_cls(user_schema)

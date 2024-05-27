@@ -3,6 +3,8 @@ from panel.viewable import Viewer, Viewable
 
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.techniques import Technique
+from atap_llm_classifier.views.parts.pipeline_classifications import PipelineClassifications
+from atap_llm_classifier.views.parts.pipeline_prompt import PipelinePrompt
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
 from atap_llm_classifier.providers.providers import LLMProvider
 from atap_corpus import Corpus
@@ -27,53 +29,27 @@ class PipelineWidget(Viewer):
         self.technique: Technique = technique
         self.modifier: Modifier = modifier
 
-        # todo: get model from mconfig.
-        # todo: get user_schema from prompt.
-
-        """
-    def run(
-    corpus: Corpus,
-    model: str,
-    api_key: str,
-    technique: Technique,
-    user_schema: BaseModel,
-    modifier: Modifier,
-    )
-        """
-
-        self.mconfig = PipelineModelConfigView(provider=provider)
-
-        # independent dataframe from corpus.
-        df = corpus.docs().to_frame(name="document")
-
-        self.df_widget = pn.widgets.DataFrame(
-            df,
-            show_index=False,
-            height=400,
-            sizing_mode="stretch_width",
-            disabled=True,
-        )
+        self.pipe_prompt = PipelinePrompt(technique=self.technique)
+        self.pipe_classifs = PipelineClassifications(corpus=self.corpus)
+        self.pipe_mconfig = PipelineModelConfigView(provider=provider)
 
         progress_bar = pn.widgets.Tqdm()
 
-        # todo: improve prompt tab: include sample prompt for chosen technique. then preview prompt.
         self.tabs = pn.Tabs(
             (
                 "Prompt",
-                pn.Column(
-                    pn.widgets.FileInput(accept=".yaml,.yml"),
-                ),
+                self.pipe_prompt,
             ),
             (
                 "Classifications",
-                self.df_widget,
+                self.pipe_classifs,
             ),
         )
 
         self.layout = pn.Column(
             pn.Row(
                 pn.Column(
-                    self.mconfig,
+                    self.pipe_mconfig,
                 ),
                 pn.Spacer(width=20),
                 self.tabs,
