@@ -24,14 +24,14 @@ COMPONENT_WIDTH: int = 300
 COMP_TOOLTIP_MARGIN: tuple[int, int, int, int] = (0, 0, 0, 5)
 
 
-# todo: sensible defaults based on technique
+# todo: sensible defaults based on technique (given in LLMProvider's properties)
 class PipelineModelConfigView(Viewer):
-    def __init__(self, **params):
-        provider: LLMProvider = params.pop("provider")
+    def __init__(self, provider: LLMProvider, **params):
         super().__init__(**params)
-        model_props = provider.properties.models
-        mprops_rx = pn.rx(provider.properties.models)
+        self.provider: LLMProvider = provider
 
+        model_props = self.provider.properties.models
+        mprops_rx = pn.rx(self.provider.properties.models)
         self.model_selector = pn.widgets.Select(
             name=props.llm.selector.name,
             options=sorted(model_props),
@@ -114,10 +114,15 @@ class PipelineModelConfigView(Viewer):
             width=self.model_row.width,
         )
 
-        self.disabled = pn.rx(False)
+        self.disabled_rx = pn.rx(False)
+        self.model_selector.disabled = self.disabled_rx
+        self.top_p_slider.disabled = self.disabled_rx
+        self.temp_slider.disabled = self.disabled_rx
+        self.seed_int_inp.disabled = self.disabled_rx
+
         self.enable_btn = pn.widgets.Button(
             name="Unlock",
-            visible=self.disabled.rx.is_(True),
+            visible=self.disabled_rx.rx.is_(True),
         )
         self.enable_btn.on_click(lambda *args: self.enable())
 
@@ -152,15 +157,7 @@ class PipelineModelConfigView(Viewer):
         return self.seed_int_inp.value
 
     def disable(self):
-        self.model_selector.disabled = True
-        self.top_p_slider.disabled = True
-        self.temp_slider.disabled = True
-        self.seed_int_inp.disabled = True
-        self.disabled.rx.value = True
+        self.disabled_rx.rx.value = True
 
     def enable(self):
-        self.model_selector.disabled = False
-        self.top_p_slider.disabled = False
-        self.temp_slider.disabled = False
-        self.seed_int_inp.disabled = False
-        self.disabled.rx.value = False
+        self.disabled_rx.rx.value = False

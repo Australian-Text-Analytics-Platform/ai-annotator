@@ -4,6 +4,7 @@ import panel as pn
 from panel.viewable import Viewer, Viewable
 from pydantic import BaseModel
 
+from atap_llm_classifier.views.settings import get_settings
 from atap_llm_classifier.techniques import Technique
 from atap_llm_classifier.techniques.schemas import (
     CoTClass,
@@ -12,8 +13,8 @@ from atap_llm_classifier.techniques.schemas import (
     ZeroShotUserSchema,
 )
 
-LIVE_UPDATE: bool = True
-text_input_key = "value_input" if LIVE_UPDATE else "value"
+LIVE_UPDATE: bool = get_settings().PIPE_PROMPT_LIVE_UPDATE
+text_input_key: str = "value_input" if LIVE_UPDATE else "value"
 
 
 class PipelinePrompt(Viewer):
@@ -144,7 +145,7 @@ def create_live_edit(technique: Technique, user_schema_rx) -> Viewable:
                 return row
 
             row = insert_new_row(0)
-            row.minus.disabled = True
+            row.minus.disabled_rx = True
             return live_edit
         case Technique.CHAIN_OF_THOUGHT:
             raise NotImplementedError()

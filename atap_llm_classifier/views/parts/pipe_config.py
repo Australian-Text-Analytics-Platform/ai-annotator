@@ -1,7 +1,9 @@
+import inspect
 from typing import Callable
 
 import panel as pn
 from panel.viewable import Viewer, Viewable
+from pydantic import SecretStr
 
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.providers.providers import LLMProvider, validate_api_key
@@ -162,19 +164,24 @@ class ProviderSelectorView(Viewer):
         self.api_key.placeholder = props.provider.api_key.placeholder
 
     def _on_api_key_enter(self, _):
-        api_key: str = self.api_key.value
+        api_key: SecretStr = SecretStr(self.api_key.value)
         if validate_api_key(
-            api_key=api_key,
+            api_key=api_key.get_secret_value(),
             provider=LLMProvider(self.selector.value),
         ):
             self.api_key_msg.object = props.provider.api_key.success_message
             self.api_key.disabled = True
             if self._valid_api_key_callback is not None:
-                self._valid_api_key_callback()
+                self._valid_api_key_callback(api_key=api_key)
         else:
             self.api_key_msg.object = props.provider.api_key.error_message
 
     def set_valid_api_key_callback(self, callback: Callable):
+        num_args_in_callback = len(inspect.signature(callback).parameters)
+        if num_args_in_callback < 1:
+            raise ValueError(
+                "Valid API key callback must accept at least one parameter which is the api_key as SecretStr."
+            )
         self._valid_api_key_callback = callback
 
     def disable(self):

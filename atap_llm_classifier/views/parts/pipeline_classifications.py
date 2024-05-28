@@ -1,16 +1,14 @@
-import asyncio
-from functools import partial
-
 import panel as pn
-from loguru import logger
 from panel.viewable import Viewer, Viewable
 
 from atap_corpus import Corpus
+from pydantic import SecretStr
 
 from atap_llm_classifier import core
 from atap_llm_classifier.models import LLMConfig
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.techniques import Technique
+from atap_llm_classifier.views import notify
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
 from atap_llm_classifier.views.parts.pipeline_prompt import PipelinePrompt
 
@@ -19,6 +17,7 @@ class PipelineClassifications(Viewer):
     def __init__(
         self,
         corpus: Corpus,
+        api_key: SecretStr,
         technique: Technique,
         modifier: Modifier,
         pipe_mconfig: PipelineModelConfigView,
@@ -27,6 +26,7 @@ class PipelineClassifications(Viewer):
     ):
         super().__init__(**params)
         self.corpus: Corpus = corpus
+        self.api_key: SecretStr = api_key
         self.technique: Technique = technique
         self.modifier: Modifier = modifier
         self.pipe_mconfig: PipelineModelConfigView = pipe_mconfig
@@ -86,7 +86,15 @@ class PipelineClassifications(Viewer):
     def __panel__(self) -> Viewable:
         return self.layout
 
+    def lock_model_config(self):
+        if not self.pipe_mconfig.disabled_rx.rx.value:
+            self.pipe_mconfig.disable()
+            notify.PipelineClassification.MODEL_CONFIG_LOCKED_ON_CLASSIFY.info()
+
+    @notify.catch(raise_err=False)
     async def on_click_classify_one_and_patch_df(self, _):
+        self.lock_model_config()
+
         idx: int = self.one_idx_rx.rx.value
         text: str = self.one_doc_rx.rx.value
         self.df_widget.patch({"classification": [(idx, "pending...")]})
@@ -94,8 +102,7 @@ class PipelineClassifications(Viewer):
         res: core.Result = await core.a_classify(
             text=text,
             model=self.pipe_mconfig.model,
-            # todo: api key needs to be passed down.
-            api_key="",
+            api_key=self.api_key.get_secret_value(),
             llm_config=LLMConfig(
                 temperature=self.pipe_mconfig.temperature,
                 top_p=self.pipe_mconfig.top_p,
@@ -104,10 +111,10 @@ class PipelineClassifications(Viewer):
             technique=self.technique.get_prompt_maker(
                 self.pipe_prompt.user_schema_rx.rx.value
             ),
-            # todo: modifier needs to be passed down.
             modifier=self.modifier.get_behaviour(),
         )
         self.df_widget.patch({"classification": [(idx, res.classification)]})
 
+    @notify.catch(raise_err=False)
     async def classify_all(self):
-        pass
+        self.lock_model_config()

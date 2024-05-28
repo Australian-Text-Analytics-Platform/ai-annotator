@@ -1,5 +1,6 @@
 import panel as pn
 from panel.viewable import Viewer, Viewable
+from pydantic import SecretStr
 
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.techniques import Technique
@@ -21,6 +22,7 @@ class PipelineWidget(Viewer):
         self,
         corpus: Corpus,
         provider: LLMProvider,
+        api_key: SecretStr,
         technique: Technique,
         modifier: Modifier,
         **params,
@@ -28,6 +30,7 @@ class PipelineWidget(Viewer):
         super(PipelineWidget, self).__init__(**params)
         self.corpus: Corpus = corpus
         self.provider: LLMProvider = provider
+        self.api_key: SecretStr = api_key
         self.technique: Technique = technique
         self.modifier: Modifier = modifier
 
@@ -39,6 +42,7 @@ class PipelineWidget(Viewer):
         )
         self.pipe_classifs = PipelineClassifications(
             corpus=self.corpus,
+            api_key=self.api_key,
             technique=self.technique,
             modifier=self.modifier,
             pipe_mconfig=self.pipe_mconfig,
@@ -72,12 +76,14 @@ class PipelineWidget(Viewer):
 def create_pipeline(
     corpus: Corpus,
     provider: LLMProvider,
+    api_key: SecretStr,
     technique: Technique,
     modifier: Modifier,
 ) -> PipelineWidget:
     return PipelineWidget(
         corpus=corpus,
         provider=provider,
+        api_key=api_key,
         technique=technique,
         modifier=modifier,
     )

@@ -3,6 +3,8 @@ from panel.viewable import Viewer, Viewable
 
 from atap_corpus_loader import CorpusLoader
 from atap_corpus import Corpus
+from pydantic import SecretStr
+
 from atap_llm_classifier.views.parts.pipe_config import PipeConfigView
 from atap_llm_classifier.views.parts.pipeline import create_pipeline
 from atap_llm_classifier.views.props import ViewProp, EntryProps
@@ -17,7 +19,7 @@ class EntryWidget(Viewer):
 
         self.loader = loader
 
-        # react to any loader builds
+        # react to any loader builds and update selectable corpus
         latest_corpus, set_latest_corpus = utils.rx(self.loader.get_latest_corpus())
         self.r_latest_corpus: pn.rx[Corpus] = latest_corpus
         loader.set_build_callback(set_latest_corpus)
@@ -26,7 +28,7 @@ class EntryWidget(Viewer):
             lambda lc: [c.name for c in loader.controller.corpora.items()]
         )(self.r_latest_corpus)
 
-        self.select_dataset = pn.widgets.Select(
+        self.dataset_selector = pn.widgets.Select(
             name=props.dataset.selector.name,
             options=self.r_loader_corpus_names,
         )
@@ -35,24 +37,27 @@ class EntryWidget(Viewer):
         self.pipe_config.set_provider_valid_api_callback(
             self.classifier_valid_api_key_callback
         )
+
         self.layout = pn.Column(
             props.title,
             pn.Row(
-                self.select_dataset,
+                self.dataset_selector,
                 pn.pane.Markdown(props.dataset.selector.description),
             ),
             self.pipe_config,
         )
+
+        # placeholder for expansion.
         self.layout_init_len = len(self.layout)
         self.pipeline = None
 
-    def classifier_valid_api_key_callback(self):
-        self.select_dataset.disabled = True
-        self.pipe_config.disable()
+    def classifier_valid_api_key_callback(self, api_key: SecretStr):
+        self.disable()
         if len(self.layout) <= self.layout_init_len:
             self.pipeline = create_pipeline(
-                corpus=self.loader.get_corpus(corpus_name=self.select_dataset.value),
+                corpus=self.loader.get_corpus(corpus_name=self.dataset_selector.value),
                 provider=self.pipe_config.provider.selected,
+                api_key=api_key,
                 technique=self.pipe_config.technique.selected,
                 modifier=self.pipe_config.modifier.selected,
             )
@@ -62,6 +67,10 @@ class EntryWidget(Viewer):
                     self.pipeline,
                 ]
             )
+
+    def disable(self):
+        self.dataset_selector.disabled = True
+        self.pipe_config.disable()
 
     def __panel__(self) -> Viewable:
         return self.layout
