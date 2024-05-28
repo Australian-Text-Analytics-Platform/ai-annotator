@@ -23,3 +23,4 @@ class PipeModelProps(BaseModel):
     llm: LLMConfigProps
     temperature: SelectorPropsWithTooltip
     top_p: SelectorPropsWithTooltip
+    seed: SelectorPropsWithTooltip

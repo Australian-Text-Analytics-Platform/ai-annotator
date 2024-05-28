@@ -92,8 +92,7 @@ class PipelineClassifications(Viewer):
 
         res: core.Result = await core.a_classify(
             text=text,
-            # todo: model needs to be passed down.
-            model="gpt-3.5-turbo",
+            model=self.pipe_mconfig.model,
             # todo: api key needs to be passed down.
             api_key="",
             # todo: llm config needs to be passed down.

@@ -45,4 +45,7 @@ pipe_model:
   top_p:
     name: "Top P"
     tooltip: "Limit model to only output tokens within the Top P probabilities."
+  seed:
+    name: "Seed"
+    tooltip: "Set a seed to be reproducible."
 

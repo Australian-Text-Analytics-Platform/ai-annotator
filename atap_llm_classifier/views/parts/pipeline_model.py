@@ -1,3 +1,5 @@
+import sys
+
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
@@ -41,6 +43,9 @@ class PipelineModelConfigView(Viewer):
                 value=props.llm.selector.tooltip,
                 margin=COMP_TOOLTIP_MARGIN,
             ),
+            width=self.model_selector.width
+            + COMP_TOOLTIP_MARGIN[1]
+            + COMP_TOOLTIP_MARGIN[-1],
         )
 
         # model information (reacts to selector's value)
@@ -65,7 +70,7 @@ class PipelineModelConfigView(Viewer):
                 value=props.top_p.tooltip,
                 margin=COMP_TOOLTIP_MARGIN,
             ),
-            sizing_mode="stretch_width",
+            width=self.model_row.width,
         )
 
         self.temp_slider = pn.widgets.FloatSlider(
@@ -83,7 +88,30 @@ class PipelineModelConfigView(Viewer):
                 value=props.temperature.tooltip,
                 margin=COMP_TOOLTIP_MARGIN,
             ),
-            width=self.model_selector.width,
+            width=self.model_row.width,
+        )
+
+        self.seed_int_inp = pn.widgets.IntInput(
+            name=props.seed.name,
+            value=42,
+            start=0,
+            end=1000,  # max integer value
+            width=80,
+        )
+        self.seed_row = pn.Row(
+            self.seed_int_inp,
+            pn.widgets.TooltipIcon(
+                value=props.seed.tooltip,
+                margin=(
+                    0,
+                    0,
+                    0,
+                    self.model_selector.width
+                    - self.seed_int_inp.width
+                    + COMP_TOOLTIP_MARGIN[-1],
+                ),
+            ),
+            width=self.model_row.width,
         )
 
         self.disabled = pn.rx(False)
@@ -99,6 +127,7 @@ class PipelineModelConfigView(Viewer):
             self.model_info_md,
             self.top_p_row,
             self.temp_row,
+            self.seed_row,
             self.enable_btn,
             width=350,
         )
@@ -117,6 +146,10 @@ class PipelineModelConfigView(Viewer):
     @property
     def temperature(self) -> float:
         return self.temp_slider.value
+
+    @property
+    def seed(self) -> int:
+        return self.seed_int_inp.value
 
     def disable(self):
         self.model_selector.disabled = True
