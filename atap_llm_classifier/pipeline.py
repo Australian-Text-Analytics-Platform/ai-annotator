@@ -6,8 +6,8 @@ The output
 """
 
 import asyncio
-from asyncio import Future
-from typing import Sequence
+import inspect
+from typing import Coroutine, Callable
 
 import litellm
 from atap_corpus import Corpus
@@ -23,63 +23,105 @@ from atap_llm_classifier.techniques import Technique, BaseTechnique
 litellm.set_verbose = False
 
 
-def run(
+class BatchSingular(BaseModel):
+    doc_idx: int
+    classification_result: core.ClassificationResult
+
+
+class BatchResults(BaseModel):
+    # corpus: Corpus
+    # model: str
+    # technique: Technique
+    # user_schema: BaseModel
+    # modifier: Modifier
+    # llm_config: LLMConfig
+    results: list[BatchSingular]
+
+
+def batch(
     corpus: Corpus,
     model: str,
     api_key: str,
     technique: Technique,
     user_schema: BaseModel,
     modifier: Modifier,
-) -> Sequence[core.Result]:
+    on_result_callback: Callable | Coroutine | None = None,
+) -> BatchResults:
     logger.info("START run")
     res = asyncio.run(
-        a_run(
+        a_batch(
             corpus,
             model,
             api_key,
             technique,
             user_schema,
             modifier,
+            on_result_callback,
         ),
     )
     logger.info("FINISH run")
     return res
 
 
-async def a_run(
+async def a_batch(
     corpus: Corpus,
     model: str,
     api_key: str,
     technique: Technique,
     user_schema: BaseModel,
     modifier: Modifier,
-) -> Sequence[core.Result]:
+    on_result_callback: Callable | Coroutine | None = None,
+) -> BatchResults:
+    cb_info: tuple[Callable | Coroutine, bool] | None = None
+    if on_result_callback is not None:
+        cb_info = (on_result_callback, inspect.iscoroutine(on_result_callback))
+
     docs: Docs = corpus.docs()
 
     technique: BaseTechnique = technique.get_prompt_maker(user_schema)
     modifier: BaseModifier = modifier.get_behaviour()
 
-    tasks = list()
-    for doc in docs:
-        logger.info(f"CREATE task: classify {str(doc)}")
-        task: Future = asyncio.create_task(
-            core.a_classify(
-                text=str(doc),
-                model=model,
-                api_key=api_key,
-                llm_config=LLMConfig(seed=42),
-                technique=technique,
-                modifier=modifier,
-            )
+    coros: list[Coroutine] = [
+        _a_classify_with_id(
+            doc_idx=i,
+            text=str(doc),
+            model=model,
+            api_key=api_key,
+            llm_config=LLMConfig(seed=42),
+            technique=technique,
+            modifier=modifier,
         )
-        # todo: callback -> classifying...
-        tasks.append(task)
+        for i, doc in enumerate(docs)
+    ]
 
-    logger.info("WAIT for all tasks to finish.")
-    results = await asyncio.gather(*tasks)
-    # todo: callback -> classified.
-    logger.info("FIN all tasks are finished.")
-    return results
+    singulars: list[BatchSingular] = list()
+    coro: Coroutine
+    for coro in asyncio.as_completed(coros):
+        doc_idx, classif_result = await coro
+        singular: BatchSingular = BatchSingular(
+            doc_idx=doc_idx,
+            classification_result=classif_result,
+        )
+        singulars.append(singular)
+        if cb_info is not None:
+            cb, iscoro = cb_info
+            if iscoro:
+                await on_result_callback(singular)
+            else:
+                on_result_callback(singular)
+
+    return BatchResults(
+        # corpus=Corpus,
+        results=singulars,
+    )
+
+
+async def _a_classify_with_id(
+    doc_idx: int,
+    **classify_kwargs,
+) -> tuple[int, core.ClassificationResult]:
+    res = await core.a_classify(**classify_kwargs)
+    return doc_idx, res
 
 
 if __name__ == "__main__":
@@ -95,13 +137,16 @@ if __name__ == "__main__":
         classes=[ZeroShotClass(name="class 1", description="the first class")]
     )
 
-    results_ = run(
+    from pprint import pprint
+
+    results_ = batch(
         corpus=Corpus([f"test sentence {i}" for i in range(3)]),
         model="gpt-3.5-turbo",
         api_key="",
         user_schema=user_schema_,
         technique=Technique.ZERO_SHOT,
         modifier=Modifier.NO_MODIFIER,
+        on_result_callback=lambda res: pprint(res.model_dump()),
     )
 
     for res in results_:

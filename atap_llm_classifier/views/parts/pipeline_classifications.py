@@ -99,7 +99,7 @@ class PipelineClassifications(Viewer):
         text: str = self.one_doc_rx.rx.value
         self.df_widget.patch({"classification": [(idx, "pending...")]})
 
-        res: core.Result = await core.a_classify(
+        res: core.ClassificationResult = await core.a_classify(
             text=text,
             model=self.pipe_mconfig.model,
             api_key=self.api_key.get_secret_value(),

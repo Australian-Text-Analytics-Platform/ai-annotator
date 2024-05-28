@@ -25,10 +25,13 @@ from atap_llm_classifier.settings import get_settings
 from atap_llm_classifier.techniques import BaseTechnique
 from atap_llm_classifier.techniques.schemas import LLMoutputModel
 
-__all__ = ["a_classify", "Result"]
+__all__ = [
+    "a_classify",
+    "ClassificationResult",
+]
 
 
-class Result(BaseModel):
+class ClassificationResult(BaseModel):
     text: str
     classification: str
     prompt: str
@@ -42,7 +45,7 @@ async def a_classify(
     llm_config: LLMConfig,
     technique: BaseTechnique,
     modifier: BaseModifier,
-) -> Result:
+) -> ClassificationResult:
     prompt: str = technique.make_prompt(text)
     prompt, llm_config = modifier.pre(
         text=text,
@@ -99,7 +102,7 @@ async def a_classify(
         model=model,
     )
 
-    return Result(
+    return ClassificationResult(
         text=text,
         classification=classification,
         prompt=prompt,
