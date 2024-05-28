@@ -87,10 +87,8 @@ class PipelineClassifications(Viewer):
         return self.layout
 
     async def on_click_classify_one_and_patch_df(self, _):
-        logger.info("classify one clicked.")
         idx: int = self.one_idx_rx.rx.value
         text: str = self.one_doc_rx.rx.value
-        print(idx, text)
         self.df_widget.patch({"classification": [(idx, "pending...")]})
 
         res: core.Result = await core.a_classify(

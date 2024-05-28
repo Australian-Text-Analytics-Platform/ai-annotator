@@ -12,7 +12,8 @@ from litellm import acompletion, ModelResponse, Choices
 from loguru import logger
 from pydantic import BaseModel
 
-from atap_llm_classifier import formatter, errors
+from atap_llm_classifier import errors
+from atap_llm_classifier.formatter import formatter
 from atap_llm_classifier.models import (
     LLMConfig,
     LiteLLMMessage,
