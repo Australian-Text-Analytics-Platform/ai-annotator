@@ -4,10 +4,14 @@ from enum import Enum
 from functools import cached_property
 import re
 
+from loguru import logger
 from pydantic import BaseModel, Field, HttpUrl, field_validator
+import litellm
 
+from atap_llm_classifier.settings import get_settings
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.utils import litellm_ as litellm_utils
+from atap_llm_classifier.models import LiteLLMMessage, LiteLLMRole, LiteLLMArgs
 
 __all__ = [
     "LLMProvider",
@@ -76,6 +80,29 @@ def validate_api_key(
     provider: LLMProvider,
     api_key: str,
 ) -> bool:
+    if get_settings().USE_MOCK:
+        return True
+
+    model_to_try: str
     match provider:
+        case LLMProvider.OPENAI:
+            model_to_try = "gpt-3.5-turbo"
         case _:
-            return True
+            model_to_try = provider.properties.models[0]
+    try:
+        msg = LiteLLMMessage(content="Say Yes.", role=LiteLLMRole.USER)
+        litellm.completion(
+            **LiteLLMArgs(
+                model=model_to_try,
+                messages=[msg],
+                temperature=0,
+                top_p=1.0,
+                n=1,
+                api_key=api_key,
+            ).to_kwargs(),
+            max_tokens=10,
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Failed to validate api key. Err: {e}.")
+        return False

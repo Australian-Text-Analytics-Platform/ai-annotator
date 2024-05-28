@@ -60,12 +60,12 @@ async def a_classify(
     response: ModelResponse = await acompletion(
         **LiteLLMArgs(
             model=model,
+            api_key=api_key,
             messages=[msg],
-            stream=False,
             temperature=llm_config.temperature,
             top_p=llm_config.top_p,
             n=llm_config.n_completions,
-            api_key=api_key,
+            stream=False,
         ).to_kwargs(),
         mock_response=formatter.make_mock_response(technique.template.output_keys)
         if get_settings().USE_MOCK
