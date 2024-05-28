@@ -3,7 +3,9 @@ from panel.viewable import Viewer, Viewable
 
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.techniques import Technique
-from atap_llm_classifier.views.parts.pipeline_classifications import PipelineClassifications
+from atap_llm_classifier.views.parts.pipeline_classifications import (
+    PipelineClassifications,
+)
 from atap_llm_classifier.views.parts.pipeline_prompt import PipelinePrompt
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
 from atap_llm_classifier.providers.providers import LLMProvider
@@ -30,8 +32,12 @@ class PipelineWidget(Viewer):
         self.modifier: Modifier = modifier
 
         self.pipe_prompt = PipelinePrompt(technique=self.technique)
-        self.pipe_classifs = PipelineClassifications(corpus=self.corpus)
         self.pipe_mconfig = PipelineModelConfigView(provider=provider)
+        self.pipe_classifs = PipelineClassifications(
+            corpus=self.corpus,
+            pipe_mconfig=self.pipe_mconfig,
+            pipe_prompt=self.pipe_prompt,
+        )
 
         progress_bar = pn.widgets.Tqdm()
 

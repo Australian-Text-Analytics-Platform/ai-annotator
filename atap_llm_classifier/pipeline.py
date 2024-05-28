@@ -83,15 +83,11 @@ async def a_run(
 
 
 if __name__ == "__main__":
-    import os
     from atap_llm_classifier.settings import get_settings
     from atap_llm_classifier.techniques.zeroshot import (
         ZeroShotUserSchema,
         ZeroShotClass,
     )
-
-    os.environ["USE_MOCK"] = "true"
-    os.environ["LLM_OUTPUT_FORMAT"] = "yaml"
 
     logger.info(f"Settings: {get_settings()}")
 
@@ -99,7 +95,7 @@ if __name__ == "__main__":
         classes=[ZeroShotClass(name="class 1", description="the first class")]
     )
 
-    results = run(
+    results_ = run(
         corpus=Corpus([f"test sentence {i}" for i in range(3)]),
         model="gpt-3.5-turbo",
         api_key="",
@@ -108,5 +104,5 @@ if __name__ == "__main__":
         modifier=Modifier.NO_MODIFIER,
     )
 
-    for res in results:
+    for res in results_:
         print(res)
