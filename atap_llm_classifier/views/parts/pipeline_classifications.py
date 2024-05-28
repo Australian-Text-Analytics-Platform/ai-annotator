@@ -77,6 +77,7 @@ class PipelineClassifications(Viewer):
             width=props.classify.all.button.width,
             margin=(0, self.classify_one_btn.margin[1]),
         )
+        self.classify_all_btn.on_click(self.on_click_classify_all_and_patch_df)
         self.all_progress_bar = pn.widgets.Tqdm()
         self.layout = pn.Column(
             self.df_widget,
@@ -103,46 +104,60 @@ class PipelineClassifications(Viewer):
 
     @notify.catch(raise_err=False)
     async def on_click_classify_one_and_patch_df(self, _):
-        self.lock_model_config()
+        try:
+            self.classify_one_btn.disabled = True
+            self.lock_model_config()
 
-        idx: int = self.one_idx_rx.rx.value
-        text: str = self.one_doc_rx.rx.value
-        self._df_patch_pending(indices=idx)
+            idx: int = self.one_idx_rx.rx.value
+            text: str = self.one_doc_rx.rx.value
+            self._df_patch_pending(indices=idx)
 
-        res: core.ClassificationResult = await core.a_classify(
-            text=text,
-            model=self.pipe_mconfig.model,
-            api_key=self.api_key.get_secret_value(),
-            llm_config=self.pipe_mconfig.llm_config,
-            technique=self.technique.get_prompt_maker(
-                self.pipe_prompt.user_schema_rx.rx.value
-            ),
-            modifier=self.modifier.get_behaviour(),
-        )
-        self._df_patch_classification(idx, res.classification)
+            res: core.ClassificationResult = await core.a_classify(
+                text=text,
+                model=self.pipe_mconfig.model,
+                api_key=self.api_key.get_secret_value(),
+                llm_config=self.pipe_mconfig.llm_config,
+                technique=self.technique.get_prompt_maker(
+                    self.pipe_prompt.user_schema_rx.rx.value
+                ),
+                modifier=self.modifier.get_behaviour(),
+            )
+            self._df_patch_classification(idx, res.classification)
+        except Exception as e:
+            raise e
+        finally:
+            self.classify_one_btn.disabled = False
 
     @notify.catch(raise_err=False)
-    async def classify_all(self):
-        self.lock_model_config()
+    async def on_click_classify_all_and_patch_df(self, _):
+        try:
+            self.classify_all_btn.disabled = True
+            self.lock_model_config()
 
-        self._df_patch_pending(indices=list(range(len(self.corpus))))
+            self._df_patch_pending(indices=list(range(len(self.corpus))))
 
-        def _on_result_cb(result: pipeline.BatchResult):
-            classification: str = result.classification_result.classification
-            doc_idx: int = result.doc_idx
-            self._df_patch_classification(idx=doc_idx, classification=classification)
+            def _on_result_cb(result: pipeline.BatchResult):
+                classification: str = result.classification_result.classification
+                doc_idx: int = result.doc_idx
+                self._df_patch_classification(
+                    idx=doc_idx, classification=classification
+                )
 
-        batch_results: pipeline.BatchResults = await pipeline.a_batch(
-            corpus=self.corpus,
-            model=self.pipe_mconfig.model,
-            api_key=self.api_key.get_secret_value(),
-            llm_config=self.pipe_mconfig.llm_config,
-            technique=self.technique,
-            user_schema=self.pipe_prompt.user_schema,
-            modifier=self.modifier,
-            on_result_callback=_on_result_cb,
-        )
-        self.last_batch_results = batch_results
+            batch_results: pipeline.BatchResults = await pipeline.a_batch(
+                corpus=self.corpus,
+                model=self.pipe_mconfig.model,
+                api_key=self.api_key.get_secret_value(),
+                llm_config=self.pipe_mconfig.llm_config,
+                technique=self.technique,
+                user_schema=self.pipe_prompt.user_schema,
+                modifier=self.modifier,
+                on_result_callback=_on_result_cb,
+            )
+            self.last_batch_results = batch_results
+        except Exception as e:
+            raise e
+        finally:
+            self.classify_all_btn.disabled = False
 
     def _df_patch_pending(self, indices: int | list[int]):
         if isinstance(indices, int):
@@ -152,5 +167,4 @@ class PipelineClassifications(Viewer):
 
     def _df_patch_classification(self, idx: int, classification: str):
         patch = (idx, classification)
-        print(patch)
         self.df_widget.patch({props.corpus.columns.classification.name: [patch]})
