@@ -91,7 +91,7 @@ class PipelineClassifications(Viewer):
             self.pipe_mconfig.disable()
             notify.PipelineClassification.MODEL_CONFIG_LOCKED_ON_CLASSIFY.info()
 
-    @notify.catch(raise_err=False)
+    @notify.a_catch(raise_err=False)
     async def on_click_classify_one_and_patch_df(self, _):
         self.lock_model_config()
 
@@ -115,6 +115,6 @@ class PipelineClassifications(Viewer):
         )
         self.df_widget.patch({"classification": [(idx, res.classification)]})
 
-    @notify.catch(raise_err=False)
+    @notify.a_catch(raise_err=False)
     async def classify_all(self):
         self.lock_model_config()
