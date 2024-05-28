@@ -2,6 +2,7 @@ from collections import namedtuple
 
 import panel as pn
 from panel.viewable import Viewer, Viewable
+from pydantic import BaseModel
 
 from atap_llm_classifier.techniques import Technique
 from atap_llm_classifier.techniques.schemas import (
@@ -41,16 +42,19 @@ class PipelinePrompt(Viewer):
     def __panel__(self) -> Viewable:
         return self.layout
 
-    def get_prompt_maker(self):
-        return self.technique.get_prompt_maker(user_schema=self.user_schema_rx.rx.value)
+    @property
+    def user_schema(self) -> BaseModel:
+        return self.user_schema_rx.rx.value
 
 
-def create_dummy_user_schema(technique: Technique):
+def create_dummy_user_schema(technique: Technique) -> BaseModel:
     match technique:
         case Technique.ZERO_SHOT:
             from atap_llm_classifier.techniques.schemas import ZeroShotUserSchema
 
             return ZeroShotUserSchema(classes=[])
+        case Technique.CHAIN_OF_THOUGHT:
+        # todo: return CoTUserSchema but also means we need live edit implementation too.
         case _:
             raise NotImplementedError()
 

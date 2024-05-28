@@ -31,15 +31,19 @@ class PipelineWidget(Viewer):
         self.technique: Technique = technique
         self.modifier: Modifier = modifier
 
-        self.pipe_prompt = PipelinePrompt(technique=self.technique)
-        self.pipe_mconfig = PipelineModelConfigView(provider=provider)
+        self.pipe_prompt = PipelinePrompt(
+            technique=self.technique,
+        )
+        self.pipe_mconfig = PipelineModelConfigView(
+            provider=provider,
+        )
         self.pipe_classifs = PipelineClassifications(
             corpus=self.corpus,
+            technique=self.technique,
+            modifier=self.modifier,
             pipe_mconfig=self.pipe_mconfig,
             pipe_prompt=self.pipe_prompt,
         )
-
-        progress_bar = pn.widgets.Tqdm()
 
         self.tabs = pn.Tabs(
             (
@@ -54,13 +58,10 @@ class PipelineWidget(Viewer):
 
         self.layout = pn.Column(
             pn.Row(
-                pn.Column(
-                    self.pipe_mconfig,
-                ),
+                self.pipe_mconfig,
                 pn.Spacer(width=20),
                 self.tabs,
             ),
-            progress_bar,
             sizing_mode="stretch_both",
         )
 

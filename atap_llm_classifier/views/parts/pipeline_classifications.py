@@ -10,22 +10,25 @@ from atap_corpus import Corpus
 from atap_llm_classifier import core
 from atap_llm_classifier.models import LLMConfig
 from atap_llm_classifier.modifiers import Modifier
+from atap_llm_classifier.techniques import Technique
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
 from atap_llm_classifier.views.parts.pipeline_prompt import PipelinePrompt
-
-import os
 
 
 class PipelineClassifications(Viewer):
     def __init__(
         self,
         corpus: Corpus,
+        technique: Technique,
+        modifier: Modifier,
         pipe_mconfig: PipelineModelConfigView,
         pipe_prompt: PipelinePrompt,
         **params,
     ):
         super().__init__(**params)
-        self.corpus = corpus
+        self.corpus: Corpus = corpus
+        self.technique: Technique = technique
+        self.modifier: Modifier = modifier
         self.pipe_mconfig: PipelineModelConfigView = pipe_mconfig
         self.pipe_prompt: PipelinePrompt = pipe_prompt
 
@@ -95,11 +98,16 @@ class PipelineClassifications(Viewer):
             model=self.pipe_mconfig.model,
             # todo: api key needs to be passed down.
             api_key="",
-            # todo: llm config needs to be passed down.
-            llm_config=LLMConfig(seed=42),
-            technique=self.pipe_prompt.get_prompt_maker(),
+            llm_config=LLMConfig(
+                temperature=self.pipe_mconfig.temperature,
+                top_p=self.pipe_mconfig.top_p,
+                seed=self.pipe_mconfig.seed,
+            ),
+            technique=self.technique.get_prompt_maker(
+                self.pipe_prompt.user_schema_rx.rx.value
+            ),
             # todo: modifier needs to be passed down.
-            modifier=Modifier.NO_MODIFIER.get_behaviour(),
+            modifier=self.modifier.get_behaviour(),
         )
         self.df_widget.patch({"classification": [(idx, res.classification)]})
 

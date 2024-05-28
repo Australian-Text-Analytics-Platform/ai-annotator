@@ -155,10 +155,12 @@ class PipelineModelConfigView(Viewer):
         self.model_selector.disabled = True
         self.top_p_slider.disabled = True
         self.temp_slider.disabled = True
+        self.seed_int_inp.disabled = True
         self.disabled.rx.value = True
 
     def enable(self):
         self.model_selector.disabled = False
         self.top_p_slider.disabled = False
         self.temp_slider.disabled = False
+        self.seed_int_inp.disabled = False
         self.disabled.rx.value = False
