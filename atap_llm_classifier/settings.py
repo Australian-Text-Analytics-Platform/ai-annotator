@@ -24,4 +24,8 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings()
+    # todo: fixed here for dev purposese.
+    return Settings(
+        USE_MOCK=True,
+        LLM_OUTPUT_FORMAT="yaml",
+    )
