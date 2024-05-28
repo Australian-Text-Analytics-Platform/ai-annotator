@@ -4,13 +4,15 @@ from panel.viewable import Viewer, Viewable
 from atap_corpus import Corpus
 from pydantic import SecretStr
 
-from atap_llm_classifier import core
-from atap_llm_classifier.models import LLMConfig
+from atap_llm_classifier import core, pipeline
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.techniques import Technique
 from atap_llm_classifier.views import notify
+from atap_llm_classifier.views.props import ViewProp, PipeClassificationsProps
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
 from atap_llm_classifier.views.parts.pipeline_prompt import PipelinePrompt
+
+props: PipeClassificationsProps = ViewProp.PIPE_CLASSIFICATIONS.properties
 
 
 class PipelineClassifications(Viewer):
@@ -34,8 +36,10 @@ class PipelineClassifications(Viewer):
 
         self.corpus_rx = pn.rx(corpus)
 
-        df = corpus.docs().to_frame(name="document")
-        df["classification"] = ["" for _ in range(len(self.corpus))]
+        df = corpus.docs().to_frame(name=props.corpus.columns.document.name)
+        df[props.corpus.columns.classification.name] = [
+            "" for _ in range(len(self.corpus))
+        ]
 
         self.df_widget = pn.widgets.DataFrame(
             df,
@@ -46,8 +50,8 @@ class PipelineClassifications(Viewer):
         )
 
         self.classify_one_btn = pn.widgets.Button(
-            name="Classify One",
-            width=150,
+            name=props.classify.one.button.name,
+            width=props.classify.one.button.width,
             margin=(15, 5),
         )
         self.one_idx_inp = pn.widgets.IntInput(
@@ -60,13 +64,17 @@ class PipelineClassifications(Viewer):
         self.one_idx_rx = self.one_idx_inp.param.value.rx()
         self.one_doc_rx: pn.rx[str] = self.corpus_rx[self.one_idx_rx].rx.pipe(str)
         self.one_doc_md: pn.pane.Markdown = pn.pane.Markdown(
-            pn.rx("Document preview:\n{}".format)(self.one_doc_rx), margin=(0, 20)
+            pn.rx("{}\n{}".format)(
+                props.classify.one.doc_index_preview.name,
+                self.one_doc_rx,
+            ),
+            margin=(0, 20),
         )
         self.classify_one_btn.on_click(self.on_click_classify_one_and_patch_df)
 
         self.classify_all_btn = pn.widgets.Button(
-            name="Classify All",
-            width=self.classify_one_btn.width,
+            name=props.classify.all.button.name,
+            width=props.classify.all.button.width,
             margin=(0, self.classify_one_btn.margin[1]),
         )
         self.all_progress_bar = pn.widgets.Tqdm()
@@ -83,6 +91,8 @@ class PipelineClassifications(Viewer):
             ),
         )
 
+        self.last_batch_results: pipeline.BatchResults | None = None
+
     def __panel__(self) -> Viewable:
         return self.layout
 
@@ -97,24 +107,50 @@ class PipelineClassifications(Viewer):
 
         idx: int = self.one_idx_rx.rx.value
         text: str = self.one_doc_rx.rx.value
-        self.df_widget.patch({"classification": [(idx, "pending...")]})
+        self._df_patch_pending(indices=idx)
 
         res: core.ClassificationResult = await core.a_classify(
             text=text,
             model=self.pipe_mconfig.model,
             api_key=self.api_key.get_secret_value(),
-            llm_config=LLMConfig(
-                temperature=self.pipe_mconfig.temperature,
-                top_p=self.pipe_mconfig.top_p,
-                seed=self.pipe_mconfig.seed,
-            ),
+            llm_config=self.pipe_mconfig.llm_config,
             technique=self.technique.get_prompt_maker(
                 self.pipe_prompt.user_schema_rx.rx.value
             ),
             modifier=self.modifier.get_behaviour(),
         )
-        self.df_widget.patch({"classification": [(idx, res.classification)]})
+        self._df_patch_classification(idx, res.classification)
 
     @notify.catch(raise_err=False)
     async def classify_all(self):
         self.lock_model_config()
+
+        self._df_patch_pending(indices=list(range(len(self.corpus))))
+
+        def _on_result_cb(result: pipeline.BatchResult):
+            classification: str = result.classification_result.classification
+            doc_idx: int = result.doc_idx
+            self._df_patch_classification(idx=doc_idx, classification=classification)
+
+        batch_results: pipeline.BatchResults = await pipeline.a_batch(
+            corpus=self.corpus,
+            model=self.pipe_mconfig.model,
+            api_key=self.api_key.get_secret_value(),
+            llm_config=self.pipe_mconfig.llm_config,
+            technique=self.technique,
+            user_schema=self.pipe_prompt.user_schema,
+            modifier=self.modifier,
+            on_result_callback=_on_result_cb,
+        )
+        self.last_batch_results = batch_results
+
+    def _df_patch_pending(self, indices: int | list[int]):
+        if isinstance(indices, int):
+            indices = [indices]
+        patches = [(idx, props.classify.status_messages.pending) for idx in indices]
+        self.df_widget.patch({props.corpus.columns.classification.name: patches})
+
+    def _df_patch_classification(self, idx: int, classification: str):
+        patch = (idx, classification)
+        print(patch)
+        self.df_widget.patch({props.corpus.columns.classification.name: [patch]})

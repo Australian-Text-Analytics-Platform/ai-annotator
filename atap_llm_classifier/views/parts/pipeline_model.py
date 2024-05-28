@@ -3,6 +3,7 @@ import sys
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
+from atap_llm_classifier.models import LLMConfig
 from atap_llm_classifier.providers.providers import LLMProvider
 from atap_llm_classifier.views.props import ViewProp, PipeModelProps
 
@@ -155,6 +156,14 @@ class PipelineModelConfigView(Viewer):
     @property
     def seed(self) -> int:
         return self.seed_int_inp.value
+
+    @property
+    def llm_config(self) -> LLMConfig:
+        return LLMConfig(
+            temperature=self.temperature,
+            top_p=self.top_p,
+            seed=self.seed,
+        )
 
     def disable(self):
         self.disabled_rx.rx.value = True

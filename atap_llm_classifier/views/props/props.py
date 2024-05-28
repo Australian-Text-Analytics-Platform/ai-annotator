@@ -16,6 +16,7 @@ class ViewProp(enum.Enum):
     ENTRY: str = "entry"
     PIPE_CONFIG: str = "pipe_config"
     PIPE_MODEL: str = "pipe_model"
+    PIPE_CLASSIFICATIONS: str = "pipe_classifications"
 
     @cached_property
     def properties(self):
@@ -27,6 +28,8 @@ class ViewProp(enum.Enum):
                 cls = props.PipeConfigProps
             case ViewProp.PIPE_MODEL:
                 cls = props.PipeModelProps
+            case ViewProp.PIPE_CLASSIFICATIONS:
+                cls = props.PipeClassificationsProps
             case _:
                 raise NotImplementedError()
 

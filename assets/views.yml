@@ -49,3 +49,25 @@ pipe_model:
     name: "Seed"
     tooltip: "Set a seed for results to be reproducible."
 
+pipe_classifications:
+  classify:
+    one:
+      button:
+        name: "Classify One"
+        width: 150
+      doc_index_selector:
+        name: "#"
+      doc_index_preview:
+        name: "Document Preview:"
+    all:
+      button:
+        name: "Classify All"
+        width: 150
+    status_messages:
+      pending: "pending..."   # appears when waiting for classification
+  corpus:
+    columns:
+      document:
+        name: "document"
+      classification:
+        name: "classification"

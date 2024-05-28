@@ -29,7 +29,7 @@ class BatchResult(BaseModel):
 
 
 class BatchResults(BaseModel):
-    corpus_name: str
+    corpus_name: str  # todo: Corpus is an arbitrary type, i suppose we can override serialise to use Corpus.serialise()
     model: str
     technique: Technique
     user_schema: BaseModel
@@ -42,6 +42,7 @@ def batch(
     corpus: Corpus,
     model: str,
     api_key: str,
+    llm_config: LLMConfig,
     technique: Technique,
     user_schema: BaseModel,
     modifier: Modifier,
@@ -53,6 +54,7 @@ def batch(
             corpus,
             model,
             api_key,
+            llm_config,
             technique,
             user_schema,
             modifier,
@@ -67,6 +69,7 @@ async def a_batch(
     corpus: Corpus,
     model: str,
     api_key: str,
+    llm_config: LLMConfig,
     technique: Technique,
     user_schema: BaseModel,
     modifier: Modifier,
@@ -80,7 +83,6 @@ async def a_batch(
 
     prompt_maker: BaseTechnique = technique.get_prompt_maker(user_schema)
     mod_behaviour: BaseModifier = modifier.get_behaviour()
-    llm_config = LLMConfig(seed=42)
 
     coros: list[Coroutine] = [
         _a_classify_with_id(
@@ -152,6 +154,7 @@ if __name__ == "__main__":
         corpus=Corpus([f"test sentence {i}" for i in range(3)]),
         model="gpt-3.5-turbo",
         api_key="",
+        llm_config=LLMConfig(seed=42),
         user_schema=user_schema_,
         technique=Technique.ZERO_SHOT,
         modifier=Modifier.NO_MODIFIER,

@@ -5,6 +5,8 @@ from typing import Callable, Any, Awaitable
 from venv import logger
 
 import panel as pn
+
+from atap_llm_classifier.utils.utils import format_exception
 from atap_llm_classifier.views.settings import ViewSettings, get_settings
 
 settings: ViewSettings = get_settings()
@@ -25,7 +27,7 @@ def catch(raise_err: bool = False):
                         res: Any = await fn(*args, **kwargs)
                         return res
                     except Exception as e:
-                        logger.error(f"Caught exception: {e}.")
+                        logger.error(f"Notified err: {format_exception(e)}")
                         pn.state.notifications.error(
                             message=str(e), duration=settings.NOTIFICATION_DURATION
                         )
@@ -44,7 +46,7 @@ def catch(raise_err: bool = False):
                         res: Any = fn(*args, **kwargs)
                         return res
                     except Exception as e:
-                        logger.error(f"Caught exception: {e}.")
+                        logger.error(f"Notified err: {format_exception(e)}")
                         pn.state.notifications.error(
                             message=str(e), duration=settings.NOTIFICATION_DURATION
                         )

@@ -3,7 +3,6 @@ from pydantic import BaseModel
 
 class ViewPropsWithName(BaseModel):
     name: str
-    # todo: value mapper (dict of enum.name str -> str)
 
 
 class ViewPropsWithNameDescription(ViewPropsWithName):
@@ -12,3 +11,7 @@ class ViewPropsWithNameDescription(ViewPropsWithName):
 
 class ViewPropsWithNameToolTip(ViewPropsWithName):
     tooltip: str
+
+
+class ViewPropsWithNameWidth(ViewPropsWithName):
+    width: int
