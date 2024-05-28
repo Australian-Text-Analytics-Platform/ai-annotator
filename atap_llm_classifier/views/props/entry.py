@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from atap_llm_classifier.views.props.shared import SelectorPropsWithDesc
+from atap_llm_classifier.views.props.shared import ViewPropsWithNameDescription
 
 __all__ = [
     "EntryProps",
@@ -8,7 +8,7 @@ __all__ = [
 
 
 class DatasetProps(BaseModel):
-    selector: SelectorPropsWithDesc
+    selector: ViewPropsWithNameDescription
 
 
 class EntryProps(BaseModel):

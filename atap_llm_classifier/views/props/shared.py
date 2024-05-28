@@ -1,14 +1,14 @@
 from pydantic import BaseModel
 
 
-class SelectorProps(BaseModel):
+class ViewPropsWithName(BaseModel):
     name: str
     # todo: value mapper (dict of enum.name str -> str)
 
 
-class SelectorPropsWithDesc(SelectorProps):
+class ViewPropsWithNameDescription(ViewPropsWithName):
     description: str
 
 
-class SelectorPropsWithTooltip(SelectorProps):
+class ViewPropsWithNameToolTip(ViewPropsWithName):
     tooltip: str
