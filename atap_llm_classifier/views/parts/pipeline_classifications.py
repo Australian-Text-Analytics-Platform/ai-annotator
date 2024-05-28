@@ -1,3 +1,5 @@
+import asyncio
+
 import panel as pn
 from panel.viewable import Viewer, Viewable
 
@@ -36,6 +38,8 @@ class PipelineClassifications(Viewer):
 
         self.corpus_rx = pn.rx(corpus)
 
+        # todo: this means edits aren't exactly changing the corpus - left for now.
+        #   df_widget disabled editing - disabled=True.
         df = corpus.docs().to_frame(name=props.corpus.columns.document.name)
         df[props.corpus.columns.classification.name] = [
             "" for _ in range(len(self.corpus))
@@ -78,7 +82,11 @@ class PipelineClassifications(Viewer):
             margin=(0, self.classify_one_btn.margin[1]),
         )
         self.classify_all_btn.on_click(self.on_click_classify_all_and_patch_df)
-        self.all_progress_bar = pn.widgets.Tqdm()
+        self.all_progress_bar = pn.widgets.Tqdm(
+            max=len(corpus),
+            width=600,
+        )
+
         self.layout = pn.Column(
             self.df_widget,
             pn.Row(
@@ -134,7 +142,12 @@ class PipelineClassifications(Viewer):
             self.classify_all_btn.disabled = True
             self.lock_model_config()
 
+            self.all_progress_bar.value = 0
+
             self._df_patch_pending(indices=list(range(len(self.corpus))))
+            await asyncio.sleep(
+                2
+            )  # note: wait until all pending... is rendered. (not ideal)
 
             def _on_result_cb(result: pipeline.BatchResult):
                 classification: str = result.classification_result.classification
@@ -142,6 +155,7 @@ class PipelineClassifications(Viewer):
                 self._df_patch_classification(
                     idx=doc_idx, classification=classification
                 )
+                self.all_progress_bar.value += 1
 
             batch_results: pipeline.BatchResults = await pipeline.a_batch(
                 corpus=self.corpus,
@@ -153,6 +167,7 @@ class PipelineClassifications(Viewer):
                 modifier=self.modifier,
                 on_result_callback=_on_result_cb,
             )
+            self.all_progress_bar.value = self.all_progress_bar.max
             self.last_batch_results = batch_results
         except Exception as e:
             raise e
