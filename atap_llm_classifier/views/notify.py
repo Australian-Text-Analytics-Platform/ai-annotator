@@ -1,6 +1,7 @@
 import enum
 import functools
-from typing import Callable, Any
+import inspect
+from typing import Callable, Any, Awaitable
 from venv import logger
 
 import panel as pn
@@ -12,53 +13,48 @@ settings: ViewSettings = get_settings()
 def catch(raise_err: bool = False):
     """Granular decorator to catch exceptions and use panel's notification."""
 
-    def catch_wrapper(fn: Callable) -> Callable:
+    def catch_wrapper(fn: Callable | Awaitable) -> Callable | Awaitable:
         global settings
+        wrapper_fn: Callable | Awaitable
+        if inspect.iscoroutinefunction(fn):
 
-        @functools.wraps(fn)
-        def wrapper(*args, **kwargs):
-            if not settings.USE_NOTIFICATION_GLOBALLY:
-                try:
-                    res: Any = fn(*args, **kwargs)
-                    return res
-                except Exception as e:
-                    logger.error(f"Caught exception: {e}.")
-                    pn.state.notifications.error(
-                        message=str(e), duration=settings.NOTIFICATION_DURATION
-                    )
-                    if raise_err:
-                        raise e
-            else:
-                return fn(*args, **kwargs)
+            @functools.wraps(fn)
+            async def wrapper(*args, **kwargs):
+                if not settings.USE_NOTIFICATION_GLOBALLY:
+                    try:
+                        res: Any = await fn(*args, **kwargs)
+                        return res
+                    except Exception as e:
+                        logger.error(f"Caught exception: {e}.")
+                        pn.state.notifications.error(
+                            message=str(e), duration=settings.NOTIFICATION_DURATION
+                        )
+                        if raise_err:
+                            raise e
+                else:
+                    return await fn(*args, **kwargs)
 
-        return wrapper
+            wrapper_fn = wrapper
+        else:
 
-    return catch_wrapper
+            @functools.wraps(fn)
+            def wrapper(*args, **kwargs):
+                if not settings.USE_NOTIFICATION_GLOBALLY:
+                    try:
+                        res: Any = fn(*args, **kwargs)
+                        return res
+                    except Exception as e:
+                        logger.error(f"Caught exception: {e}.")
+                        pn.state.notifications.error(
+                            message=str(e), duration=settings.NOTIFICATION_DURATION
+                        )
+                        if raise_err:
+                            raise e
+                else:
+                    return fn(*args, **kwargs)
 
-
-def a_catch(raise_err: bool = False):
-    """Granular decorator to catch exceptions and use panel's notification. Async fns."""
-
-    def catch_wrapper(fn):
-        global settings
-
-        @functools.wraps(fn)
-        async def wrapper(*args, **kwargs):
-            if not settings.USE_NOTIFICATION_GLOBALLY:
-                try:
-                    res: Any = await fn(*args, **kwargs)
-                    return res
-                except Exception as e:
-                    logger.error(f"Caught exception: {e}.")
-                    pn.state.notifications.error(
-                        message=str(e), duration=settings.NOTIFICATION_DURATION
-                    )
-                    if raise_err:
-                        raise e
-            else:
-                return await fn(*args, **kwargs)
-
-        return wrapper
+            wrapper_fn = wrapper
+        return wrapper_fn
 
     return catch_wrapper
 
