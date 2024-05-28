@@ -23,7 +23,7 @@ from atap_llm_classifier.techniques import Technique, BaseTechnique
 litellm.set_verbose = False
 
 
-class BatchSingular(BaseModel):
+class BatchResult(BaseModel):
     doc_idx: int
     classification_result: core.ClassificationResult
 
@@ -35,7 +35,7 @@ class BatchResults(BaseModel):
     user_schema: BaseModel
     modifier: Modifier
     llm_config: LLMConfig
-    results: list[BatchSingular]
+    results: list[BatchResult]
 
 
 def batch(
@@ -74,7 +74,7 @@ async def a_batch(
 ) -> BatchResults:
     cb_info: tuple[Callable | Coroutine, bool] | None = None
     if on_result_callback is not None:
-        cb_info = (on_result_callback, inspect.iscoroutine(on_result_callback))
+        cb_info = (on_result_callback, inspect.iscoroutinefunction(on_result_callback))
 
     docs: Docs = corpus.docs()
 
@@ -95,21 +95,21 @@ async def a_batch(
         for i, doc in enumerate(docs)
     ]
 
-    singulars: list[BatchSingular] = list()
+    batch_results: list[BatchResult] = list()
     coro: Coroutine
     for coro in asyncio.as_completed(coros):
         doc_idx, classif_result = await coro
-        singular: BatchSingular = BatchSingular(
+        batch_result: BatchResult = BatchResult(
             doc_idx=doc_idx,
             classification_result=classif_result,
         )
-        singulars.append(singular)
+        batch_results.append(batch_result)
         if cb_info is not None:
             cb, iscoro = cb_info
             if iscoro:
-                await on_result_callback(singular)
+                await on_result_callback(batch_result)
             else:
-                on_result_callback(singular)
+                on_result_callback(batch_result)
 
     return BatchResults(
         corpus_name=corpus.name,
@@ -118,7 +118,7 @@ async def a_batch(
         user_schema=user_schema,
         modifier=modifier,
         llm_config=llm_config,
-        results=singulars,
+        results=batch_results,
     )
 
 
@@ -145,6 +145,9 @@ if __name__ == "__main__":
 
     from pprint import pprint
 
+    async def callback(arg):
+        pprint(arg.model_dump())
+
     results_ = batch(
         corpus=Corpus([f"test sentence {i}" for i in range(3)]),
         model="gpt-3.5-turbo",
@@ -152,5 +155,6 @@ if __name__ == "__main__":
         user_schema=user_schema_,
         technique=Technique.ZERO_SHOT,
         modifier=Modifier.NO_MODIFIER,
-        on_result_callback=lambda res: pprint(res.model_dump()),
+        # on_result_callback=lambda res: pprint(res.model_dump()),
+        on_result_callback=callback,
     )
