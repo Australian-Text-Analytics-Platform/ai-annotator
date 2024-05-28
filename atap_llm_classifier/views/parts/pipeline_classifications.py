@@ -48,17 +48,18 @@ class PipelineClassifications(Viewer):
             margin=(15, 5),
         )
         self.one_idx_inp = pn.widgets.IntInput(
-            name="doc index",
+            name="#",
             value=0,
             start=0,
             end=len(self.corpus),
-            width=80,
+            width=50,
         )
-        self.one_idx_doc = pn.pane.Markdown(
-            self.corpus_rx[self.one_idx_inp.rx()], margin=(10, 20)
+        self.one_idx_rx = self.one_idx_inp.param.value.rx()
+        self.one_doc_rx: pn.rx[str] = self.corpus_rx[self.one_idx_rx].rx.pipe(str)
+        self.one_doc_md: pn.pane.Markdown = pn.pane.Markdown(
+            pn.rx("Document preview:\n{}".format)(self.one_doc_rx), margin=(0, 20)
         )
-
-        self.classify_one_btn.on_click(lambda _: self.classify_one())
+        self.classify_one_btn.on_click(self.on_click_classify_one_and_patch_df)
 
         self.classify_all_btn = pn.widgets.Button(
             name="Classify All",
@@ -71,7 +72,7 @@ class PipelineClassifications(Viewer):
             pn.Row(
                 self.classify_one_btn,
                 self.one_idx_inp,
-                self.one_idx_doc,
+                self.one_doc_md,
             ),
             pn.Row(
                 self.classify_all_btn,
@@ -82,16 +83,23 @@ class PipelineClassifications(Viewer):
     def __panel__(self) -> Viewable:
         return self.layout
 
-    async def classify_one(self):
-        idx = self.one_idx_inp.value
+    async def on_click_classify_one_and_patch_df(self, _):
+        logger.info("classify one clicked.")
+        idx: int = self.one_idx_rx.rx.value
+        text: str = self.one_doc_rx.rx.value
+        print(idx, text)
         self.df_widget.patch({"classification": [(idx, "pending...")]})
 
         res: core.Result = await core.a_classify(
-            text="hello",
+            text=text,
+            # todo: model needs to be passed down.
             model="gpt-3.5-turbo",
+            # todo: api key needs to be passed down.
             api_key="",
+            # todo: llm config needs to be passed down.
             llm_config=LLMConfig(seed=42),
             technique=self.pipe_prompt.get_prompt_maker(),
+            # todo: modifier needs to be passed down.
             modifier=Modifier.NO_MODIFIER.get_behaviour(),
         )
         self.df_widget.patch({"classification": [(idx, res.classification)]})
