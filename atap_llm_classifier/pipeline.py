@@ -29,12 +29,12 @@ class BatchSingular(BaseModel):
 
 
 class BatchResults(BaseModel):
-    # corpus: Corpus
-    # model: str
-    # technique: Technique
-    # user_schema: BaseModel
-    # modifier: Modifier
-    # llm_config: LLMConfig
+    corpus_name: str
+    model: str
+    technique: Technique
+    user_schema: BaseModel
+    modifier: Modifier
+    llm_config: LLMConfig
     results: list[BatchSingular]
 
 
@@ -78,8 +78,9 @@ async def a_batch(
 
     docs: Docs = corpus.docs()
 
-    technique: BaseTechnique = technique.get_prompt_maker(user_schema)
-    modifier: BaseModifier = modifier.get_behaviour()
+    prompt_maker: BaseTechnique = technique.get_prompt_maker(user_schema)
+    mod_behaviour: BaseModifier = modifier.get_behaviour()
+    llm_config = LLMConfig(seed=42)
 
     coros: list[Coroutine] = [
         _a_classify_with_id(
@@ -87,9 +88,9 @@ async def a_batch(
             text=str(doc),
             model=model,
             api_key=api_key,
-            llm_config=LLMConfig(seed=42),
-            technique=technique,
-            modifier=modifier,
+            llm_config=llm_config,
+            technique=prompt_maker,
+            modifier=mod_behaviour,
         )
         for i, doc in enumerate(docs)
     ]
@@ -111,7 +112,12 @@ async def a_batch(
                 on_result_callback(singular)
 
     return BatchResults(
-        # corpus=Corpus,
+        corpus_name=corpus.name,
+        model=model,
+        technique=technique,
+        user_schema=user_schema,
+        modifier=modifier,
+        llm_config=llm_config,
         results=singulars,
     )
 
@@ -148,6 +154,3 @@ if __name__ == "__main__":
         modifier=Modifier.NO_MODIFIER,
         on_result_callback=lambda res: pprint(res.model_dump()),
     )
-
-    for res in results_:
-        print(res)
