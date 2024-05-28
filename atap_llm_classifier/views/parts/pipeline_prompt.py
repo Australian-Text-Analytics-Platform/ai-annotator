@@ -54,7 +54,8 @@ def create_dummy_user_schema(technique: Technique) -> BaseModel:
 
             return ZeroShotUserSchema(classes=[])
         case Technique.CHAIN_OF_THOUGHT:
-        # todo: return CoTUserSchema but also means we need live edit implementation too.
+            # todo: return CoTUserSchema but also means we need live edit implementation too.
+            raise NotImplementedError()
         case _:
             raise NotImplementedError()
 
