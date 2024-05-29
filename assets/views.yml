@@ -52,6 +52,7 @@ pipe_model:
 pipe_prompt:
   prompt_preview:
     name: "Prompt Preview"
+    text_placeholder: "<Your document text goes here>"
   live_edit:
     classes:
       name: "Classes"

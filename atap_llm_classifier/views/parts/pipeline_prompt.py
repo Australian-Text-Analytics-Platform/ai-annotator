@@ -31,9 +31,11 @@ class PipelinePrompt(Viewer):
             user_schema_rx=self.user_schema_rx,
         )
         self.prompt = pn.pane.Str(
-            pn.rx(lambda maker: maker.make_prompt(text="placeholder"))(
-                pn.rx(self.technique.get_prompt_maker)(self.user_schema_rx)
-            )
+            pn.rx(
+                lambda maker: maker.make_prompt(
+                    text=props.prompt_preview.text_placeholder
+                )
+            )(pn.rx(self.technique.get_prompt_maker)(self.user_schema_rx))
         )
         self.preview = pn.Column(
             pn.pane.Markdown(f"## {props.prompt_preview.name}"),
@@ -54,6 +56,9 @@ class PipelinePrompt(Viewer):
     @property
     def user_schema(self) -> BaseModel:
         return self.user_schema_rx.rx.value
+
+    def disable(self):
+        pass
 
 
 def create_dummy_user_schema(technique: Technique) -> BaseModel:
@@ -137,6 +142,7 @@ def create_live_edit(technique: Technique, user_schema_rx) -> Viewable:
                 row = new_row()
                 rows.append(row)
                 classes.insert(idx, row.widget)
+                update(row.name)
                 row.name.param.watch(update, text_input_key)
                 row.description.param.watch(update, text_input_key)
 

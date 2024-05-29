@@ -7,11 +7,15 @@ __all__ = [
 ]
 
 
-class PipePromptLiveEditProps(BaseModel):
+class PipePromptLiveEdit(BaseModel):
     classes: ViewPropsWithName
     examples: ViewPropsWithName
 
 
+class PipePromptPreview(ViewPropsWithName):
+    text_placeholder: str
+
+
 class PipePromptProps(BaseModel):
-    prompt_preview: ViewPropsWithName
-    live_edit: PipePromptLiveEditProps
+    prompt_preview: PipePromptPreview
+    live_edit: PipePromptLiveEdit
