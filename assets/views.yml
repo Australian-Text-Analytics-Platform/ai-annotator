@@ -14,7 +14,7 @@ pipe_config:
     paper_url: "Open link to associated paper🔗"
   modifier:
     selector:
-      name: "Select an modifier:"
+      name: "Select a modifier:"
     paper_url: "Open link to associated paper🔗"
   provider:
     selector:

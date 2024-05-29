@@ -1,11 +1,11 @@
 zero_shot:
-  name: "Chain of Thought"
+  name: "Zero Shot"
+  description: "No prompt technique applied."
+  explanation: ""
+  paper_url: ""
+
+chain_of_thought:
+  name: "Chain Of Thought"
   description: "Use a series of intermediate reasoning steps to guide the LLM."
   explanation: ""
   paper_url: "https://arxiv.org/abs/2201.11903"
-
-chain_of_thought:
-  name: "Zero Shot"
-  description: "No prompt technique applied. Ask LLM to classify."
-  explanation: ""
-  paper_url: ""

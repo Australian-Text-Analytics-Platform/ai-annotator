@@ -50,7 +50,7 @@ class TechniqueSelectorView(Viewer):
         return self.layout
 
     def _on_select(self, _):
-        technique: Technique = Technique(self.selector.value)
+        technique: Technique = self.selected
         self.desc.object = technique.info.description
         self.paper_url.object = utils.create_anchor_tag(
             technique.info.paper_url,
