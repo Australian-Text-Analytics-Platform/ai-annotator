@@ -4,6 +4,7 @@ import panel as pn
 from panel.viewable import Viewer, Viewable
 from pydantic import BaseModel
 
+from atap_llm_classifier.views.props import ViewProp, PipePromptProps
 from atap_llm_classifier.views.settings import get_settings
 from atap_llm_classifier.techniques import Technique
 from atap_llm_classifier.techniques.schemas import (
@@ -16,6 +17,8 @@ from atap_llm_classifier.techniques.schemas import (
 LIVE_UPDATE: bool = get_settings().PIPE_PROMPT_LIVE_UPDATE
 text_input_key: str = "value_input" if LIVE_UPDATE else "value"
 
+props: PipePromptProps = ViewProp.PIPE_PROMPT.properties
+
 
 class PipelinePrompt(Viewer):
     def __init__(self, technique: Technique, **params):
@@ -27,15 +30,20 @@ class PipelinePrompt(Viewer):
             technique=self.technique,
             user_schema_rx=self.user_schema_rx,
         )
-        self.preview = pn.Column(
-            pn.pane.Markdown("## Prompt Preview"),
-            pn.pane.Str(
-                self.user_schema_rx.classes.rx.map(lambda s: s.name).rx.pipe("_".join),
-                sizing_mode="stretch_width",
-            ),
+        self.prompt = pn.pane.Str(
+            pn.rx(lambda maker: maker.make_prompt(text="placeholder"))(
+                pn.rx(self.technique.get_prompt_maker)(self.user_schema_rx)
+            )
         )
+        self.preview = pn.Column(
+            pn.pane.Markdown(f"## {props.prompt_preview.name}"),
+            self.prompt,
+            width=500,
+        )
+
         self.layout = pn.Row(
             self.live_edit,
+            pn.Spacer(width=20),
             self.preview,
             sizing_mode="stretch_both",
         )
@@ -53,7 +61,7 @@ def create_dummy_user_schema(technique: Technique) -> BaseModel:
         case Technique.ZERO_SHOT:
             from atap_llm_classifier.techniques.schemas import ZeroShotUserSchema
 
-            return ZeroShotUserSchema(classes=[])
+            return ZeroShotUserSchema(classes=[ZeroShotClass(name="", description="")])
         case Technique.CHAIN_OF_THOUGHT:
             # todo: return CoTUserSchema but also means we need live edit implementation too.
             raise NotImplementedError()
@@ -73,12 +81,11 @@ def create_live_edit(technique: Technique, user_schema_rx) -> Viewable:
                 ]
 
                 name_inp = pn.widgets.TextInput(
-                    name=name_title + ":", height=50, width=200
+                    name=name_title + ":", height=50, width=120
                 )
                 desc_inp = pn.widgets.TextInput(
                     name=desc_title + ":",
                     height=name_inp.height,
-                    # min_width=int(name_inp.width * 1.5),
                     sizing_mode="stretch_width",
                 )
 
@@ -109,7 +116,7 @@ def create_live_edit(technique: Technique, user_schema_rx) -> Viewable:
             )
 
             live_edit = pn.Column(
-                pn.pane.Markdown("## Classes"),
+                pn.pane.Markdown(f"## {props.live_edit.classes.name}"),
                 classes,
                 sizing_mode="stretch_both",
             )
@@ -145,7 +152,7 @@ def create_live_edit(technique: Technique, user_schema_rx) -> Viewable:
                 return row
 
             row = insert_new_row(0)
-            row.minus.disabled_rx = True
+            row.minus.disabled = True
             return live_edit
         case Technique.CHAIN_OF_THOUGHT:
             raise NotImplementedError()

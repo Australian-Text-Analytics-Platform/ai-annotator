@@ -16,6 +16,7 @@ class ViewProp(enum.Enum):
     ENTRY: str = "entry"
     PIPE_CONFIG: str = "pipe_config"
     PIPE_MODEL: str = "pipe_model"
+    PIPE_PROMPT: str = "pipe_prompt"
     PIPE_CLASSIFICATIONS: str = "pipe_classifications"
 
     @cached_property
@@ -28,6 +29,8 @@ class ViewProp(enum.Enum):
                 cls = props.PipeConfigProps
             case ViewProp.PIPE_MODEL:
                 cls = props.PipeModelProps
+            case ViewProp.PIPE_PROMPT:
+                cls = props.PipePromptProps
             case ViewProp.PIPE_CLASSIFICATIONS:
                 cls = props.PipeClassificationsProps
             case _:

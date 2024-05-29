@@ -49,6 +49,15 @@ pipe_model:
     name: "Seed"
     tooltip: "Set a seed for results to be reproducible."
 
+pipe_prompt:
+  prompt_preview:
+    name: "Prompt Preview"
+  live_edit:
+    classes:
+      name: "Classes"
+    examples:
+      name: "Examples"
+
 pipe_classifications:
   classify:
     one:
