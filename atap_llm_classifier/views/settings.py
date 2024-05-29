@@ -29,5 +29,4 @@ class ViewSettings(BaseSettings):
 @functools.lru_cache(maxsize=1)
 def get_settings():
     settings = ViewSettings()
-    logger.info(f"ViewSettings: {settings}")
     return settings
