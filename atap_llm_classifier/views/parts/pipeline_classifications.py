@@ -62,7 +62,7 @@ class PipelineClassifications(Viewer):
             name="#",
             value=0,
             start=0,
-            end=len(self.corpus),
+            end=len(self.corpus) - 1,
             width=50,
         )
         self.one_idx_rx = self.one_idx_inp.param.value.rx()
