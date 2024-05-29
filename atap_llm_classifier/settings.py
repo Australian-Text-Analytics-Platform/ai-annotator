@@ -14,7 +14,7 @@ __all__ = [
 
 class Settings(BaseSettings):
     SEED: int | None = None  # reproducible
-    LLM_OUTPUT_FORMAT: OutputFormat
+    LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.YAML
 
     USE_MOCK: bool = False
     CHECKPOINT_DIR: str = Field(
@@ -25,9 +25,9 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     # todo: fixed here for dev purposese.
-    settings: Settings = Settings(
-        USE_MOCK=True,
-        LLM_OUTPUT_FORMAT="yaml",
-    )
-    logger.info(f"Settings: {settings}")
-    return settings
+    # settings: Settings = Settings(
+    #     USE_MOCK=True,
+    #     LLM_OUTPUT_FORMAT="yaml",
+    # )
+    # logger.info(f"Settings: {settings}")
+    return Settings()
