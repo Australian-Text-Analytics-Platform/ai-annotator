@@ -21,6 +21,8 @@ pipe_config:
       name: "Select an LLM provider:"
     privacy_url: "Open link to privacy policy🔗"
     no_privacy_url: "Please first search and understand their privacy policy."
+    privacy_checkbox:
+      name: "I have read the privacy policy."
     api_key:
       placeholder: "Enter your API key here. (Then press 'Enter')"
       start_message: "👈"

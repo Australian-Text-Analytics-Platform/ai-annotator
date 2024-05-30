@@ -120,6 +120,11 @@ class ProviderSelectorView(Viewer):
 
         self.desc = pn.widgets.StaticText(value="placeholder", margin=3)
         self.privacy_policy = pn.pane.HTML("placeholder", margin=3)
+        self.privacy_policy_read = pn.widgets.Checkbox(
+            name=props.provider.privacy_checkbox.name,
+            value=True,
+            margin=3,
+        )
         self.api_key_inp = pn.widgets.PasswordInput(
             placeholder="placeholder", width=450
         )
@@ -143,6 +148,7 @@ class ProviderSelectorView(Viewer):
                 pn.Column(
                     self.desc,
                     self.privacy_policy,
+                    self.privacy_policy_read,
                 ),
             ),
             pn.Row(self.api_key_inp, self.api_key_msg),
@@ -202,10 +208,12 @@ class ProviderSelectorView(Viewer):
     def disable(self):
         self.selector.disabled = True
         self.api_key_inp.disabled = True
+        self.privacy_policy_read.disabled = True
 
     def enable(self):
         self.selector.disabled = False
         self.api_key_inp.disabled = False
+        self.privacy_policy_read.disabled = False
 
 
 class PipeConfigView(Viewer):

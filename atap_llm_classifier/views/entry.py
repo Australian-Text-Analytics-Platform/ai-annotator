@@ -34,12 +34,12 @@ class EntryWidget(Viewer):
             options=self.r_loader_corpus_names,
         )
 
-        # self.enable_pipe_config_on_dataset()
-        # pn.bind(
-        #     lambda *args: self.enable_pipe_config_on_dataset(),
-        #     self.dataset_selector,
-        #     watch=True,
-        # )
+        self.enable_pipe_config_on_dataset()
+        pn.bind(
+            lambda *args: self.enable_pipe_config_on_dataset(),
+            self.dataset_selector,
+            watch=True,
+        )
 
         self.layout = pn.Column(
             props.title,
@@ -57,7 +57,14 @@ class EntryWidget(Viewer):
         self.progress_conditions_met = (
             self.dataset_selector.rx()
             .rx.is_not(None)
+            .rx.and_(self.pipe_config.technique.selector.rx())
+            .rx.is_not(None)
+            .rx.and_(self.pipe_config.modifier.selector.rx())
+            .rx.is_not(None)
+            .rx.and_(self.pipe_config.provider.selector.rx())
+            .rx.is_not(None)
             .rx.and_(self.pipe_config.provider.api_key_is_valid_rx)
+            .rx.and_(self.pipe_config.provider.privacy_policy_read.rx())
         )
         pn.bind(self.progress_to_pipeline, self.progress_conditions_met, watch=True)
 

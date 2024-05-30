@@ -18,6 +18,7 @@ class ProviderConfigProps(BaseModel):
     selector: ViewPropsWithName
     privacy_url: str
     no_privacy_url: str
+    privacy_checkbox: ViewPropsWithName
     api_key: APIKeyProps
 
 
