@@ -1,11 +1,11 @@
 import tempfile
 from functools import lru_cache
 
-from loguru import logger
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
 from atap_llm_classifier.formatter.models import OutputFormat
+from atap_llm_classifier.ratelimiters import RateLimiter
 
 __all__ = [
     "get_settings",
@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     CHECKPOINT_DIR: str = Field(
         default=tempfile.mkdtemp(), description="Default checkpoint directory."
     )
+    RATE_LIMITER: RateLimiter = RateLimiter.TOKEN_BUCKET
 
 
 @lru_cache(maxsize=1)

@@ -6,11 +6,9 @@ The output
 """
 
 import asyncio
-import contextlib
 import inspect
 from typing import Coroutine, Callable, Any, Generator
 
-import litellm
 from atap_corpus import Corpus
 from atap_corpus._types import Docs
 from loguru import logger
@@ -20,8 +18,11 @@ from atap_llm_classifier import core
 from atap_llm_classifier.core import LLMConfig
 from atap_llm_classifier.modifiers import Modifier, BaseModifier
 from atap_llm_classifier.techniques import Technique, BaseTechnique
+from atap_llm_classifier.settings import get_settings
 
-litellm.set_verbose = False
+
+def get_rate_limiter_from_settings():
+    return get_settings().RATE_LIMITER.get_context_manager()
 
 
 class BatchResult(BaseModel):
@@ -101,7 +102,11 @@ async def a_batch(
     batch_results: list[BatchResult] = list()
     coro: Coroutine
 
-    with rate_limit(on=coros, max_requests=100, per_second=1) as coros:
+    # todo: get rate limit for provider
+
+    with get_rate_limiter_from_settings()(
+        on=coros, max_requests=100, per_seconds=1
+    ) as (coros, semaphore):
         for coro in asyncio.as_completed(coros):
             doc_idx, classif_result = await coro
             batch_result: BatchResult = BatchResult(
@@ -135,35 +140,34 @@ async def _a_classify_with_id(
     return doc_idx, res
 
 
-@contextlib.contextmanager
-def rate_limit(
-    on: list[Coroutine],
-    max_requests: int,
-    per_second: float,
-) -> Generator[Coroutine, None, None]:
-    sem = asyncio.Semaphore(max_requests)
-
-    async def replenish_tokens():
-        while True:
-            await asyncio.sleep(per_second)
-            for i in range(max_requests):
-                sem.release()
-
-    async def rate_limited(coro: Coroutine):
-        async with sem:
-            return await coro
-
-    replenisher = asyncio.create_task(replenish_tokens())
-    try:
-        yield [rate_limited(coro=coro) for coro in on]
-    except Exception as e:
-        raise e
-    finally:
-        replenisher.cancel()
+# @contextlib.contextmanager
+# def rate_limit(
+#     on: list[Coroutine],
+#     max_requests: int,
+#     per_second: float,
+# ) -> Generator[Coroutine, None, None]:
+#     sem = asyncio.Semaphore(max_requests)
+#
+#     async def replenish_tokens():
+#         while True:
+#             await asyncio.sleep(per_second)
+#             for i in range(max_requests):
+#                 sem.release()
+#
+#     async def rate_limited(coro: Coroutine):
+#         async with sem:
+#             return await coro
+#
+#     replenisher = asyncio.create_task(replenish_tokens())
+#     try:
+#         yield [rate_limited(coro=coro) for coro in on]
+#     except Exception as e:
+#         raise e
+#     finally:
+#         replenisher.cancel()
 
 
 if __name__ == "__main__":
-    from atap_llm_classifier.settings import get_settings
     from atap_llm_classifier.techniques.zeroshot import (
         ZeroShotUserSchema,
         ZeroShotClass,

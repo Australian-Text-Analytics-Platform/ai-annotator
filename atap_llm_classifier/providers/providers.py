@@ -1,17 +1,18 @@
 """providers.py"""
 
 from enum import Enum
-from functools import cached_property
+from functools import cached_property, lru_cache
 import re
 
 from loguru import logger
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator, SecretStr
 import litellm
 
 from atap_llm_classifier.settings import get_settings
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.utils import litellm_ as litellm_utils
 from atap_llm_classifier.models import LiteLLMMessage, LiteLLMRole, LiteLLMArgs
+from atap_llm_classifier.ratelimiters import RateLimit
 
 __all__ = [
     "LLMProvider",
@@ -36,6 +37,11 @@ class LLMProviderProperties(BaseModel):
     description: str = Field(frozen=True)
     privacy_policy_url: HttpUrl | None = Field(default=None, frozen=True)
     models: dict[str, LLMModelProperties]
+    default_rate_limit: RateLimit | None = None
+
+
+class LLMProviderUserProperties(LLMProviderProperties):
+    api_key: SecretStr
 
 
 class LLMProvider(Enum):
@@ -75,6 +81,13 @@ class LLMProvider(Enum):
                 props["models"] = models
                 return LLMProviderProperties(**props)
 
+    @lru_cache
+    def get_user_properties(self, api_key: str) -> LLMProviderUserProperties:
+        # todo: validate api key
+        props: LLMProviderProperties = self.properties
+        # todo: pop model if not available from this api key.
+        return
+
 
 def validate_api_key(
     provider: LLMProvider,
@@ -88,7 +101,12 @@ def validate_api_key(
         case LLMProvider.OPENAI:
             model_to_try = "gpt-3.5-turbo"
         case _:
-            model_to_try = provider.properties.models[0]
+            try:
+                model_to_try = next(iter(provider.properties.models.keys()))
+            except StopIteration as e:
+                raise RuntimeError(
+                    f"No available models for llm provider: {provider.value}. Unable to validate api key."
+                )
     try:
         msg = LiteLLMMessage(content="Say Yes.", role=LiteLLMRole.USER)
         litellm.completion(
