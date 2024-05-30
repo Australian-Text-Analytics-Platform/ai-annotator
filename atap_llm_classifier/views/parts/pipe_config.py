@@ -8,7 +8,7 @@ from pydantic import SecretStr
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.providers.providers import LLMProvider, validate_api_key
 from atap_llm_classifier.techniques.techniques import Technique
-from atap_llm_classifier.views import utils
+from atap_llm_classifier.views import utils, notify
 from atap_llm_classifier.views.props import ViewProp, PipeConfigProps
 
 __all__ = [
@@ -60,6 +60,9 @@ class TechniqueSelectorView(Viewer):
     def disable(self):
         self.selector.disabled = True
 
+    def enable(self):
+        self.selector.disabled = False
+
 
 class ModifierSelectorView(Viewer):
     def __init__(self, **params):
@@ -103,6 +106,9 @@ class ModifierSelectorView(Viewer):
     def disable(self):
         self.selector.disabled = True
 
+    def enable(self):
+        self.selector.disabled = False
+
 
 class ProviderSelectorView(Viewer):
     def __init__(self, **params):
@@ -114,8 +120,23 @@ class ProviderSelectorView(Viewer):
 
         self.desc = pn.widgets.StaticText(value="placeholder", margin=3)
         self.privacy_policy = pn.pane.HTML("placeholder", margin=3)
-        self.api_key = pn.widgets.PasswordInput(placeholder="placeholder", width=450)
+        self.api_key_inp = pn.widgets.PasswordInput(
+            placeholder="placeholder", width=450
+        )
         self.api_key_msg = pn.pane.Markdown(object=props.provider.api_key.start_message)
+        self.api_key_is_valid_rx = pn.rx(False)
+
+        self._on_select(None)
+        self.selector.param.watch(
+            self._on_select,
+            "value",
+        )
+        self.api_key_inp.param.watch(
+            self._on_api_key_enter,
+            "value",  # value only changes on enter.
+        )
+        self._valid_api_key_callback = None
+
         self.layout = pn.Column(
             pn.Row(
                 self.selector,
@@ -124,23 +145,15 @@ class ProviderSelectorView(Viewer):
                     self.privacy_policy,
                 ),
             ),
-            pn.Row(self.api_key, self.api_key_msg),
+            pn.Row(self.api_key_inp, self.api_key_msg),
         )
-
-        self._on_select(None)
-        self.selector.param.watch(
-            self._on_select,
-            "value",
-        )
-        self.api_key.param.watch(
-            self._on_api_key_enter,
-            "value",  # value only changes on enter.
-        )
-
-        self._valid_api_key_callback = None
 
     def __panel__(self) -> Viewable:
         return self.layout
+
+    @property
+    def api_key(self) -> SecretStr:
+        return SecretStr(self.api_key_inp.value)
 
     @property
     def selected(self) -> LLMProvider:
@@ -161,16 +174,18 @@ class ProviderSelectorView(Viewer):
                 f"</span>"
             )
 
-        self.api_key.placeholder = props.provider.api_key.placeholder
+        self.api_key_inp.placeholder = props.provider.api_key.placeholder
 
+    @notify.catch(raise_err=False)
     def _on_api_key_enter(self, _):
-        api_key: SecretStr = SecretStr(self.api_key.value)
+        api_key: SecretStr = SecretStr(self.api_key_inp.value)
         if validate_api_key(
             api_key=api_key.get_secret_value(),
             provider=LLMProvider(self.selector.value),
         ):
             self.api_key_msg.object = props.provider.api_key.success_message
-            self.api_key.disabled = True
+            self.api_key_is_valid_rx.rx.value = True
+            self.disable()
             if self._valid_api_key_callback is not None:
                 self._valid_api_key_callback(api_key=api_key)
         else:
@@ -186,7 +201,11 @@ class ProviderSelectorView(Viewer):
 
     def disable(self):
         self.selector.disabled = True
-        self.api_key.disabled = True
+        self.api_key_inp.disabled = True
+
+    def enable(self):
+        self.selector.disabled = False
+        self.api_key_inp.disabled = False
 
 
 class PipeConfigView(Viewer):
@@ -215,3 +234,8 @@ class PipeConfigView(Viewer):
         self.provider.disable()
         self.technique.disable()
         self.modifier.disable()
+
+    def enable(self):
+        self.provider.enable()
+        self.technique.enable()
+        self.modifier.enable()
