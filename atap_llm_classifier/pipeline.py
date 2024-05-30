@@ -6,8 +6,9 @@ The output
 """
 
 import asyncio
+import contextlib
 import inspect
-from typing import Coroutine, Callable
+from typing import Coroutine, Callable, Any, Generator
 
 import litellm
 from atap_corpus import Corpus
@@ -99,19 +100,21 @@ async def a_batch(
 
     batch_results: list[BatchResult] = list()
     coro: Coroutine
-    for coro in asyncio.as_completed(coros):
-        doc_idx, classif_result = await coro
-        batch_result: BatchResult = BatchResult(
-            doc_idx=doc_idx,
-            classification_result=classif_result,
-        )
-        batch_results.append(batch_result)
-        if cb_info is not None:
-            cb, iscoro = cb_info
-            if iscoro:
-                await on_result_callback(batch_result)
-            else:
-                on_result_callback(batch_result)
+
+    with rate_limit(on=coros, max_requests=100, per_second=1) as coros:
+        for coro in asyncio.as_completed(coros):
+            doc_idx, classif_result = await coro
+            batch_result: BatchResult = BatchResult(
+                doc_idx=doc_idx,
+                classification_result=classif_result,
+            )
+            batch_results.append(batch_result)
+            if cb_info is not None:
+                cb, iscoro = cb_info
+                if iscoro:
+                    await on_result_callback(batch_result)
+                else:
+                    on_result_callback(batch_result)
 
     return BatchResults(
         corpus_name=corpus.name,
@@ -132,6 +135,33 @@ async def _a_classify_with_id(
     return doc_idx, res
 
 
+@contextlib.contextmanager
+def rate_limit(
+    on: list[Coroutine],
+    max_requests: int,
+    per_second: float,
+) -> Generator[Coroutine, None, None]:
+    sem = asyncio.Semaphore(max_requests)
+
+    async def replenish_tokens():
+        while True:
+            await asyncio.sleep(per_second)
+            for i in range(max_requests):
+                sem.release()
+
+    async def rate_limited(coro: Coroutine):
+        async with sem:
+            return await coro
+
+    replenisher = asyncio.create_task(replenish_tokens())
+    try:
+        yield [rate_limited(coro=coro) for coro in on]
+    except Exception as e:
+        raise e
+    finally:
+        replenisher.cancel()
+
+
 if __name__ == "__main__":
     from atap_llm_classifier.settings import get_settings
     from atap_llm_classifier.techniques.zeroshot import (
@@ -145,19 +175,13 @@ if __name__ == "__main__":
         classes=[ZeroShotClass(name="class 1", description="the first class")]
     )
 
-    from pprint import pprint
-
-    async def callback(arg):
-        pprint(arg.model_dump())
-
     results_ = batch(
-        corpus=Corpus([f"test sentence {i}" for i in range(3)]),
+        corpus=Corpus([f"test sentence {i}" for i in range(100)]),
         model="gpt-3.5-turbo",
         api_key="",
         llm_config=LLMConfig(seed=42),
         user_schema=user_schema_,
         technique=Technique.ZERO_SHOT,
         modifier=Modifier.NO_MODIFIER,
-        # on_result_callback=lambda res: pprint(res.model_dump()),
-        on_result_callback=callback,
+        on_result_callback=lambda res: print("Got ", res.doc_idx),
     )
