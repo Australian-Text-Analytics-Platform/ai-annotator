@@ -1,3 +1,4 @@
+import html
 from collections import namedtuple
 
 import panel as pn
@@ -31,11 +32,13 @@ class PipelinePrompt(Viewer):
             user_schema_rx=self.user_schema_rx,
         )
         self.prompt = pn.pane.Str(
-            pn.rx(
+            self.user_schema_rx.rx.pipe(self.technique.get_prompt_maker)
+            .rx.pipe(
                 lambda maker: maker.make_prompt(
                     text=props.prompt_preview.text_placeholder
                 )
-            )(pn.rx(self.technique.get_prompt_maker)(self.user_schema_rx))
+            )
+            .rx.pipe(html.escape)
         )
         self.preview = pn.Column(
             pn.pane.Markdown(f"## {props.prompt_preview.name}"),
