@@ -1,7 +1,6 @@
 zero_shot:
   structure: |
     You are provided with {num_classes} classes with a description of each. 
-    Followed by examples with a query, class and reason.
     Each class is demarcated with the format: 
     <class>
     name: 
