@@ -27,7 +27,7 @@ class Asset(Enum):
         return asset_dir / f"{self.value}.yml"
 
     def get(self, key: str) -> dict | str:
-        return load_asset(self)[key]
+        return load_asset(self)[key].copy()
 
     def load(self) -> dict:
         return load_asset(self)
