@@ -61,14 +61,34 @@ class LLMProvider(Enum):
     def get_user_properties(self, api_key: str) -> "LLMProviderUserProperties":
         user_props: LLMProviderProperties = self.properties.copy()
         if validate_api_key(self, api_key):
-            match self:
-                case LLMProvider.OPENAI:
-                    user_props.models = [
-                        model
-                        for model in user_props.models
-                        if model.name
-                        in get_available_openai_models_for_user(api_key=api_key)
-                    ]
+            if not get_settings().USE_MOCK:
+                match self:
+                    case LLMProvider.OPENAI:
+                        user_models = get_available_openai_models_for_user(api_key)
+                        user_props.models = [
+                            model
+                            for model in user_props.models
+                            if model.name in user_models
+                        ]
+                        # amend finetuned models
+                        for finetuned in [
+                            user_model
+                            for user_model in user_models
+                            if user_model.startswith("ft")
+                        ]:
+                            model = finetuned.split(":")[1]
+                            try:
+                                ft_model_props = user_props.get_model_props(
+                                    model
+                                ).model_copy(deep=True)
+                            except ValueError as e:
+                                logger.warning(
+                                    f"Finetuned base model not found. Skipped id={finetuned}. Err: {e}"
+                                )
+                                continue
+                            ft_model_props.name = finetuned
+                            user_props.models.append(ft_model_props)
+
             return LLMProviderUserProperties(
                 validated_api_key=api_key,
                 **user_props.model_dump(),

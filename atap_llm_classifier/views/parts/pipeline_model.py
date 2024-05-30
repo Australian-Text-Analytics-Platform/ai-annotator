@@ -4,7 +4,11 @@ import panel as pn
 from panel.viewable import Viewer, Viewable
 
 from atap_llm_classifier.models import LLMConfig
-from atap_llm_classifier.providers.providers import LLMProvider, LLMModelProperties
+from atap_llm_classifier.providers.providers import (
+    LLMProvider,
+    LLMModelProperties,
+    LLMProviderUserProperties,
+)
 from atap_llm_classifier.views.props import ViewProp, PipeModelProps
 
 props: PipeModelProps = ViewProp.PIPE_MODEL.properties
@@ -27,11 +31,11 @@ COMP_TOOLTIP_MARGIN: tuple[int, int, int, int] = (0, 0, 0, 5)
 
 # todo: sensible defaults based on technique (given in LLMProvider's properties)
 class PipelineModelConfigView(Viewer):
-    def __init__(self, provider: LLMProvider, **params):
+    def __init__(self, provider_user_props: LLMProviderUserProperties, **params):
         super().__init__(**params)
-        self.provider: LLMProvider = provider
+        self.provider_user_props: LLMProviderUserProperties = provider_user_props
 
-        mprops_rx = pn.rx(self.provider.properties.models)
+        mprops_rx = pn.rx(self.provider_user_props.models)
         self.model_selector = pn.widgets.Select(
             name=props.llm.selector.name,
             options=[mprop.name for mprop in mprops_rx.rx.value],
@@ -50,7 +54,7 @@ class PipelineModelConfigView(Viewer):
 
         # model information (reacts to selector's value)
         self.mprop_rx = self.model_selector.rx().rx.pipe(
-            self.provider.properties.get_model_props
+            self.provider_user_props.get_model_props
         )
         self.model_info_rx = pn.rx(MODEL_INFO_FORMAT_STR).format(
             mprop=self.mprop_rx, props=props

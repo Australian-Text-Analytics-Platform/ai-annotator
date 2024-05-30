@@ -9,7 +9,10 @@ from atap_llm_classifier.views.parts.pipeline_classifications import (
 )
 from atap_llm_classifier.views.parts.pipeline_prompt import PipelinePrompt
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
-from atap_llm_classifier.providers.providers import LLMProvider
+from atap_llm_classifier.providers.providers import (
+    LLMProvider,
+    LLMProviderUserProperties,
+)
 from atap_corpus import Corpus
 
 __all__ = [
@@ -30,7 +33,11 @@ class PipelineWidget(Viewer):
         super(PipelineWidget, self).__init__(**params)
         self.corpus: Corpus = corpus
         self.provider: LLMProvider = provider
-        self.api_key: SecretStr = api_key
+        self.provider_user_props: LLMProviderUserProperties = (
+            self.provider.get_user_properties(
+                api_key.get_secret_value(),
+            )
+        )
         self.technique: Technique = technique
         self.modifier: Modifier = modifier
 
@@ -38,11 +45,11 @@ class PipelineWidget(Viewer):
             technique=self.technique,
         )
         self.pipe_mconfig = PipelineModelConfigView(
-            provider=provider,
+            provider_user_props=self.provider_user_props,
         )
         self.pipe_classifs = PipelineClassifications(
             corpus=self.corpus,
-            api_key=self.api_key,
+            api_key=self.provider_user_props.validated_api_key,
             technique=self.technique,
             modifier=self.modifier,
             pipe_mconfig=self.pipe_mconfig,
