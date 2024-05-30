@@ -4,7 +4,7 @@ import panel as pn
 from panel.viewable import Viewer, Viewable
 
 from atap_llm_classifier.models import LLMConfig
-from atap_llm_classifier.providers.providers import LLMProvider
+from atap_llm_classifier.providers.providers import LLMProvider, LLMModelProperties
 from atap_llm_classifier.views.props import ViewProp, PipeModelProps
 
 props: PipeModelProps = ViewProp.PIPE_MODEL.properties
@@ -31,11 +31,10 @@ class PipelineModelConfigView(Viewer):
         super().__init__(**params)
         self.provider: LLMProvider = provider
 
-        model_props = self.provider.properties.models
         mprops_rx = pn.rx(self.provider.properties.models)
         self.model_selector = pn.widgets.Select(
             name=props.llm.selector.name,
-            options=sorted(model_props),
+            options=[mprop.name for mprop in mprops_rx.rx.value],
             width=COMPONENT_WIDTH,
         )
         self.model_row = pn.Row(
@@ -50,7 +49,9 @@ class PipelineModelConfigView(Viewer):
         )
 
         # model information (reacts to selector's value)
-        self.mprop_rx = mprops_rx[self.model_selector.rx()]
+        self.mprop_rx = self.model_selector.rx().rx.pipe(
+            self.provider.properties.get_model_props
+        )
         self.model_info_rx = pn.rx(MODEL_INFO_FORMAT_STR).format(
             mprop=self.mprop_rx, props=props
         )
