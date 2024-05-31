@@ -14,9 +14,6 @@ openai:
       description: |
         This is an older GPT4 model.
         More expensive than the latest GPT4o.
-  default_rate_limit:
-    max_requests: 3
-    per_seconds: 60
 
 
 openai_azure_sih:

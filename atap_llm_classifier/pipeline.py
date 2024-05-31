@@ -7,7 +7,7 @@ The output
 
 import asyncio
 import inspect
-from typing import Coroutine, Callable, Any, Generator
+from typing import Coroutine, Callable
 
 from atap_corpus import Corpus
 from atap_corpus._types import Docs
@@ -17,12 +17,9 @@ from pydantic import BaseModel
 from atap_llm_classifier import core
 from atap_llm_classifier.core import LLMConfig
 from atap_llm_classifier.modifiers import Modifier, BaseModifier
+from atap_llm_classifier.ratelimiters import RateLimit
 from atap_llm_classifier.techniques import Technique, BaseTechnique
-from atap_llm_classifier.settings import get_settings
-
-
-def get_rate_limiter_from_settings():
-    return get_settings().RATE_LIMITER.get_context_manager()
+from atap_llm_classifier import settings
 
 
 class BatchResult(BaseModel):
@@ -102,10 +99,10 @@ async def a_batch(
     batch_results: list[BatchResult] = list()
     coro: Coroutine
 
-    # todo: get rate limit for provider
-
-    with get_rate_limiter_from_settings()(
-        on=coros, max_requests=100, per_seconds=1
+    rate_limit: RateLimit | None = settings.get_rate_limit()
+    with settings.get_settings().RATE_LIMITER_ALG.get_rate_limiter(
+        on=coros,
+        rate_limit=rate_limit,
     ) as (coros, semaphore):
         for coro in asyncio.as_completed(coros):
             doc_idx, classif_result = await coro
@@ -140,40 +137,13 @@ async def _a_classify_with_id(
     return doc_idx, res
 
 
-# @contextlib.contextmanager
-# def rate_limit(
-#     on: list[Coroutine],
-#     max_requests: int,
-#     per_second: float,
-# ) -> Generator[Coroutine, None, None]:
-#     sem = asyncio.Semaphore(max_requests)
-#
-#     async def replenish_tokens():
-#         while True:
-#             await asyncio.sleep(per_second)
-#             for i in range(max_requests):
-#                 sem.release()
-#
-#     async def rate_limited(coro: Coroutine):
-#         async with sem:
-#             return await coro
-#
-#     replenisher = asyncio.create_task(replenish_tokens())
-#     try:
-#         yield [rate_limited(coro=coro) for coro in on]
-#     except Exception as e:
-#         raise e
-#     finally:
-#         replenisher.cancel()
-
-
 if __name__ == "__main__":
     from atap_llm_classifier.techniques.zeroshot import (
         ZeroShotUserSchema,
         ZeroShotClass,
     )
 
-    logger.info(f"Settings: {get_settings()}")
+    logger.info(f"Settings: {settings.get_settings()}")
 
     user_schema_ = ZeroShotUserSchema(
         classes=[ZeroShotClass(name="class 1", description="the first class")]

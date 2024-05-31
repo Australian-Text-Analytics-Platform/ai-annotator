@@ -1,13 +1,15 @@
+from pydantic import BaseModel
 import asyncio
 import contextlib
 import enum
 from typing import Coroutine, Generator, Callable, ContextManager
 
-from pydantic import BaseModel
+from atap_llm_classifier.providers import LLMProviderUserProperties
 
 __all__ = [
-    "RateLimiter",
     "RateLimit",
+    "RateLimiterAlg",
+    "get_openai_rate_limit",
 ]
 
 
@@ -16,23 +18,26 @@ class RateLimit(BaseModel):
     per_seconds: float
 
 
-class RateLimiter(enum.Enum):
+class RateLimiterAlg(enum.Enum):
     TOKEN_BUCKET: str = "token_bucket"
 
-    def get_context_manager(
+    def get_rate_limiter(
         self,
-    ) -> Callable[..., ContextManager[Generator[Coroutine, None, None]]]:
+    ) -> Callable[
+        ..., ContextManager[tuple[Generator[Coroutine, None, None], asyncio.Semaphore]]
+    ]:
         match self:
-            case RateLimiter.TOKEN_BUCKET:
+            case RateLimiterAlg.TOKEN_BUCKET:
                 return token_bucket
 
 
 @contextlib.contextmanager
 def token_bucket(
     on: list[Coroutine],
-    max_requests: int,
-    per_seconds: float,
-) -> ContextManager[Generator[Coroutine, None, None]]:
+    rate_limit: RateLimit,
+) -> ContextManager[tuple[Generator[Coroutine, None, None], asyncio.Semaphore]]:
+    max_requests, per_seconds = rate_limit.max_requests, rate_limit.per_seconds
+
     sem = asyncio.Semaphore(max_requests)
 
     async def replenish_tokens():
@@ -52,3 +57,32 @@ def token_bucket(
         raise e
     finally:
         replenisher.cancel()
+
+
+def get_openai_rate_limit(
+    provider_user_props: LLMProviderUserProperties,
+    model: str,
+) -> RateLimit:
+    from openai import OpenAI
+
+    client = OpenAI(api_key=provider_user_props.validated_api_key.get_secret_value())
+    resp = client.completions.with_raw_response.create(
+        messages=[
+            {
+                "role": "user",
+                "content": "test",
+            }
+        ],
+        model=model,
+    )
+    max_requests = int(resp.headers["x-ratelimit-limit-requests"])
+    per_seconds: str = resp.headers["x-ratelimit-reset-requests"].strip()
+    if per_seconds.endswith("ms"):
+        per_seconds: float = float(per_seconds[:-2]) / 1000
+    elif per_seconds.endswith("s"):
+        per_seconds: float = float(per_seconds[:-1])
+    else:
+        raise Exception(
+            "OpenAI rate limit reset expected to end with either 's' or 'ms'."
+        )
+    return RateLimit(max_requests=max_requests, per_seconds=per_seconds)

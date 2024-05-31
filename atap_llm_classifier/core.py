@@ -12,7 +12,7 @@ from litellm import acompletion, ModelResponse, Choices
 from loguru import logger
 from pydantic import BaseModel
 
-from atap_llm_classifier import errors
+from atap_llm_classifier import errors, config
 from atap_llm_classifier.formatter import formatter
 from atap_llm_classifier.models import (
     LLMConfig,
@@ -21,7 +21,6 @@ from atap_llm_classifier.models import (
     LiteLLMRole,
 )
 from atap_llm_classifier.modifiers import BaseModifier
-from atap_llm_classifier.settings import get_settings
 from atap_llm_classifier.techniques import BaseTechnique
 from atap_llm_classifier.techniques.schemas import LLMoutputModel
 
@@ -72,7 +71,7 @@ async def a_classify(
             stream=False,
         ).to_kwargs(),
         mock_response=formatter.make_mock_response(technique.template.output_keys)
-        if get_settings().USE_MOCK
+        if config.mock
         else None,
     )
 

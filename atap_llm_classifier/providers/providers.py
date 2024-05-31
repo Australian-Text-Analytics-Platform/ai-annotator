@@ -7,17 +7,19 @@ import re
 import tiktoken
 from litellm import ModelResponse
 from loguru import logger
-from pydantic import BaseModel, Field, HttpUrl, field_validator, SecretStr, ConfigDict
-import litellm
-from atap_llm_classifier.settings import get_settings
+from pydantic import BaseModel, Field, HttpUrl, field_validator, SecretStr
+
+from atap_llm_classifier import config
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.utils import litellm_ as litellm_utils
-from atap_llm_classifier.models import LiteLLMMessage, LiteLLMRole, LiteLLMArgs
-from atap_llm_classifier.ratelimiters import RateLimit
+from atap_llm_classifier.utils.utils import make_dummy_request
 
 __all__ = [
     "LLMProvider",
     "LLMProviderProperties",
+    "LLMProviderUserProperties",
+    "validate_api_key",
+    "exceeds_context_window",
 ]
 
 
@@ -55,13 +57,16 @@ class LLMProvider(Enum):
                             break
                     models.append(values)
                 props["models"] = models
-        return LLMProviderProperties(**props)
+        return LLMProviderProperties(
+            provider=self,
+            **props,
+        )
 
     @lru_cache
     def get_user_properties(self, api_key: str) -> "LLMProviderUserProperties":
         user_props: LLMProviderProperties = self.properties.copy()
         if validate_api_key(self, api_key):
-            if not get_settings().USE_MOCK:
+            if not config.mock:
                 match self:
                     case LLMProvider.OPENAI:
                         user_models = get_available_openai_models_for_user(api_key)
@@ -115,6 +120,7 @@ class LLMProviderProperties(BaseModel):
     description: str = Field(frozen=True)
     privacy_policy_url: HttpUrl | None = Field(default=None, frozen=True)
     models: list[LLMModelProperties]
+    provider: LLMProvider
 
     # override default hash behaviour from BaseModel which does not allow list.
     # needed for lru_cache
@@ -132,12 +138,18 @@ class LLMProviderUserProperties(LLMProviderProperties):
     validated_api_key: SecretStr
 
 
-@lru_cache
+def exceeds_context_window(
+    model_props: LLMModelProperties,
+    prompt: str,
+) -> bool | None:
+    pass  # todo
+
+
 def validate_api_key(
     provider: LLMProvider,
     api_key: str,
 ) -> bool:
-    if get_settings().USE_MOCK:
+    if config.mock:
         return True
     try:
         make_dummy_request_to_provider(provider, api_key)
@@ -147,7 +159,9 @@ def validate_api_key(
         return False
 
 
-@lru_cache
+### Helpers ###
+
+
 def make_dummy_request_to_provider(
     provider: LLMProvider,
     api_key: str,
@@ -163,31 +177,7 @@ def make_dummy_request_to_provider(
                 raise RuntimeError(
                     f"No available models for llm provider: {provider.value}. Unable to validate api key."
                 )
-    msg = LiteLLMMessage(content="Say Yes.", role=LiteLLMRole.USER)
-    return litellm.completion(
-        **LiteLLMArgs(
-            model=dummy_model,
-            messages=[msg],
-            temperature=0,
-            top_p=1.0,
-            n=1,
-            api_key=api_key,
-        ).to_kwargs(),
-        max_tokens=10,
-    )
-
-
-def exceeds_context_window(
-    model_props: LLMModelProperties,
-    prompt: str,
-) -> bool | None:
-    if model_props.context_window is None:
-        return None
-
-    provider: LLMProvider = model_props.provider
-    # todo: also
-    tiktoken.encoding_for_model()
-    return
+    return make_dummy_request(model=dummy_model, api_key=api_key)
 
 
 def get_available_openai_models_for_user(
