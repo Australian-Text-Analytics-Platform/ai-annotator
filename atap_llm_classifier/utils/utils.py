@@ -26,6 +26,8 @@ def format_exception(e: Exception) -> str:
 
 def is_jupyter_context() -> bool:
     try:
+        from IPython import get_ipython
+
         shell = get_ipython().__class__.__name__
         if "ZMQInteractiveShell" in shell:
             return True

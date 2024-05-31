@@ -17,6 +17,11 @@ from pydantic import BaseModel
 from atap_llm_classifier import core
 from atap_llm_classifier.core import LLMConfig
 from atap_llm_classifier.modifiers import Modifier, BaseModifier
+from atap_llm_classifier.providers.providers import (
+    LLMUserModelProperties,
+    LLMProvider,
+    LLMProviderUserProperties,
+)
 from atap_llm_classifier.ratelimiters import RateLimit
 from atap_llm_classifier.techniques import Technique, BaseTechnique
 from atap_llm_classifier import settings
@@ -39,6 +44,7 @@ class BatchResults(BaseModel):
 
 def batch(
     corpus: Corpus,
+    provider: LLMProvider,
     model: str,
     api_key: str,
     llm_config: LLMConfig,
@@ -48,11 +54,17 @@ def batch(
     on_result_callback: Callable | Coroutine | None = None,
 ) -> BatchResults:
     logger.info("START run")
+    user_provider_props: LLMProviderUserProperties = provider.get_user_properties(
+        api_key=api_key
+    )
+    user_model: LLMUserModelProperties = user_provider_props.get_model_props(
+        model=model
+    )
+
     res = asyncio.run(
         a_batch(
             corpus,
-            model,
-            api_key,
+            user_model,
             llm_config,
             technique,
             user_schema,
@@ -66,8 +78,7 @@ def batch(
 
 async def a_batch(
     corpus: Corpus,
-    model: str,
-    api_key: str,
+    user_model: LLMUserModelProperties,
     llm_config: LLMConfig,
     technique: Technique,
     user_schema: BaseModel,
@@ -87,8 +98,8 @@ async def a_batch(
         _a_classify_with_id(
             doc_idx=i,
             text=str(doc),
-            model=model,
-            api_key=api_key,
+            model=user_model.name,
+            api_key=user_model.validated_api_key.get_secret_value(),
             llm_config=llm_config,
             technique=prompt_maker,
             modifier=mod_behaviour,
@@ -99,10 +110,12 @@ async def a_batch(
     batch_results: list[BatchResult] = list()
     coro: Coroutine
 
-    rate_limit: RateLimit | None = settings.get_rate_limit()
-    with settings.get_settings().RATE_LIMITER_ALG.get_rate_limiter(
+    rate_limit: RateLimit | None = settings.get_rate_limit(user_model)
+    print(rate_limit)
+    with settings.get_settings().RATE_LIMITER_ALG.get_rate_limiter()(
         on=coros,
         rate_limit=rate_limit,
+        # rate_limit=RateLimit(max_requests=1, per_seconds=1),
     ) as (coros, semaphore):
         for coro in asyncio.as_completed(coros):
             doc_idx, classif_result = await coro
@@ -120,7 +133,7 @@ async def a_batch(
 
     return BatchResults(
         corpus_name=corpus.name,
-        model=model,
+        model=user_model.name,
         technique=technique,
         user_schema=user_schema,
         modifier=modifier,
@@ -138,19 +151,23 @@ async def _a_classify_with_id(
 
 
 if __name__ == "__main__":
-    from atap_llm_classifier.techniques.zeroshot import (
+    from atap_llm_classifier import config
+    from atap_llm_classifier.techniques.schemas.zeroshot import (
         ZeroShotUserSchema,
         ZeroShotClass,
     )
 
+    config.mock = True
     logger.info(f"Settings: {settings.get_settings()}")
+    logger.info(f"Mock: {config.mock}")
 
     user_schema_ = ZeroShotUserSchema(
         classes=[ZeroShotClass(name="class 1", description="the first class")]
     )
 
     results_ = batch(
-        corpus=Corpus([f"test sentence {i}" for i in range(100)]),
+        corpus=Corpus([f"test sentence {i}" for i in range(1000)]),
+        provider=LLMProvider.OPENAI,
         model="gpt-3.5-turbo",
         api_key="",
         llm_config=LLMConfig(seed=42),

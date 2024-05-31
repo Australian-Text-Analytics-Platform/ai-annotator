@@ -49,7 +49,6 @@ class PipelineWidget(Viewer):
         )
         self.pipe_classifs = PipelineClassifications(
             corpus=self.corpus,
-            api_key=self.provider_user_props.validated_api_key,
             technique=self.technique,
             modifier=self.modifier,
             pipe_mconfig=self.pipe_mconfig,

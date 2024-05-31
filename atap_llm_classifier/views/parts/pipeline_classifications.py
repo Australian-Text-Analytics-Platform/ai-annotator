@@ -21,7 +21,6 @@ class PipelineClassifications(Viewer):
     def __init__(
         self,
         corpus: Corpus,
-        api_key: SecretStr,
         technique: Technique,
         modifier: Modifier,
         pipe_mconfig: PipelineModelConfigView,
@@ -30,7 +29,6 @@ class PipelineClassifications(Viewer):
     ):
         super().__init__(**params)
         self.corpus: Corpus = corpus
-        self.api_key: SecretStr = api_key
         self.technique: Technique = technique
         self.modifier: Modifier = modifier
         self.pipe_mconfig: PipelineModelConfigView = pipe_mconfig
@@ -39,7 +37,7 @@ class PipelineClassifications(Viewer):
         self.corpus_rx = pn.rx(corpus)
 
         # todo: this means edits aren't exactly changing the corpus - left for now.
-        #   df_widget disabled editing - disabled=True.
+        #   fixed df_widget to have editing disabled - disabled=True.
         df = corpus.docs().to_frame(name=props.corpus.columns.document.name)
         df[props.corpus.columns.classification.name] = [
             "" for _ in range(len(self.corpus))
@@ -122,8 +120,8 @@ class PipelineClassifications(Viewer):
 
             res: core.ClassificationResult = await core.a_classify(
                 text=text,
-                model=self.pipe_mconfig.model,
-                api_key=self.api_key.get_secret_value(),
+                model=self.pipe_mconfig.user_model.name,
+                api_key=self.pipe_mconfig.user_model.validated_api_key.get_secret_value(),
                 llm_config=self.pipe_mconfig.llm_config,
                 technique=self.technique.get_prompt_maker(
                     self.pipe_prompt.user_schema_rx.rx.value
@@ -159,8 +157,7 @@ class PipelineClassifications(Viewer):
 
             batch_results: pipeline.BatchResults = await pipeline.a_batch(
                 corpus=self.corpus,
-                model=self.pipe_mconfig.model,
-                api_key=self.api_key.get_secret_value(),
+                user_model=self.pipe_mconfig.user_model,
                 llm_config=self.pipe_mconfig.llm_config,
                 technique=self.technique,
                 user_schema=self.pipe_prompt.user_schema,

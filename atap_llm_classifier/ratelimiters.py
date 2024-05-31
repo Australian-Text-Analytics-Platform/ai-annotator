@@ -4,7 +4,10 @@ import contextlib
 import enum
 from typing import Coroutine, Generator, Callable, ContextManager
 
-from atap_llm_classifier.providers import LLMProviderUserProperties
+from atap_llm_classifier.providers import (
+    LLMProviderUserProperties,
+    LLMUserModelProperties,
+)
 
 __all__ = [
     "RateLimit",
@@ -60,12 +63,11 @@ def token_bucket(
 
 
 def get_openai_rate_limit(
-    provider_user_props: LLMProviderUserProperties,
-    model: str,
+    user_model_props: LLMUserModelProperties,
 ) -> RateLimit:
     from openai import OpenAI
 
-    client = OpenAI(api_key=provider_user_props.validated_api_key.get_secret_value())
+    client = OpenAI(api_key=user_model_props.validated_api_key.get_secret_value())
     resp = client.completions.with_raw_response.create(
         messages=[
             {
@@ -73,7 +75,7 @@ def get_openai_rate_limit(
                 "content": "test",
             }
         ],
-        model=model,
+        model=user_model_props.name,
     )
     max_requests = int(resp.headers["x-ratelimit-limit-requests"])
     per_seconds: str = resp.headers["x-ratelimit-reset-requests"].strip()

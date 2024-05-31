@@ -1,5 +1,3 @@
-from pydantic import BaseModel
-
 from atap_llm_classifier.techniques import (
     Technique,
     BaseTechnique,

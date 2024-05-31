@@ -16,8 +16,10 @@ from atap_llm_classifier.utils.utils import make_dummy_request
 
 __all__ = [
     "LLMProvider",
+    "LLMModelProperties",
     "LLMProviderProperties",
     "LLMProviderUserProperties",
+    "LLMUserModelProperties",
     "validate_api_key",
     "exceeds_context_window",
 ]
@@ -64,41 +66,49 @@ class LLMProvider(Enum):
 
     @lru_cache
     def get_user_properties(self, api_key: str) -> "LLMProviderUserProperties":
-        user_props: LLMProviderProperties = self.properties.copy()
-        if validate_api_key(self, api_key):
-            if not config.mock:
-                match self:
-                    case LLMProvider.OPENAI:
-                        user_models = get_available_openai_models_for_user(api_key)
-                        user_props.models = [
-                            model
-                            for model in user_props.models
-                            if model.name in user_models
-                        ]
-                        # amend finetuned models
-                        for finetuned in [
-                            user_model
-                            for user_model in user_models
-                            if user_model.startswith("ft")
-                        ]:
-                            model = finetuned.split(":")[1]
-                            try:
-                                ft_model_props = user_props.get_model_props(
-                                    model
-                                ).model_copy(deep=True)
-                            except ValueError as e:
-                                logger.warning(
-                                    f"Finetuned base model not found. Skipped id={finetuned}. Err: {e}"
-                                )
-                                continue
-                            ft_model_props.name = finetuned
-                            user_props.models.append(ft_model_props)
-
-            return LLMProviderUserProperties(
-                validated_api_key=api_key,
-                **user_props.model_dump(),
-            )
-        raise ValueError(f"Invalid api key given for provider: {self.value}.")
+        props_copy: LLMProviderProperties = self.properties.copy()
+        if not validate_api_key(self, api_key):
+            raise ValueError(f"Invalid api key given for provider: {self.value}.")
+        if not config.mock:
+            match self:
+                case LLMProvider.OPENAI:
+                    user_models = get_available_openai_models_for_user(api_key)
+                    props_copy.models = [
+                        model
+                        for model in props_copy.models
+                        if model.name in user_models
+                    ]
+                    # amend finetuned models
+                    for finetuned in [
+                        user_model
+                        for user_model in user_models
+                        if user_model.startswith("ft")
+                    ]:
+                        model = finetuned.split(":")[1]
+                        try:
+                            ft_model_props = props_copy.get_model_props(
+                                model
+                            ).model_copy(deep=True)
+                        except ValueError as e:
+                            logger.warning(
+                                f"Finetuned base model not found. Skipped id={finetuned}. Err: {e}"
+                            )
+                            continue
+                        ft_model_props.name = finetuned
+                        props_copy.models.append(ft_model_props)
+        user_models = [
+            LLMUserModelProperties(validated_api_key=api_key, **model.model_dump())
+            for model in props_copy.models
+        ]
+        return LLMProviderUserProperties(
+            validated_api_key=api_key,
+            models=user_models,
+            **props_copy.model_dump(
+                exclude={
+                    "models",
+                }
+            ),
+        )
 
 
 class LLMModelProperties(BaseModel):
@@ -122,10 +132,6 @@ class LLMProviderProperties(BaseModel):
     models: list[LLMModelProperties]
     provider: LLMProvider
 
-    # override default hash behaviour from BaseModel which does not allow list.
-    # needed for lru_cache
-    __hash__ = object.__hash__
-
     @lru_cache
     def get_model_props(self, model: str) -> LLMModelProperties:
         for model_prop in self.models:
@@ -133,9 +139,28 @@ class LLMProviderProperties(BaseModel):
                 return model_prop
         raise ValueError(f"{model} does not exist for provider: {self.name}.")
 
+    # override default hash behaviour from BaseModel which does not allow list.
+    # needed for lru_cache
+    def __hash__(self):
+        return hash((self.name, self.provider))
+
+
+class LLMUserModelProperties(LLMModelProperties):
+    validated_api_key: SecretStr
+
+    def __hash__(self):
+        return hash((self.name, self.validated_api_key.get_secret_value()))
+
 
 class LLMProviderUserProperties(LLMProviderProperties):
     validated_api_key: SecretStr
+    models: list[LLMUserModelProperties]
+
+    def get_model_props(self, model: str) -> LLMUserModelProperties:
+        return super().get_model_props(model=model)
+
+    def __hash__(self):
+        return hash((self.name, self.validated_api_key.get_secret_value()))
 
 
 def exceeds_context_window(
