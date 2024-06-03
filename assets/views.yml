@@ -85,3 +85,4 @@ pipe_classifications:
         name: "classification"
       num_tokens:
         name: "#tokens"
+        err_value: "N/A"

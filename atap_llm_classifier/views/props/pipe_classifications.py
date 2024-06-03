@@ -30,10 +30,14 @@ class PipeClassClassify(BaseModel):
     status_messages: PipeClassStatusMsgs
 
 
+class PipeClassColNumTokens(ViewPropsWithName):
+    err_value: str
+
+
 class PipeClassCorpusCols(BaseModel):
     document: ViewPropsWithName
     classification: ViewPropsWithName
-    num_tokens: ViewPropsWithName
+    num_tokens: PipeClassColNumTokens
 
 
 class PipeClassCorpus(BaseModel):

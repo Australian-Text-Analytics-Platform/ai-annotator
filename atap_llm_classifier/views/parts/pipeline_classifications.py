@@ -57,12 +57,11 @@ class PipelineClassifications(Viewer):
             sizing_mode="stretch_width",
             disabled=True,
         )
-        self.num_tokens: list[int | str] = pn.rx(
-            lambda *_: self.get_prompt_token_counts()
-        )(
+        self.num_tokens = pn.rx(lambda *_: self.get_prompt_token_counts())(
             self.pipe_mconfig.model_selector,
             self.pipe_prompt.user_schema_rx,
         )
+        self.total_tokens = self.num_tokens.rx.pipe(sum)
         pn.bind(self.df_update_doc_input_tokens, self.num_tokens, watch=True)
 
         self.classify_one_btn = pn.widgets.Button(
@@ -101,6 +100,20 @@ class PipelineClassifications(Viewer):
 
         self.layout = pn.Column(
             self.df_widget,
+            pn.Row(
+                pn.Column(
+                    pn.pane.Str(
+                        self.total_tokens.rx.pipe("Total number of tokens: {}".format),
+                        margin=(0, 10),
+                    ),
+                    pn.pane.Str(
+                        pn.rx(
+                            lambda total: f"Minimum $USD {total * self.pipe_mconfig.mprop_rx.rx.value.input_token_cost:.3f}"
+                        )(self.total_tokens),
+                        margin=(0, 10),
+                    ),
+                ),
+            ),
             pn.Row(
                 self.classify_one_btn,
                 self.one_idx_inp,
@@ -208,8 +221,8 @@ class PipelineClassifications(Viewer):
         def _try_token_count_or_na(text: str) -> int | str:
             try:
                 return count_subwords(text, self.pipe_mconfig.model)
-            except KeyError as ke:
-                return "N/A"
+            except KeyError as _:
+                return props.corpus.columns.num_tokens.err_value
 
         prompt_maker = self.technique.get_prompt_maker(self.pipe_prompt.user_schema)
         return list(
