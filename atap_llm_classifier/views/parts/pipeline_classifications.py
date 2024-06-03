@@ -57,12 +57,13 @@ class PipelineClassifications(Viewer):
             sizing_mode="stretch_width",
             disabled=True,
         )
-        pn.bind(
-            lambda *_: self.df_update_doc_input_tokens(),
+        self.num_tokens: list[int | str] = pn.rx(
+            lambda *_: self.get_prompt_token_counts()
+        )(
             self.pipe_mconfig.model_selector,
             self.pipe_prompt.user_schema_rx,
-            watch=True,
         )
+        pn.bind(self.df_update_doc_input_tokens, self.num_tokens, watch=True)
 
         self.classify_one_btn = pn.widgets.Button(
             name=props.classify.one.button.name,
@@ -194,11 +195,11 @@ class PipelineClassifications(Viewer):
         patch = (idx, classification)
         self.df_widget.patch({props.corpus.columns.classification.name: [patch]})
 
-    def df_update_doc_input_tokens(self):
+    def df_update_doc_input_tokens(self, num_tokens: list[int | str]):
         patches = list(
             zip(
                 range(len(self.df_widget.value)),
-                self.get_prompt_token_counts(),
+                num_tokens,
             )
         )
         self.df_widget.patch({props.corpus.columns.num_tokens.name: patches})
