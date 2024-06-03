@@ -33,6 +33,7 @@ class PipeClassClassify(BaseModel):
 class PipeClassCorpusCols(BaseModel):
     document: ViewPropsWithName
     classification: ViewPropsWithName
+    num_tokens: ViewPropsWithName
 
 
 class PipeClassCorpus(BaseModel):

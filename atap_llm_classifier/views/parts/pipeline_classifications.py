@@ -4,11 +4,11 @@ import panel as pn
 from panel.viewable import Viewer, Viewable
 
 from atap_corpus import Corpus
-from pydantic import SecretStr
 
 from atap_llm_classifier import core, pipeline
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.techniques import Technique
+from atap_llm_classifier.utils.prompt import count_subwords
 from atap_llm_classifier.views import notify
 from atap_llm_classifier.views.props import ViewProp, PipeClassificationsProps
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
@@ -38,17 +38,30 @@ class PipelineClassifications(Viewer):
 
         # todo: this means edits aren't exactly changing the corpus - left for now.
         #   fixed df_widget to have editing disabled - disabled=True.
-        df = corpus.docs().to_frame(name=props.corpus.columns.document.name)
-        df[props.corpus.columns.classification.name] = [
+        self.df = corpus.docs().to_frame(name=props.corpus.columns.document.name)
+        self.df[props.corpus.columns.classification.name] = [
             "" for _ in range(len(self.corpus))
         ]
+        self.df[props.corpus.columns.num_tokens.name] = self.get_prompt_token_counts()
 
         self.df_widget = pn.widgets.DataFrame(
-            df,
+            self.df,
+            autosize_mode="none",
+            widths={
+                props.corpus.columns.document.name: 600,
+                props.corpus.columns.classification.name: 250,
+                props.corpus.columns.num_tokens.name: 60,
+            },
             show_index=False,
             height=400,
             sizing_mode="stretch_width",
             disabled=True,
+        )
+        pn.bind(
+            lambda *_: self.df_update_doc_input_tokens(),
+            self.pipe_mconfig.model_selector,
+            self.pipe_prompt.user_schema_rx,
+            watch=True,
         )
 
         self.classify_one_btn = pn.widgets.Button(
@@ -180,3 +193,30 @@ class PipelineClassifications(Viewer):
     def _df_patch_classification(self, idx: int, classification: str):
         patch = (idx, classification)
         self.df_widget.patch({props.corpus.columns.classification.name: [patch]})
+
+    def df_update_doc_input_tokens(self):
+        patches = list(
+            zip(
+                range(len(self.df_widget.value)),
+                self.get_prompt_token_counts(),
+            )
+        )
+        self.df_widget.patch({props.corpus.columns.num_tokens.name: patches})
+
+    def get_prompt_token_counts(self) -> list[int | str]:
+        def _try_token_count_or_na(text: str) -> int | str:
+            try:
+                return count_subwords(text, self.pipe_mconfig.model)
+            except KeyError as ke:
+                return "N/A"
+
+        prompt_maker = self.technique.get_prompt_maker(self.pipe_prompt.user_schema)
+        return list(
+            map(
+                _try_token_count_or_na,
+                map(
+                    prompt_maker.make_prompt,
+                    self.df[props.corpus.columns.document.name],
+                ),
+            )
+        )

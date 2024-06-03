@@ -60,9 +60,6 @@ class PipelinePrompt(Viewer):
     def user_schema(self) -> BaseModel:
         return self.user_schema_rx.rx.value
 
-    def disable(self):
-        pass
-
 
 def create_dummy_user_schema(technique: Technique) -> BaseModel:
     match technique:

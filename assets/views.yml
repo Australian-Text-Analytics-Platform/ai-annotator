@@ -83,3 +83,5 @@ pipe_classifications:
         name: "document"
       classification:
         name: "classification"
+      num_tokens:
+        name: "#tokens"

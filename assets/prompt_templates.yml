@@ -11,9 +11,9 @@ zero_shot:
     
     {classes}
     
-    Referencing the above classes, your task is to classify the following query into one of them.
+    Referencing the above classes, your task is to classify the following text into one of them.
     
-    query: {text}
+    text: {text}
 
   user_schema_templates:
     clazz: |
