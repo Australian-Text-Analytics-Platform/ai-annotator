@@ -185,17 +185,21 @@ class ProviderSelectorView(Viewer):
     @notify.catch(raise_err=False)
     def _on_api_key_enter(self, _):
         api_key: SecretStr = SecretStr(self.api_key_inp.value)
-        if validate_api_key(
-            api_key=api_key.get_secret_value(),
-            provider=LLMProvider(self.selector.value),
-        ):
-            self.api_key_msg.object = props.provider.api_key.success_message
-            self.api_key_is_valid_rx.rx.value = True
-            self.disable()
-            if self._valid_api_key_callback is not None:
-                self._valid_api_key_callback(api_key=api_key)
-        else:
-            self.api_key_msg.object = props.provider.api_key.error_message
+        try:
+            if validate_api_key(
+                api_key=api_key.get_secret_value(),
+                provider=LLMProvider(self.selector.value),
+            ):
+                self.api_key_msg.object = props.provider.api_key.success_message
+                self.api_key_is_valid_rx.rx.value = True
+                self.disable()
+                if self._valid_api_key_callback is not None:
+                    self._valid_api_key_callback(api_key=api_key)
+            else:
+                self.api_key_msg.object = props.provider.api_key.error_message
+        except Exception as e:
+            self.api_key_msg.object = props.provider.api_key.start_message
+            raise e
 
     def set_valid_api_key_callback(self, callback: Callable):
         num_args_in_callback = len(inspect.signature(callback).parameters)

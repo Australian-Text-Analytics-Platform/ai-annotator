@@ -5,7 +5,7 @@ from functools import cached_property, lru_cache
 import re
 
 import tiktoken
-from litellm import ModelResponse
+from litellm import ModelResponse, AuthenticationError
 from loguru import logger
 from pydantic import BaseModel, Field, HttpUrl, field_validator, SecretStr
 
@@ -179,7 +179,7 @@ def validate_api_key(
     try:
         make_dummy_request_to_provider(provider, api_key)
         return True
-    except Exception as e:
+    except AuthenticationError as e:
         logger.error(f"Failed to validate api key. Err: {e}.")
         return False
 
