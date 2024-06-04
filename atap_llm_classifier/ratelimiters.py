@@ -68,7 +68,7 @@ def get_openai_rate_limit(
     from openai import OpenAI
 
     client = OpenAI(api_key=user_model_props.validated_api_key.get_secret_value())
-    resp = client.completions.with_raw_response.create(
+    resp = client.chat.completions.with_raw_response.create(
         messages=[
             {
                 "role": "user",
