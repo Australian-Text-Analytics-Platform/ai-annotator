@@ -28,12 +28,17 @@ class Settings(BaseSettings):
 
     BATCH_NUM_WORKERS: int = 5
     RATE_LIMITER_ALG: RateLimiterAlg = RateLimiterAlg.TOKEN_BUCKET
-    DEFAULT_RATE_LIMIT: RateLimit = RateLimit(max_requests=100, per_seconds=1.0)
-    JUPYTER_RATE_LIMIT: RateLimit = RateLimit(max_requests=100, per_seconds=1.0)
 
-    # CHECKPOINT_DIR: str = Field(
-    #     default=tempfile.mkdtemp(), description="Default checkpoint directory."
-    # )
+    BASE_REQUESTS_RATE_LIMIT: RateLimit = RateLimit(
+        max_requests=100,
+        per_seconds=1.0,
+    )
+    JUPYTER_REQUESTS_RATE_LIMIT: RateLimit = RateLimit(
+        max_requests=100, per_seconds=1.0
+    )
+    # note: on how to override RATE_LIMIT using env vars:
+    #   BASE_REQUESTS_RATE_LIMIT__MAX_REQUESTS=
+    #   BASE_REQUESTS_RATE_LIMIT__PER_SECONDS=
 
 
 @lru_cache(maxsize=1)
@@ -65,14 +70,18 @@ def get_rate_limit_for_requests(
                 candidates.append(_get_openai_rate_limit(user_model).requests)
             case _:
                 pass  # todo: rate limit for other providers - currently goes to default.
+    else:
+        if config.mock_requests_rate_limit is not None:
+            candidates.append(config.mock_requests_rate_limit)
+
     if len(candidates) < 1:
         logger.info(
-            "No rate limits from provider found. Adding default rate limit as a candidate."
+            "No rate limits from provider found. Adding default as base rate limit in candidates."
         )
-        candidates.append(get_settings().DEFAULT_RATE_LIMIT)
+        candidates.append(get_settings().BASE_REQUESTS_RATE_LIMIT)
     if is_jupyter_context():
         logger.info("In jupyter context. Adding jupyter ate limit as a candidate.")
-        candidates.append(get_settings().JUPYTER_RATE_LIMIT)
+        candidates.append(get_settings().JUPYTER_REQUESTS_RATE_LIMIT)
 
     lowest_rate_limit = sorted(candidates, reverse=False)[0]
     return lowest_rate_limit
@@ -88,7 +97,7 @@ def get_rate_limit_for_tokens(
             case _:
                 pass  # todo: rate limit for other providers - currently goes to default.
     else:
-        return None
+        return config.mock_tokens_rate_limit
 
 
 @lru_cache

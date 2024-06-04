@@ -128,6 +128,8 @@ class LLMModelProperties(BaseModel):
         return "" if v is None else str(v)
 
     def count_tokens(self, prompt: str):
+        if config.mock:
+            return count_tokens_for_openai(prompt=prompt, model=self.name)
         match self.provider:
             case LLMProvider.OPENAI:
                 return count_tokens_for_openai(prompt=prompt, model=self.name)
