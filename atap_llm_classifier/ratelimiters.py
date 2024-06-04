@@ -1,6 +1,6 @@
 from functools import total_ordering
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 import asyncio
 import contextlib
 import enum
@@ -23,15 +23,15 @@ class RateLimit(BaseModel):
     max_requests: int
     per_seconds: float
 
+    @computed_field
+    def max_requests_per_second(self) -> float:
+        return self.max_requests / self.per_seconds
+
     def __eq__(self, other: Self):
-        self_ = self.max_requests / self.per_seconds
-        other_ = other.max_requests / other.per_seconds
-        return self_ == other_
+        return self.max_requests_per_second == other.max_requests_per_second
 
     def __gt__(self, other):
-        self_ = self.max_requests / self.per_seconds
-        other_ = other.max_requests / other.per_seconds
-        return other_ > self_
+        return self.max_requests_per_second > other.max_requests_per_second
 
 
 class RateLimiterAlg(enum.Enum):
