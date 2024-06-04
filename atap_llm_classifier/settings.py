@@ -26,6 +26,7 @@ __all__ = [
 class Settings(BaseSettings):
     LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.YAML
 
+    BATCH_NUM_WORKERS: int = 5
     RATE_LIMITER_ALG: RateLimiterAlg = RateLimiterAlg.TOKEN_BUCKET
     DEFAULT_RATE_LIMIT: RateLimit = RateLimit(max_requests=100, per_seconds=1.0)
     JUPYTER_RATE_LIMIT: RateLimit = RateLimit(max_requests=100, per_seconds=1.0)

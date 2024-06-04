@@ -11,6 +11,7 @@ from typing import Coroutine, Callable
 
 from atap_corpus import Corpus
 from atap_corpus._types import Docs
+from litellm import ModelResponse
 from loguru import logger
 from pydantic import BaseModel
 
@@ -43,7 +44,8 @@ class BatchResults(BaseModel):
     user_schema: BaseModel
     modifier: Modifier
     llm_config: LLMConfig
-    results: list[BatchResult]
+    successes: list[BatchResult]
+    fails: list[tuple[int, str]]
 
 
 class TaskContext(object):
@@ -104,7 +106,8 @@ async def a_batch(
     modifier: Modifier,
     on_result_callback: Callable | Coroutine | None = None,
 ) -> BatchResults:
-    batch_results: list[BatchResult] = list()
+    successes: list[BatchResult] = list()
+    fails: list[tuple[int, str]] = list()
 
     cb_info: tuple[Callable | Coroutine, bool] | None = None
     if on_result_callback is not None:
@@ -125,41 +128,49 @@ async def a_batch(
     if rlimits.tokens is not None:
         rlimiter_toks = rlimit_alg.make_rate_limiter(rlimits.tokens)
 
-    num_workers: int = 3  # todo: settings
+    num_workers: int = get_settings().BATCH_NUM_WORKERS
     queue: asyncio.Queue[TaskContext | None] = asyncio.Queue(num_workers)
 
     async def worker(
         queue: asyncio.Queue[TaskContext | None],
-        batch_results: list[BatchResult],
+        successes: list[BatchResult],
+        fails: list[tuple[int, str]],
     ):
         while True:
             ctx: TaskContext | None = await queue.get()
-            if ctx is None:
+            if ctx is None:  # sentinel value
                 break
-            res: core.ClassificationResult = await core.a_classify(
-                text=str(doc),
-                model=user_model.name,
-                api_key=user_model.validated_api_key.get_secret_value(),
-                llm_config=llm_config,
-                technique=prompt_maker,
-                modifier=mod_behaviour,
-            )
-            for release_fn in ctx.release_coros:
-                await release_fn()
 
-            batch_res = BatchResult(doc_idx=ctx.doc_idx, classification_result=res)
-            batch_results.append(batch_res)
-            if cb_info is not None:
-                cb, iscoro = cb_info
-                if iscoro:
-                    await on_result_callback(batch_res)
-                else:
-                    on_result_callback(batch_res)
+            try:
+                res: core.ClassificationResult = await core.a_classify(
+                    text=ctx.text,
+                    model=user_model.name,
+                    api_key=user_model.validated_api_key.get_secret_value(),
+                    llm_config=llm_config,
+                    technique=prompt_maker,
+                    modifier=mod_behaviour,
+                )
+                batch_res = BatchResult(doc_idx=ctx.doc_idx, classification_result=res)
+                successes.append(batch_res)
+                if cb_info is not None:
+                    cb, iscoro = cb_info
+                    if iscoro:
+                        await on_result_callback(batch_res)
+                    else:
+                        on_result_callback(batch_res)
+            except Exception as e:
+                logger.error(
+                    f"Failed classification on doc idx: {ctx.doc_idx}. Err - {e}"
+                )
+                fails.append((ctx.doc_idx, str(e)))
+            finally:
+                for release_fn in ctx.release_coros:
+                    await release_fn()
 
     worker_tasks = [
-        asyncio.create_task(worker(queue, batch_results)) for _ in range(num_workers)
+        asyncio.create_task(worker(queue, successes, fails)) for _ in range(num_workers)
     ]
-    logger.info(f"Started {num_workers} workers.")
+    logger.info(f"Started {num_workers} workers to consume tasks.")
     for i, doc in enumerate(docs):
         text = str(doc)
         release_coros = list()
@@ -173,8 +184,9 @@ async def a_batch(
         await queue.put(ctx)
         logger.info(f"Produced task {i + 1}/{len(docs)}: {ctx}")
 
-    logger.info("All tasks are produced. Waiting until all tasks are consumed...")
+    logger.info("All tasks are produced. Waiting for all tasks to be consumed...")
     while not queue.empty():
+        logger.info("Next check for all tasks consumed in 5s...")
         await asyncio.sleep(5)
 
     logger.info("All tasks are consumed. Cleaning up workers...")
@@ -192,16 +204,9 @@ async def a_batch(
         user_schema=user_schema,
         modifier=modifier,
         llm_config=llm_config,
-        results=batch_results,
+        successes=successes,
+        fails=fails,
     )
-
-
-async def _a_classify_with_id(
-    doc_idx: int,
-    **classify_kwargs,
-) -> tuple[int, core.ClassificationResult]:
-    res = await core.a_classify(**classify_kwargs)
-    return doc_idx, res
 
 
 if __name__ == "__main__":
