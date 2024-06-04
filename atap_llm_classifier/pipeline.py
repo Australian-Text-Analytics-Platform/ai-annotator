@@ -145,8 +145,10 @@ async def a_batch(
                 break
 
             logger.info(f"Consume task: {ctx}")
-            retries_remaining: int = 10
-            exp_backoff_wait_s: float = 3.0
+            retries_remaining: int = get_settings().BATCH_RATE_LIMIT_MAX_RETRIES
+            exp_backoff_wait_s: float = (
+                get_settings().BATCH_RATE_LIMIT_RETRY_EXP_BACKOFF_FIRST_WAIT_S
+            )
             while retries_remaining >= 0:
                 try:
                     res: core.ClassificationResult = await core.a_classify(

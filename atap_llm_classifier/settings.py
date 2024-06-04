@@ -28,7 +28,6 @@ class Settings(BaseSettings):
 
     BATCH_NUM_WORKERS: int = 5
     RATE_LIMITER_ALG: RateLimiterAlg = RateLimiterAlg.TOKEN_BUCKET
-
     BASE_REQUESTS_RATE_LIMIT: RateLimit = RateLimit(
         max_requests=100,
         per_seconds=1.0,
@@ -39,6 +38,8 @@ class Settings(BaseSettings):
     # note: on how to override RATE_LIMIT using env vars:
     #   BASE_REQUESTS_RATE_LIMIT__MAX_REQUESTS=
     #   BASE_REQUESTS_RATE_LIMIT__PER_SECONDS=
+    BATCH_RATE_LIMIT_MAX_RETRIES: int = 10
+    BATCH_RATE_LIMIT_RETRY_EXP_BACKOFF_FIRST_WAIT_S: float = 3.0
 
 
 @lru_cache(maxsize=1)
