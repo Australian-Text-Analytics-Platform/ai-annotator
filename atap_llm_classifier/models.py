@@ -1,6 +1,6 @@
 import enum
 import json
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field
 
 
 class LLMConfig(BaseModel):
