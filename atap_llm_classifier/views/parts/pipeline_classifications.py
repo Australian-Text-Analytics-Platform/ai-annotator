@@ -8,7 +8,7 @@ from atap_corpus import Corpus
 from atap_llm_classifier import core, pipeline
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.techniques import Technique
-from atap_llm_classifier.utils.prompt import count_subwords
+from atap_llm_classifier.utils.prompt import count_tokens_for_openai
 from atap_llm_classifier.views import notify
 from atap_llm_classifier.views.props import ViewProp, PipeClassificationsProps
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
@@ -199,7 +199,7 @@ class PipelineClassifications(Viewer):
     def get_prompt_token_counts(self) -> list[int | str]:
         def _try_token_count_or_na(text: str) -> int | str:
             try:
-                return count_subwords(text, self.pipe_mconfig.model)
+                return count_tokens_for_openai(text, self.pipe_mconfig.model)
             except KeyError as _:
                 return props.corpus.columns.num_tokens.err_value
 

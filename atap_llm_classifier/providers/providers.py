@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, HttpUrl, field_validator, SecretStr
 from atap_llm_classifier import config
 from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.utils import litellm_ as litellm_utils
+from atap_llm_classifier.utils.prompt import count_tokens_for_openai
 from atap_llm_classifier.utils.utils import make_dummy_request
 
 __all__ = [
@@ -21,7 +22,6 @@ __all__ = [
     "LLMProviderUserProperties",
     "LLMUserModelProperties",
     "validate_api_key",
-    "exceeds_context_window",
 ]
 
 
@@ -31,7 +31,7 @@ class LLMProvider(Enum):
 
     @cached_property
     def properties(self) -> "LLMProviderProperties":
-        props = Asset.PROVIDERS.get(self.value)
+        props: dict = Asset.PROVIDERS.get(self.value)
         match self:
             case LLMProvider.OPENAI_AZURE_SIH:
                 # todo: SIH azure openai properties are not yet defined.
@@ -96,6 +96,9 @@ class LLMProvider(Enum):
                             continue
                         ft_model_props.name = finetuned
                         props_copy.models.append(ft_model_props)
+                case _:
+                    raise NotImplementedError()
+
         user_models = [
             LLMUserModelProperties(validated_api_key=api_key, **model.model_dump())
             for model in props_copy.models
@@ -123,6 +126,13 @@ class LLMModelProperties(BaseModel):
     @classmethod
     def ensure_str(cls, v):
         return "" if v is None else str(v)
+
+    def count_tokens(self, prompt: str):
+        match self.provider:
+            case LLMProvider.OPENAI:
+                return count_tokens_for_openai(prompt=prompt, model=self.name)
+            case _:
+                raise NotImplementedError()
 
 
 class LLMProviderProperties(BaseModel):
@@ -161,13 +171,6 @@ class LLMProviderUserProperties(LLMProviderProperties):
 
     def __hash__(self):
         return hash((self.name, self.validated_api_key.get_secret_value()))
-
-
-def exceeds_context_window(
-    model_props: LLMModelProperties,
-    prompt: str,
-) -> bool | None:
-    pass  # todo
 
 
 def validate_api_key(

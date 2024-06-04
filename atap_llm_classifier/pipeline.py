@@ -22,9 +22,13 @@ from atap_llm_classifier.providers.providers import (
     LLMProvider,
     LLMProviderUserProperties,
 )
-from atap_llm_classifier.ratelimiters import RateLimit
+from atap_llm_classifier.ratelimiters import RateLimit, TokenBucket
+from atap_llm_classifier.settings import (
+    ProviderRateLimits,
+    get_settings,
+    get_rate_limits,
+)
 from atap_llm_classifier.techniques import Technique, BaseTechnique
-from atap_llm_classifier import settings
 
 
 class BatchResult(BaseModel):
@@ -40,6 +44,21 @@ class BatchResults(BaseModel):
     modifier: Modifier
     llm_config: LLMConfig
     results: list[BatchResult]
+
+
+class TaskContext(object):
+    def __init__(
+        self,
+        doc_idx: int,
+        text: str,
+        release_coros: list[Coroutine],
+    ):
+        self.doc_idx = doc_idx
+        self.text = text
+        self.release_coros = release_coros
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(doc_idx={self.doc_idx}, #release_coros={len(self.release_coros)})"
 
 
 def batch(
@@ -85,6 +104,8 @@ async def a_batch(
     modifier: Modifier,
     on_result_callback: Callable | Coroutine | None = None,
 ) -> BatchResults:
+    batch_results: list[BatchResult] = list()
+
     cb_info: tuple[Callable | Coroutine, bool] | None = None
     if on_result_callback is not None:
         cb_info = (on_result_callback, inspect.iscoroutinefunction(on_result_callback))
@@ -94,42 +115,75 @@ async def a_batch(
     prompt_maker: BaseTechnique = technique.get_prompt_maker(user_schema)
     mod_behaviour: BaseModifier = modifier.get_behaviour()
 
-    coros: list[Coroutine] = [
-        _a_classify_with_id(
-            doc_idx=i,
-            text=str(doc),
-            model=user_model.name,
-            api_key=user_model.validated_api_key.get_secret_value(),
-            llm_config=llm_config,
-            technique=prompt_maker,
-            modifier=mod_behaviour,
-        )
-        for i, doc in enumerate(docs)
-    ]
+    rlimit_alg = get_settings().RATE_LIMITER_ALG
+    rlimits: ProviderRateLimits = get_rate_limits(user_model)
+    logger.info(f"Rate Limit (request): {rlimits.requests}")
+    logger.info(f"Rate Limit (tokens) : {rlimits.tokens}")
 
-    batch_results: list[BatchResult] = list()
-    coro: Coroutine
+    rlimiter_reqs: TokenBucket = rlimit_alg.make_rate_limiter(rlimits.requests)
+    rlimiter_toks: TokenBucket | None = None
+    if rlimits.tokens is not None:
+        rlimiter_toks = rlimit_alg.make_rate_limiter(rlimits.tokens)
 
-    rate_limit: RateLimit = settings.get_rate_limit(user_model)
-    logger.info(f"Rate limit: {rate_limit}")
+    num_workers: int = 3  # todo: settings
+    queue: asyncio.Queue[TaskContext | None] = asyncio.Queue(num_workers)
 
-    with settings.get_settings().RATE_LIMITER_ALG.get_rate_limiter()(
-        on=coros,
-        rate_limit=rate_limit,
-    ) as (coros, semaphore):
-        for coro in asyncio.as_completed(coros):
-            doc_idx, classif_result = await coro
-            batch_result: BatchResult = BatchResult(
-                doc_idx=doc_idx,
-                classification_result=classif_result,
+    async def worker(
+        queue: asyncio.Queue[TaskContext | None],
+        batch_results: list[BatchResult],
+    ):
+        while True:
+            ctx: TaskContext | None = await queue.get()
+            if ctx is None:
+                break
+            res: core.ClassificationResult = await core.a_classify(
+                text=str(doc),
+                model=user_model.name,
+                api_key=user_model.validated_api_key.get_secret_value(),
+                llm_config=llm_config,
+                technique=prompt_maker,
+                modifier=mod_behaviour,
             )
-            batch_results.append(batch_result)
+            for release_fn in ctx.release_coros:
+                await release_fn()
+
+            batch_res = BatchResult(doc_idx=ctx.doc_idx, classification_result=res)
+            batch_results.append(batch_res)
             if cb_info is not None:
                 cb, iscoro = cb_info
                 if iscoro:
-                    await on_result_callback(batch_result)
+                    await on_result_callback(batch_res)
                 else:
-                    on_result_callback(batch_result)
+                    on_result_callback(batch_res)
+
+    worker_tasks = [
+        asyncio.create_task(worker(queue, batch_results)) for _ in range(num_workers)
+    ]
+    logger.info(f"Started {num_workers} workers.")
+    for i, doc in enumerate(docs):
+        text = str(doc)
+        release_coros = list()
+        release_coros.append(await rlimiter_reqs.acquire(1))
+        if rlimiter_toks is not None:
+            prompt = prompt_maker.make_prompt(str(doc))
+            num_tokens = user_model.count_tokens(prompt)
+            release_coros.append(await rlimiter_toks.acquire(num_tokens))
+
+        ctx = TaskContext(doc_idx=i, text=text, release_coros=release_coros)
+        await queue.put(ctx)
+        logger.info(f"Produced task {i + 1}/{len(docs)}: {ctx}")
+
+    logger.info("All tasks are produced. Waiting until all tasks are consumed...")
+    while not queue.empty():
+        await asyncio.sleep(5)
+
+    logger.info("All tasks are consumed. Cleaning up workers...")
+    for _ in worker_tasks:
+        await queue.put(None)
+
+    logger.info("Waiting for workers to complete...")
+    await asyncio.gather(*worker_tasks)
+    logger.info("All workers completed.")
 
     return BatchResults(
         corpus_name=corpus.name,
@@ -158,7 +212,7 @@ if __name__ == "__main__":
     )
 
     config.mock = True
-    logger.info(f"Settings: {settings.get_settings()}")
+    logger.info(f"Settings: {get_settings()}")
     logger.info(f"Mock: {config.mock}")
 
     user_schema_ = ZeroShotUserSchema(

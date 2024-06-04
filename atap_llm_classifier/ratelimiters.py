@@ -1,21 +1,15 @@
 from asyncio import Task
-from functools import total_ordering
+from functools import total_ordering, partial
 
 from pydantic import BaseModel, computed_field
 import asyncio
 import contextlib
 import enum
-from typing import Coroutine, Generator, Callable, ContextManager, Self
-
-from atap_llm_classifier.providers import (
-    LLMProviderUserProperties,
-    LLMUserModelProperties,
-)
+from typing import Coroutine, Generator, ContextManager, Self
 
 __all__ = [
     "RateLimit",
     "RateLimiterAlg",
-    "get_openai_rate_limit",
 ]
 
 
@@ -38,16 +32,76 @@ class RateLimit(BaseModel):
 class RateLimiterAlg(enum.Enum):
     TOKEN_BUCKET: str = "token_bucket"
 
-    def get_rate_limiter(
-        self,
-    ) -> Callable[
-        ..., ContextManager[tuple[Generator[Coroutine, None, None], asyncio.Semaphore]]
-    ]:
+    def make_rate_limiter(self, rate_limit: RateLimit) -> "TokenBucket":
         match self:
             case RateLimiterAlg.TOKEN_BUCKET:
-                return token_bucket
+                return TokenBucket.from_rate_limit(rate_limit)
 
 
+class TokenBucket(object):
+    @classmethod
+    def from_rate_limit(cls, rate_limit: RateLimit) -> Self:
+        return cls(
+            capacity=rate_limit.max_requests,
+            replenish_rate_s=rate_limit.per_seconds,
+        )
+
+    def __init__(self, capacity: int, replenish_rate_s: float):
+        self._capacity = capacity
+        self._remaining = capacity
+        self._replenish_rate_s = replenish_rate_s
+
+        self._cond = asyncio.Condition()
+        self._replenisher: asyncio.Task | None = None
+
+    async def acquire(self, tokens: int) -> Coroutine:
+        if tokens > self._capacity:
+            raise ValueError(
+                f"Unable to acquire more tokens than capacity. Requested={tokens} Capacity={self._capacity}."
+            )
+        async with self._cond:
+            while self._remaining < tokens:
+                await self._cond.wait()
+            self._remaining -= tokens
+            return partial(self.release, tokens=tokens)
+
+    async def release(self, tokens: int) -> int:
+        async with self._cond:
+            self._remaining = max(self._remaining + tokens, self._capacity)
+            self._cond.notify_all()
+            return self._remaining
+
+    @property
+    def replenisher_running(self) -> bool:
+        return self._replenisher is not None and not self._replenisher.done()
+
+    def start_replenisher(self) -> bool:
+        if not self.replenisher_running:
+
+            async def replenisher():
+                while True:
+                    async with self._cond:
+                        self._remaining = self._capacity
+                        self._cond.notify_all()
+                    await asyncio.sleep(delay=self._replenish_rate_s)
+
+            self._replenisher = asyncio.create_task(replenisher())
+            return self.replenisher_running
+        return False
+
+    def cancel_replenisher(self):
+        if self._replenisher is not None:
+            return self._replenisher.cancel()
+        return False
+
+    def destroy(self):
+        self.cancel_replenisher()
+
+    def __del__(self):
+        self.destroy()
+
+
+# todo: archive this
 @contextlib.contextmanager
 def token_bucket(
     on: list[Coroutine],
@@ -74,91 +128,3 @@ def token_bucket(
         raise e
     finally:
         replenisher.cancel()
-
-
-class TokenBucket(object):
-    def __init__(self, capacity: int, rate_ms: int):
-        self._capacity = capacity
-        self._remaining = capacity
-        self._rate_ms = rate_ms
-
-        self._cond = asyncio.Condition()
-        self._replenisher: asyncio.Task | None = None
-
-    async def acquire(self, tokens: int) -> int:
-        if tokens > self._capacity:
-            raise ValueError(
-                f"Unable to acquire more tokens than capacity. Requested={tokens} Capacity={self._capacity}."
-            )
-        async with self._cond:
-            while self._remaining < tokens:
-                await self._cond.wait()
-            self._remaining -= tokens
-            return self._remaining
-
-    async def release(self, tokens: int) -> int:
-        async with self._cond:
-            self._remaining = max(self._remaining + tokens, self._capacity)
-            self._cond.notify_all()
-            return self._remaining
-
-    @property
-    def replenisher_running(self) -> bool:
-        return self._replenisher is not None and not self._replenisher.done()
-
-    def start_replenisher(self) -> bool:
-        if not self.replenisher_running:
-
-            async def replenisher():
-                while True:
-                    async with self._cond:
-                        self._remaining = self._capacity
-                        self._cond.notify_all()
-                    await asyncio.sleep(delay=self._rate_ms / 1000)
-
-            self._replenisher = asyncio.create_task(replenisher())
-            return self.replenisher_running
-        return False
-
-    def cancel_replenisher(self):
-        if self._replenisher is not None:
-            return self._replenisher.cancel()
-        return False
-
-    def destroy(self):
-        self.cancel_replenisher()
-
-    def __del__(self):
-        self.destroy()
-
-
-def get_openai_rate_limit(
-    user_model_props: LLMUserModelProperties,
-) -> RateLimit:
-    from openai import OpenAI
-
-    client = OpenAI(api_key=user_model_props.validated_api_key.get_secret_value())
-    resp = client.chat.completions.with_raw_response.create(
-        messages=[
-            {
-                "role": "user",
-                "content": "test",
-            }
-        ],
-        model=user_model_props.name,
-    )
-    max_requests = int(resp.headers["x-ratelimit-limit-requests"])
-    per_seconds: str = resp.headers["x-ratelimit-reset-requests"].strip()
-    if per_seconds.endswith("ms"):
-        per_seconds: float = float(per_seconds[:-2]) / 1000
-    elif per_seconds.endswith("s"):
-        per_seconds: float = float(per_seconds[:-1])
-    else:
-        raise Exception(
-            "OpenAI rate limit reset expected to end with either 's' or 'ms'."
-        )
-    return RateLimit(max_requests=max_requests, per_seconds=per_seconds)
-
-
-if __name__ == "__main__":
-    pass

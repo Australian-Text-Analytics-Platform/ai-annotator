@@ -3,11 +3,7 @@
 import tiktoken
 
 
-def validate_context_window(prompt_str: str, model: str) -> bool:
-    return False
-
-
-def count_subwords(prompt: str, model: str) -> int:
+def count_tokens_for_openai(prompt: str, model: str) -> int:
     """Return the number of subwords in the prompt given model.
 
     Args:

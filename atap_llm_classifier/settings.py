@@ -1,40 +1,38 @@
-import tempfile
 from functools import lru_cache
+from collections import namedtuple
 
 from loguru import logger
-from pydantic import Field
 from pydantic_settings import BaseSettings
 
 from atap_llm_classifier import config
 from atap_llm_classifier.formatter.models import OutputFormat
 from atap_llm_classifier.providers import (
-    LLMProviderUserProperties,
     LLMProvider,
     LLMUserModelProperties,
 )
 from atap_llm_classifier.ratelimiters import (
     RateLimit,
     RateLimiterAlg,
-    get_openai_rate_limit,
 )
 from atap_llm_classifier.utils.utils import is_jupyter_context
 
 __all__ = [
     "get_settings",
-    "get_rate_limit",
+    "get_rate_limits",
+    "ProviderRateLimits",
 ]
 
 
 class Settings(BaseSettings):
-    SEED: int | None = None  # reproducible
     LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.YAML
 
-    CHECKPOINT_DIR: str = Field(
-        default=tempfile.mkdtemp(), description="Default checkpoint directory."
-    )
     RATE_LIMITER_ALG: RateLimiterAlg = RateLimiterAlg.TOKEN_BUCKET
     DEFAULT_RATE_LIMIT: RateLimit = RateLimit(max_requests=100, per_seconds=1.0)
     JUPYTER_RATE_LIMIT: RateLimit = RateLimit(max_requests=100, per_seconds=1.0)
+
+    # CHECKPOINT_DIR: str = Field(
+    #     default=tempfile.mkdtemp(), description="Default checkpoint directory."
+    # )
 
 
 @lru_cache(maxsize=1)
@@ -42,25 +40,30 @@ def get_settings() -> Settings:
     return Settings()
 
 
+ProviderRateLimits = namedtuple("ProviderRateLimits", ["requests", "tokens"])
+
+
 @lru_cache
-def get_rate_limit(
-    user_model_props: LLMUserModelProperties,
+def get_rate_limits(
+    user_model: LLMUserModelProperties,
+) -> ProviderRateLimits:
+    return ProviderRateLimits(
+        requests=get_rate_limit_for_requests(user_model),
+        tokens=get_rate_limit_for_tokens(user_model),
+    )
+
+
+@lru_cache
+def get_rate_limit_for_requests(
+    user_model: LLMUserModelProperties,
 ) -> RateLimit:
-    # todo: return the lowest rate limit.
     candidates: list[RateLimit] = list()
     if not config.mock:
-        match user_model_props.provider:
+        match user_model.provider:
             case LLMProvider.OPENAI:
-                try:
-                    candidates.append(get_openai_rate_limit(user_model_props))
-                except Exception as e:
-                    logger.warning(f"Unable to retrieve OpenAI rate limit. Err: {e}")
-                    logger.warning(
-                        "OpenAI rate limit will not be added as one of the rate limit candidates."
-                    )
+                candidates.append(_get_openai_rate_limit(user_model).requests)
             case _:
-                # todo: rate limit for other providers
-                pass
+                pass  # todo: rate limit for other providers - currently goes to default.
     if len(candidates) < 1:
         logger.info(
             "No rate limits from provider found. Adding default rate limit as a candidate."
@@ -72,3 +75,51 @@ def get_rate_limit(
 
     lowest_rate_limit = sorted(candidates, reverse=False)[0]
     return lowest_rate_limit
+
+
+def get_rate_limit_for_tokens(
+    user_model: LLMUserModelProperties,
+) -> RateLimit | None:
+    if not config.mock:
+        match user_model.provider:
+            case LLMProvider.OPENAI:
+                return _get_openai_rate_limit(user_model).tokens
+            case _:
+                pass  # todo: rate limit for other providers - currently goes to default.
+    else:
+        return None
+
+
+@lru_cache
+def _get_openai_rate_limit(
+    user_model_props: LLMUserModelProperties,
+) -> ProviderRateLimits:
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=user_model_props.validated_api_key.get_secret_value())
+        resp = client.chat.completions.with_raw_response.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": "test",
+                }
+            ],
+            model=user_model_props.name,
+        )
+    except Exception as e:
+        logger.error(f"Failed request rate limits from OpenAI. Err: {e}")
+        raise RuntimeError("Failed to retrieve rate limits from OpenAI.") from e
+    try:
+        max_reqs_per_day = int(resp.headers["x-ratelimit-limit-requests"])
+        max_toks_per_min = int(resp.headers["x-ratelimit-limit-tokens"])
+    except ValueError as ve:
+        logger.error(f"Failed to parse rate limits from OpenAI response. Err: {ve}")
+        raise RuntimeError("Failed to retrieve rate limits from OpenAI.") from ve
+    except KeyError as ke:
+        logger.error(f"No x-ratelimit headers from OpenAI response. Err: {ke}")
+        raise RuntimeError("Failed to retrieve rate limits from OpenAI.") from ke
+    return ProviderRateLimits(
+        requests=RateLimit(max_requests=max_reqs_per_day, per_seconds=60 * 60 * 24),
+        tokens=RateLimit(max_requests=max_toks_per_min, per_seconds=60),
+    )
