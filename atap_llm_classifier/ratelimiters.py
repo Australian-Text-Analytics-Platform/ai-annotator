@@ -1,3 +1,4 @@
+from asyncio import Task
 from functools import total_ordering
 
 from pydantic import BaseModel, computed_field
@@ -73,6 +74,62 @@ def token_bucket(
         raise e
     finally:
         replenisher.cancel()
+
+
+class TokenBucket(object):
+    def __init__(self, capacity: int, rate_ms: int):
+        self._capacity = capacity
+        self._remaining = capacity
+        self._rate_ms = rate_ms
+
+        self._cond = asyncio.Condition()
+        self._replenisher: asyncio.Task | None = None
+
+    async def acquire(self, tokens: int) -> int:
+        if tokens > self._capacity:
+            raise ValueError(
+                f"Unable to acquire more tokens than capacity. Requested={tokens} Capacity={self._capacity}."
+            )
+        async with self._cond:
+            while self._remaining < tokens:
+                await self._cond.wait()
+            self._remaining -= tokens
+            return self._remaining
+
+    async def release(self, tokens: int) -> int:
+        async with self._cond:
+            self._remaining = max(self._remaining + tokens, self._capacity)
+            self._cond.notify_all()
+            return self._remaining
+
+    @property
+    def replenisher_running(self) -> bool:
+        return self._replenisher is not None and not self._replenisher.done()
+
+    def start_replenisher(self) -> bool:
+        if not self.replenisher_running:
+
+            async def replenisher():
+                while True:
+                    async with self._cond:
+                        self._remaining = self._capacity
+                        self._cond.notify_all()
+                    await asyncio.sleep(delay=self._rate_ms / 1000)
+
+            self._replenisher = asyncio.create_task(replenisher())
+            return self.replenisher_running
+        return False
+
+    def cancel_replenisher(self):
+        if self._replenisher is not None:
+            return self._replenisher.cancel()
+        return False
+
+    def destroy(self):
+        self.cancel_replenisher()
+
+    def __del__(self):
+        self.destroy()
 
 
 def get_openai_rate_limit(
