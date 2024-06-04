@@ -110,8 +110,13 @@ async def a_batch(
     batch_results: list[BatchResult] = list()
     coro: Coroutine
 
-    rate_limit: RateLimit | None = settings.get_rate_limit(user_model)
-    if rate_limit is None:
+    rate_limit: RateLimit = settings.get_rate_limit(user_model)
+    logger.info(f"Rate limit: {rate_limit}")
+
+    with settings.get_settings().RATE_LIMITER_ALG.get_rate_limiter()(
+        on=coros,
+        rate_limit=rate_limit,
+    ) as (coros, semaphore):
         for coro in asyncio.as_completed(coros):
             doc_idx, classif_result = await coro
             batch_result: BatchResult = BatchResult(
@@ -125,24 +130,6 @@ async def a_batch(
                     await on_result_callback(batch_result)
                 else:
                     on_result_callback(batch_result)
-    else:
-        with settings.get_settings().RATE_LIMITER_ALG.get_rate_limiter()(
-            on=coros,
-            rate_limit=rate_limit,
-        ) as (coros, semaphore):
-            for coro in asyncio.as_completed(coros):
-                doc_idx, classif_result = await coro
-                batch_result: BatchResult = BatchResult(
-                    doc_idx=doc_idx,
-                    classification_result=classif_result,
-                )
-                batch_results.append(batch_result)
-                if cb_info is not None:
-                    cb, iscoro = cb_info
-                    if iscoro:
-                        await on_result_callback(batch_result)
-                    else:
-                        on_result_callback(batch_result)
 
     return BatchResults(
         corpus_name=corpus.name,

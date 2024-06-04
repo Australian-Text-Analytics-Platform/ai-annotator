@@ -33,6 +33,7 @@ class Settings(BaseSettings):
         default=tempfile.mkdtemp(), description="Default checkpoint directory."
     )
     RATE_LIMITER_ALG: RateLimiterAlg = RateLimiterAlg.TOKEN_BUCKET
+    DEFAULT_RATE_LIMIT: RateLimit = RateLimit(max_requests=100, per_seconds=1.0)
     JUPYTER_RATE_LIMIT: RateLimit = RateLimit(max_requests=100, per_seconds=1.0)
 
 
@@ -44,31 +45,30 @@ def get_settings() -> Settings:
 @lru_cache
 def get_rate_limit(
     user_model_props: LLMUserModelProperties,
-) -> RateLimit | None:
-    ratelimit: RateLimit | None = None
+) -> RateLimit:
+    # todo: return the lowest rate limit.
+    candidates: list[RateLimit] = list()
     if not config.mock:
         match user_model_props.provider:
             case LLMProvider.OPENAI:
                 try:
-                    return get_openai_rate_limit(user_model_props)
+                    candidates.append(get_openai_rate_limit(user_model_props))
                 except Exception as e:
                     logger.warning(f"Unable to retrieve OpenAI rate limit. Err: {e}")
-                    logger.warning("Default rate limit is returned.")
-                    ratelimit = None
+                    logger.warning(
+                        "OpenAI rate limit will not be added as one of the rate limit candidates."
+                    )
             case _:
-                ratelimit = None
+                # todo: rate limit for other providers
+                pass
+    if len(candidates) < 1:
+        logger.info(
+            "No rate limits from provider found. Adding default rate limit as a candidate."
+        )
+        candidates.append(get_settings().DEFAULT_RATE_LIMIT)
     if is_jupyter_context():
-        jup_rate_limit = get_settings().JUPYTER_RATE_LIMIT
-        if ratelimit is None:
-            ratelimit = jup_rate_limit
-        else:
-            if (ratelimit.max_requests / ratelimit.per_seconds) > (
-                jup_rate_limit.max_requests / jup_rate_limit.per_seconds
-            ):
-                logger.warning(
-                    f"Detected jupyter context. Rate limit is capped at {jup_rate_limit}."
-                )
-                ratelimit = jup_rate_limit
-    if ratelimit is get_settings().JUPYTER_RATE_LIMIT:
-        logger.warning("Using jupyter rate limit")
-    return ratelimit
+        logger.info("In jupyter context. Adding jupyter ate limit as a candidate.")
+        candidates.append(get_settings().JUPYTER_RATE_LIMIT)
+
+    lowest_rate_limit = sorted(candidates, reverse=False)[0]
+    return lowest_rate_limit

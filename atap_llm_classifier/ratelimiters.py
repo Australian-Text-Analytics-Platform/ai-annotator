@@ -1,8 +1,10 @@
+from functools import total_ordering
+
 from pydantic import BaseModel
 import asyncio
 import contextlib
 import enum
-from typing import Coroutine, Generator, Callable, ContextManager
+from typing import Coroutine, Generator, Callable, ContextManager, Self
 
 from atap_llm_classifier.providers import (
     LLMProviderUserProperties,
@@ -16,9 +18,20 @@ __all__ = [
 ]
 
 
+@total_ordering
 class RateLimit(BaseModel):
     max_requests: int
     per_seconds: float
+
+    def __eq__(self, other: Self):
+        self_ = self.max_requests / self.per_seconds
+        other_ = other.max_requests / other.per_seconds
+        return self_ == other_
+
+    def __gt__(self, other):
+        self_ = self.max_requests / self.per_seconds
+        other_ = other.max_requests / other.per_seconds
+        return other_ > self_
 
 
 class RateLimiterAlg(enum.Enum):
@@ -88,3 +101,7 @@ def get_openai_rate_limit(
             "OpenAI rate limit reset expected to end with either 's' or 'ms'."
         )
     return RateLimit(max_requests=max_requests, per_seconds=per_seconds)
+
+
+if __name__ == "__main__":
+    pass
