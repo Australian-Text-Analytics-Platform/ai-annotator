@@ -4,6 +4,7 @@ from pydantic import SecretStr
 
 from atap_llm_classifier.modifiers import Modifier
 from atap_llm_classifier.techniques import Technique
+from atap_llm_classifier.views.parts.pipe_cost import PipelineCosts
 from atap_llm_classifier.views.parts.pipeline_classifications import (
     PipelineClassifications,
 )
@@ -54,6 +55,11 @@ class PipelineWidget(Viewer):
             pipe_mconfig=self.pipe_mconfig,
             pipe_prompt=self.pipe_prompt,
         )
+        self.pipe_costs = PipelineCosts(
+            pipe_mconfig=self.pipe_mconfig,
+            pipe_prompt=self.pipe_prompt,
+            pipe_classifications=self.pipe_classifs,
+        )
 
         self.tabs = pn.Tabs(
             (
@@ -68,7 +74,11 @@ class PipelineWidget(Viewer):
 
         self.layout = pn.Column(
             pn.Row(
-                self.pipe_mconfig,
+                pn.Column(
+                    self.pipe_mconfig,
+                    pn.Spacer(height=20),
+                    self.pipe_costs,
+                ),
                 pn.Spacer(width=20),
                 self.tabs,
             ),

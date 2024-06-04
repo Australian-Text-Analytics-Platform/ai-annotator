@@ -42,7 +42,6 @@ class PipelineClassifications(Viewer):
         self.df[props.corpus.columns.classification.name] = [
             "" for _ in range(len(self.corpus))
         ]
-        self.df[props.corpus.columns.num_tokens.name] = self.get_prompt_token_counts()
 
         self.df_widget = pn.widgets.DataFrame(
             self.df,
@@ -57,12 +56,6 @@ class PipelineClassifications(Viewer):
             sizing_mode="stretch_width",
             disabled=True,
         )
-        self.num_tokens = pn.rx(lambda *_: self.get_prompt_token_counts())(
-            self.pipe_mconfig.model_selector,
-            self.pipe_prompt.user_schema_rx,
-        )
-        self.total_tokens = self.num_tokens.rx.pipe(sum)
-        pn.bind(self.df_update_doc_input_tokens, self.num_tokens, watch=True)
 
         self.classify_one_btn = pn.widgets.Button(
             name=props.classify.one.button.name,
@@ -100,20 +93,6 @@ class PipelineClassifications(Viewer):
 
         self.layout = pn.Column(
             self.df_widget,
-            pn.Row(
-                pn.Column(
-                    pn.pane.Str(
-                        self.total_tokens.rx.pipe("Total number of tokens: {}".format),
-                        margin=(0, 10),
-                    ),
-                    pn.pane.Str(
-                        pn.rx(
-                            lambda total: f"Minimum $USD {total * self.pipe_mconfig.mprop_rx.rx.value.input_token_cost:.3f}"
-                        )(self.total_tokens),
-                        margin=(0, 10),
-                    ),
-                ),
-            ),
             pn.Row(
                 self.classify_one_btn,
                 self.one_idx_inp,
