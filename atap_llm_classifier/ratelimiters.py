@@ -54,6 +54,14 @@ class TokenBucket(object):
         self._cond = asyncio.Condition()
         self._replenisher: asyncio.Task | None = None
 
+    @property
+    def capacity(self) -> int:
+        return self._capacity
+
+    @property
+    def remaining(self) -> int:
+        return self._remaining
+
     async def acquire(self, tokens: int) -> Coroutine:
         if tokens > self._capacity:
             raise ValueError(
@@ -67,7 +75,7 @@ class TokenBucket(object):
 
     async def release(self, tokens: int) -> int:
         async with self._cond:
-            self._remaining = max(self._remaining + tokens, self._capacity)
+            self._remaining = min(self._remaining + tokens, self._capacity)
             self._cond.notify_all()
             return self._remaining
 

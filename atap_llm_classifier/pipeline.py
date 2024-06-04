@@ -7,15 +7,17 @@ The output
 
 import asyncio
 import inspect
+import random
 from typing import Coroutine, Callable
 
+import httpx
 from atap_corpus import Corpus
 from atap_corpus._types import Docs
-from litellm import ModelResponse
+from litellm import RateLimitError
 from loguru import logger
 from pydantic import BaseModel
 
-from atap_llm_classifier import core
+from atap_llm_classifier import core, config
 from atap_llm_classifier.core import LLMConfig
 from atap_llm_classifier.modifiers import Modifier, BaseModifier
 from atap_llm_classifier.providers.providers import (
@@ -74,7 +76,7 @@ def batch(
     modifier: Modifier,
     on_result_callback: Callable | Coroutine | None = None,
 ) -> BatchResults:
-    logger.info("START run")
+    logger.info(f"START run. config.mock={config.mock}.")
     user_provider_props: LLMProviderUserProperties = provider.get_user_properties(
         api_key=api_key
     )
@@ -133,39 +135,77 @@ async def a_batch(
 
     async def worker(
         queue: asyncio.Queue[TaskContext | None],
-        successes: list[BatchResult],
-        fails: list[tuple[int, str]],
+        successes: list[BatchResult],  # todo: potentially race condition
+        fails: list[tuple[int, str]],  # todo: same here
     ):
         while True:
             ctx: TaskContext | None = await queue.get()
             if ctx is None:  # sentinel value
+                logger.info("Received sentinel value. Ending worker.")
                 break
 
-            try:
-                res: core.ClassificationResult = await core.a_classify(
-                    text=ctx.text,
-                    model=user_model.name,
-                    api_key=user_model.validated_api_key.get_secret_value(),
-                    llm_config=llm_config,
-                    technique=prompt_maker,
-                    modifier=mod_behaviour,
-                )
-                batch_res = BatchResult(doc_idx=ctx.doc_idx, classification_result=res)
-                successes.append(batch_res)
-                if cb_info is not None:
-                    cb, iscoro = cb_info
-                    if iscoro:
-                        await on_result_callback(batch_res)
-                    else:
-                        on_result_callback(batch_res)
-            except Exception as e:
-                logger.error(
-                    f"Failed classification on doc idx: {ctx.doc_idx}. Err - {e}"
-                )
-                fails.append((ctx.doc_idx, str(e)))
-            finally:
-                for release_fn in ctx.release_coros:
-                    await release_fn()
+            logger.info(f"Consume task: {ctx}")
+            retries_remaining: int = 10
+            exp_backoff_wait_s: float = 3.0
+            while retries_remaining >= 0:
+                try:
+                    res: core.ClassificationResult = await core.a_classify(
+                        text=ctx.text,
+                        model=user_model.name,
+                        api_key=user_model.validated_api_key.get_secret_value(),
+                        llm_config=llm_config,
+                        technique=prompt_maker,
+                        modifier=mod_behaviour,
+                    )
+
+                    batch_res = BatchResult(
+                        doc_idx=ctx.doc_idx, classification_result=res
+                    )
+                    successes.append(batch_res)
+                    if cb_info is not None:
+                        cb, iscoro = cb_info
+                        if iscoro:
+                            await on_result_callback(batch_res)
+                        else:
+                            on_result_callback(batch_res)
+                    break
+                except RateLimitError as e:
+                    logger.error(
+                        f"Rate limit error on doc idx: {ctx.doc_idx}. Err - {e}"
+                    )
+                    logger.info(
+                        f"Retry in {exp_backoff_wait_s} seconds... remaining={retries_remaining} doc_idx={ctx.doc_idx}."
+                    )
+                    await asyncio.sleep(exp_backoff_wait_s)
+                    exp_backoff_wait_s *= 2
+                    retries_remaining -= 1
+                    continue
+                except Exception as e:
+                    logger.error(
+                        f"Failed classification on doc idx: {ctx.doc_idx}. Err - {e}"
+                    )
+                    fails.append((ctx.doc_idx, str(e)))
+                    break
+
+            for release_fn in ctx.release_coros:
+                await release_fn()
+            # todo: put try-except-finally block on while True, finally return local successes, fails
+            #   see notes in the args above.
+            #   although async should be single threaded in python.
+
+    # perform sanity checks
+    max_num_tokens: int = max(
+        map(user_model.count_tokens, map(prompt_maker.make_prompt, map(str, docs)))
+    )
+    if max_num_tokens > user_model.context_window:
+        raise RuntimeError(
+            f"Max number of tokens > context window for model {user_model.name}."
+        )
+    if rlimiter_toks is not None:
+        logger.info("Sanity check: max number of tokens < token rate limit.")
+
+        if max_num_tokens > rlimiter_toks.capacity:
+            raise RuntimeError("Max number of tokens > token rate limit.")
 
     worker_tasks = [
         asyncio.create_task(worker(queue, successes, fails)) for _ in range(num_workers)
@@ -175,14 +215,20 @@ async def a_batch(
         text = str(doc)
         release_coros = list()
         release_coros.append(await rlimiter_reqs.acquire(1))
+
+        reqs_left, toks_left = None, None
+        req_left: int = rlimiter_reqs.remaining
         if rlimiter_toks is not None:
             prompt = prompt_maker.make_prompt(str(doc))
             num_tokens = user_model.count_tokens(prompt)
             release_coros.append(await rlimiter_toks.acquire(num_tokens))
+            toks_left = rlimiter_toks.remaining
 
         ctx = TaskContext(doc_idx=i, text=text, release_coros=release_coros)
         await queue.put(ctx)
-        logger.info(f"Produced task {i + 1}/{len(docs)}: {ctx}")
+        logger.info(
+            f"Produced task {i + 1}/{len(docs)}: {ctx}\t{req_left=} {toks_left=}"
+        )
 
     logger.info("All tasks are produced. Waiting for all tasks to be consumed...")
     while not queue.empty():
@@ -210,7 +256,6 @@ async def a_batch(
 
 
 if __name__ == "__main__":
-    from atap_llm_classifier import config
     from atap_llm_classifier.techniques.schemas.zeroshot import (
         ZeroShotUserSchema,
         ZeroShotClass,
