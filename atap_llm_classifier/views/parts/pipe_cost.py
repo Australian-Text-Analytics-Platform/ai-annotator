@@ -1,13 +1,24 @@
+"""PipelineCosts
+
+Costs are recalculated based on 2 conditions:
+1. data is stale (model changed or prompt changed)
+2. periodic rerender gate is opened. Set at PERIODIC_RERENDER_INTERVAL_MS.
+
+Due to large corpus, recalculating the cost for all documents is expensive which is why the gate is in place.
+Further optimisations likely possible e.g. caching etc.
+"""
+
 import panel as pn
 
 from panel.viewable import Viewer
 
-from atap_llm_classifier.providers import LLMProviderUserProperties
 from atap_llm_classifier.views.parts.pipeline_classifications import (
     PipelineClassifications,
 )
 from atap_llm_classifier.views.parts.pipeline_model import PipelineModelConfigView
 from atap_llm_classifier.views.parts.pipeline_prompt import PipelinePrompt
+
+PERIODIC_RERENDER_INTERVAL_MS: int = 5_000
 
 
 class PipelineCosts(Viewer):
@@ -31,11 +42,15 @@ class PipelineCosts(Viewer):
         self.rerender_due = self._data_stale.rx.is_(True).rx.and_(
             self._periodic_rerender_gate.rx.is_(True)
         )
-        pn.state.add_periodic_callback(self._open_rerender_gate, period=5_000)
+        pn.state.add_periodic_callback(
+            self._open_rerender_gate, period=PERIODIC_RERENDER_INTERVAL_MS
+        )
 
         self.total_tokens = pn.rx(self.compute_total_prompt_tokens())
         self.total_cost = pn.rx(self.compute_total_cost())
         pn.bind(self.recalculate, self.rerender_due, watch=True)
+
+        # todo: cost gauge counter to be updated during classification.
 
         self.layout = pn.Column(
             pn.pane.Str(
