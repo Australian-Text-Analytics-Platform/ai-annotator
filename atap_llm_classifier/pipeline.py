@@ -199,10 +199,14 @@ async def a_batch(
     max_num_tokens: int = max(
         map(user_model.count_tokens, map(prompt_maker.make_prompt, map(str, docs)))
     )
+    logger.info(
+        f"Sanity check: max number of tokens < context window for model {user_model.name}."
+    )
     if max_num_tokens > user_model.context_window:
         raise RuntimeError(
             f"Max number of tokens > context window for model {user_model.name}."
         )
+
     if rlimiter_toks is not None:
         logger.info("Sanity check: max number of tokens < token rate limit.")
 
@@ -244,6 +248,9 @@ async def a_batch(
     logger.info("Waiting for workers to complete...")
     await asyncio.gather(*worker_tasks)
     logger.info("All workers completed.")
+
+    rlimiter_reqs.destroy()
+    rlimiter_toks.destroy()
 
     return BatchResults(
         corpus_name=corpus.name,
