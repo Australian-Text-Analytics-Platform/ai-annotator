@@ -13,6 +13,7 @@ from atap_llm_classifier.providers import (
 from atap_llm_classifier.ratelimiters import (
     RateLimit,
     RateLimiterAlg,
+    RateLimiters,
 )
 from atap_llm_classifier.utils.utils import is_jupyter_context
 
@@ -48,6 +49,19 @@ def get_settings() -> Settings:
 
 
 ProviderRateLimits = namedtuple("ProviderRateLimits", ["requests", "tokens"])
+
+
+def get_rate_limiters(
+    user_model: LLMUserModelProperties,
+) -> RateLimiters:
+    rate_limits: ProviderRateLimits = get_rate_limits(user_model)
+    rlimiter_reqs = get_settings().RATE_LIMITER_ALG.make_rate_limiter(
+        rate_limits.requests
+    )
+    rlimiter_toks = get_settings().RATE_LIMITER_ALG.make_rate_limiter(
+        rate_limits.tokens
+    )
+    return RateLimiters([rlimiter_reqs, rlimiter_toks])
 
 
 @lru_cache

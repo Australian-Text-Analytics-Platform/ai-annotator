@@ -1,11 +1,10 @@
-from asyncio import Task
-from functools import total_ordering, partial
+from functools import total_ordering
 
 from pydantic import BaseModel, computed_field
 import asyncio
 import contextlib
 import enum
-from typing import Coroutine, Generator, ContextManager, Self
+from typing import Coroutine, Generator, ContextManager, Self, Iterable
 
 __all__ = [
     "RateLimit",
@@ -36,6 +35,36 @@ class RateLimiterAlg(enum.Enum):
         match self:
             case RateLimiterAlg.TOKEN_BUCKET:
                 return TokenBucket.from_rate_limit(rate_limit)
+
+
+class RateLimiters(object):
+    def __init__(self, request: "TokenBucket", tokens: "TokenBucket" | None):
+        self._request: TokenBucket = request
+        self._tokens: TokenBucket = tokens
+
+        self._a_stack = contextlib.AsyncExitStack()
+
+    @property
+    def request(self) -> "TokenBucket":
+        return self._request
+
+    @property
+    def tokens(self) -> "TokenBucket" | None:
+        return self._tokens
+
+    def acquire_for_request(self, tokens: int):
+        return self._request.acquire(tokens)
+
+    def acquire_for_tokens(self, tokens: int):
+        return self._tokens.acquire(tokens)
+
+    async def __aenter__(self):
+        with self._a_stack as stack:
+            for rlimiter in [self._request, self._tokens]:
+                stack.enter_async_context(rlimiter)
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._a_stack.__aexit__(exc_type, exc_val, exc_tb)
 
 
 class TokenBucket(object):
@@ -106,6 +135,13 @@ class TokenBucket(object):
         self.cancel_replenisher()
 
     def __del__(self):
+        self.destroy()
+
+    async def __aenter__(self):
+        if not self.replenisher_running:
+            self.start_replenisher()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.destroy()
 
 
