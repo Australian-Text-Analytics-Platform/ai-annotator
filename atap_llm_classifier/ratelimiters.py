@@ -62,7 +62,7 @@ class TokenBucket(object):
     def remaining(self) -> int:
         return self._remaining
 
-    async def acquire(self, tokens: int) -> Coroutine:
+    async def acquire(self, tokens: int) -> int:
         if tokens > self._capacity:
             raise ValueError(
                 f"Unable to acquire more tokens than capacity. Requested={tokens} Capacity={self._capacity}."
@@ -71,7 +71,7 @@ class TokenBucket(object):
             while self._remaining < tokens:
                 await self._cond.wait()
             self._remaining -= tokens
-            return partial(self.release, tokens=tokens)
+            return self._remaining
 
     async def release(self, tokens: int) -> int:
         async with self._cond:

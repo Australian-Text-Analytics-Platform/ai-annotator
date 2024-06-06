@@ -8,7 +8,7 @@ The output
 import asyncio
 import inspect
 import random
-from typing import Coroutine, Callable
+from typing import Coroutine, Callable, Self
 
 import httpx
 from atap_corpus import Corpus
@@ -53,16 +53,21 @@ class BatchResults(BaseModel):
 class TaskContext(object):
     def __init__(
         self,
-        doc_idx: int,
-        text: str,
-        release_coros: list[Coroutine],
+        doc_idx: int | None,
+        text: str | None,
     ):
         self.doc_idx = doc_idx
         self.text = text
-        self.release_coros = release_coros
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}(doc_idx={self.doc_idx}, #release_coros={len(self.release_coros)})"
+        return f"<{self.__class__.__name__} doc_idx={self.doc_idx}>"
+
+    def is_sentinel(self):
+        return self.doc_idx is None and self.text is None
+
+    @classmethod
+    def sentinel(cls) -> Self:
+        return cls(None, None)
 
 
 def batch(
@@ -76,7 +81,6 @@ def batch(
     modifier: Modifier,
     on_result_callback: Callable | Coroutine | None = None,
 ) -> BatchResults:
-    logger.info(f"START run. config.mock={config.mock}.")
     user_provider_props: LLMProviderUserProperties = provider.get_user_properties(
         api_key=api_key
     )
@@ -95,7 +99,6 @@ def batch(
             on_result_callback,
         ),
     )
-    logger.info("FINISH run")
     return res
 
 
@@ -131,16 +134,16 @@ async def a_batch(
         rlimiter_toks = rlimit_alg.make_rate_limiter(rlimits.tokens)
 
     num_workers: int = get_settings().BATCH_NUM_WORKERS
-    queue: asyncio.Queue[TaskContext | None] = asyncio.Queue(num_workers)
+    queue: asyncio.Queue[TaskContext] = asyncio.Queue(num_workers)
 
     async def worker(
-        queue: asyncio.Queue[TaskContext | None],
+        producer: asyncio.Queue[TaskContext],
         successes: list[BatchResult],  # todo: potentially race condition
         fails: list[tuple[int, str]],  # todo: same here
     ):
         while True:
-            ctx: TaskContext | None = await queue.get()
-            if ctx is None:  # sentinel value
+            ctx: TaskContext = await producer.get()
+            if ctx.is_sentinel():
                 logger.info("Received sentinel value. Ending worker.")
                 break
 
@@ -189,8 +192,6 @@ async def a_batch(
                     fails.append((ctx.doc_idx, str(e)))
                     break
 
-            for release_fn in ctx.release_coros:
-                await release_fn()
             # todo: put try-except-finally block on while True, finally return local successes, fails
             #   see notes in the args above.
             #   although async should be single threaded in python.
@@ -217,6 +218,13 @@ async def a_batch(
         asyncio.create_task(worker(queue, successes, fails)) for _ in range(num_workers)
     ]
     logger.info(f"Started {num_workers} workers to consume tasks.")
+
+    rlimiter_reqs.start_replenisher()
+    logger.info("Started requests rate limiter replenisher in the background.")
+    if rlimiter_toks is not None:
+        rlimiter_toks.start_replenisher()
+        logger.info("Started tokens rate limiter replenisher in the background.")
+
     for i, doc in enumerate(docs):
         text = str(doc)
         release_coros = list()
@@ -230,7 +238,7 @@ async def a_batch(
             release_coros.append(await rlimiter_toks.acquire(num_tokens))
             toks_left = rlimiter_toks.remaining
 
-        ctx = TaskContext(doc_idx=i, text=text, release_coros=release_coros)
+        ctx = TaskContext(doc_idx=i, text=text)
         await queue.put(ctx)
         logger.info(
             f"Produced task {i + 1}/{len(docs)}: {ctx}\t{req_left=} {toks_left=}"
@@ -243,14 +251,16 @@ async def a_batch(
 
     logger.info("All tasks are consumed. Cleaning up workers...")
     for _ in worker_tasks:
-        await queue.put(None)
+        await queue.put(TaskContext.sentinel())
 
     logger.info("Waiting for workers to complete...")
     await asyncio.gather(*worker_tasks)
     logger.info("All workers completed.")
 
     rlimiter_reqs.destroy()
-    rlimiter_toks.destroy()
+    if rlimiter_toks is not None:
+        rlimiter_toks.destroy()
+    logger.info("Cleaned up rate limiter background replenishers.")
 
     return BatchResults(
         corpus_name=corpus.name,
@@ -263,32 +273,6 @@ async def a_batch(
         fails=fails,
     )
 
-
-if __name__ == "__main__":
-    from atap_llm_classifier.techniques.schemas.zeroshot import (
-        ZeroShotUserSchema,
-        ZeroShotClass,
-    )
-
-    config.mock = True
-    logger.info(f"Settings: {get_settings()}")
-    logger.info(f"Mock: {config.mock}")
-
-    user_schema_ = ZeroShotUserSchema(
-        classes=[ZeroShotClass(name="class 1", description="the first class")]
-    )
-
-    results_ = batch(
-        corpus=Corpus([f"test sentence {i}" for i in range(1000)]),
-        provider=LLMProvider.OPENAI,
-        model="gpt-3.5-turbo",
-        api_key="",
-        llm_config=LLMConfig(seed=42),
-        user_schema=user_schema_,
-        technique=Technique.ZERO_SHOT,
-        modifier=Modifier.NO_MODIFIER,
-        on_result_callback=lambda res: print("Got ", res.doc_idx),
-    )
 
 """
 ```python
