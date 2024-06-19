@@ -23,7 +23,7 @@ class LiteLLMMessage(BaseModel):
     role: LiteLLMRole
 
 
-class LiteLLMArgs(BaseModel):
+class LiteLLMCompletionArgs(BaseModel):
     model: str
     messages: list[LiteLLMMessage]
     stream: bool = False

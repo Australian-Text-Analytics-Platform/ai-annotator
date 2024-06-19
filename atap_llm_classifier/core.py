@@ -17,7 +17,7 @@ from atap_llm_classifier.formatter import formatter
 from atap_llm_classifier.models import (
     LLMConfig,
     LiteLLMMessage,
-    LiteLLMArgs,
+    LiteLLMCompletionArgs,
     LiteLLMRole,
 )
 from atap_llm_classifier.modifiers import BaseModifier
@@ -61,7 +61,7 @@ async def a_classify(
     # preconditions: technique, modifier, formatter applied to prompt and llm configs.
     msg = LiteLLMMessage(content=prompt, role=LiteLLMRole.USER)
     response: ModelResponse = await acompletion(
-        **LiteLLMArgs(
+        **LiteLLMCompletionArgs(
             model=model,
             api_key=api_key,
             messages=[msg],
