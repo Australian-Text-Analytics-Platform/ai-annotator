@@ -33,12 +33,12 @@ class Settings(BaseSettings):
         max_requests=100,
         per_seconds=1.0,
     )
-    JUPYTER_REQUESTS_RATE_LIMIT: RateLimit = RateLimit(
-        max_requests=100, per_seconds=1.0
-    )
     # note: on how to override RATE_LIMIT using env vars:
     #   BASE_REQUESTS_RATE_LIMIT__MAX_REQUESTS=
     #   BASE_REQUESTS_RATE_LIMIT__PER_SECONDS=
+    JUPYTER_REQUESTS_RATE_LIMIT: RateLimit = RateLimit(
+        max_requests=100, per_seconds=1.0
+    )
     BATCH_RATE_LIMIT_MAX_RETRIES: int = 10
     BATCH_RATE_LIMIT_RETRY_EXP_BACKOFF_FIRST_WAIT_S: float = 3.0
 

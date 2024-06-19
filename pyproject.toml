@@ -30,7 +30,7 @@ pytest = "^8.2.0"
 
 
 [tool.poetry.scripts]
-atapllmc = "atap_llm_classifier.cli:main"
+atapllmc = "cli:main"
 
 [build-system]
 requires = ["poetry-core"]
