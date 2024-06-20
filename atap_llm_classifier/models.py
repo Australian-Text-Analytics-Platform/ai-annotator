@@ -1,6 +1,6 @@
 import enum
 import json
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class LLMConfig(BaseModel):
@@ -24,14 +24,17 @@ class LiteLLMMessage(BaseModel):
 
 
 class LiteLLMCompletionArgs(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     model: str
     messages: list[LiteLLMMessage]
     stream: bool = False
     temperature: float
     top_p: float
     n: int
-    api_key: str
+    api_key: str | None
+    api_base: str | None
 
     def to_kwargs(self) -> dict:
-        # note: so Enums are converted to str. - just being lazy.
+        # note: so that Enums are converted to str. - just being lazy.
         return json.loads(self.model_dump_json())

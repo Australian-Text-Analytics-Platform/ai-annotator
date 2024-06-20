@@ -20,3 +20,8 @@ openai_azure_sih:
   name: "OpenAI Azure (SIH)"
   description: "Same as OpenAI via an Azure proxy geolocated in Sydney."
   privacy_policy_url: "https://openai.com/policies/privacy-policy"
+
+ollama:
+  name: "Ollama"
+  description: "Ollama is an OSS project aiming to make running of local llm simple."
+  endpoint: "http://127.0.0.1:11434"

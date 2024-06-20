@@ -21,7 +21,7 @@ from atap_llm_classifier import core, config
 from atap_llm_classifier.core import LLMConfig
 from atap_llm_classifier.modifiers import Modifier, BaseModifier
 from atap_llm_classifier.providers.providers import (
-    LLMUserModelProperties,
+    LLMModelUserProperties,
     LLMProvider,
     LLMProviderUserProperties,
 )
@@ -84,7 +84,7 @@ def batch(
     user_provider_props: LLMProviderUserProperties = provider.get_user_properties(
         api_key=api_key
     )
-    user_model: LLMUserModelProperties = user_provider_props.get_model_props(
+    user_model: LLMModelUserProperties = user_provider_props.get_model_props(
         model=model
     )
 
@@ -104,7 +104,7 @@ def batch(
 
 async def a_batch(
     corpus: Corpus,
-    user_model: LLMUserModelProperties,
+    user_model: LLMModelUserProperties,
     llm_config: LLMConfig,
     technique: Technique,
     user_schema: BaseModel,
@@ -196,23 +196,28 @@ async def a_batch(
             #   see notes in the args above.
             #   although async should be single threaded in python.
 
-    # perform sanity checks
-    max_num_tokens: int = max(
-        map(user_model.count_tokens, map(prompt_maker.make_prompt, map(str, docs)))
-    )
-    logger.info(
-        f"Sanity check: max number of tokens < context window for model {user_model.name}."
-    )
-    if max_num_tokens > user_model.context_window:
-        raise RuntimeError(
-            f"Max number of tokens > context window for model {user_model.name}."
+    # perform sanity checks on batch
+    if not user_model.known_context_window():
+        logger.warning(
+            f"Skip batch context window check. Context window is not known for model: {user_model.name}"
         )
+    else:
+        max_num_tokens: int = max(
+            map(user_model.count_tokens, map(prompt_maker.make_prompt, map(str, docs)))
+        )
+        logger.info(
+            f"Perform check: max number of tokens < context window for model: {user_model.name}."
+        )
+        if max_num_tokens > user_model.context_window:
+            raise RuntimeError(
+                f"Max number of tokens > context window for model {user_model.name}."
+            )
 
-    if rlimiter_toks is not None:
-        logger.info("Sanity check: max number of tokens < token rate limit.")
+        if rlimiter_toks is not None:
+            logger.info("Perform check: max number of tokens < token rate limit.")
 
-        if max_num_tokens > rlimiter_toks.capacity:
-            raise RuntimeError("Max number of tokens > token rate limit.")
+            if max_num_tokens > rlimiter_toks.capacity:
+                raise RuntimeError("Max number of tokens > token rate limit.")
 
     worker_tasks = [
         asyncio.create_task(worker(queue, successes, fails)) for _ in range(num_workers)

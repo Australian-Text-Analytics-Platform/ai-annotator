@@ -16,6 +16,7 @@ ignore = [
     "F841", # allow unused variable
     "F401", # allow unused imports
     "F403", # allow asterisk imports
+    "E731", # allow lambda fn assignments
 ]
 
 [format]

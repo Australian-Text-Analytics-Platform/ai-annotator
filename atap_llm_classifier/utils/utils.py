@@ -7,11 +7,14 @@ __all__ = [
 ]
 
 from functools import lru_cache
-
 import litellm
 from litellm import ModelResponse
 
-from atap_llm_classifier.models import LiteLLMMessage, LiteLLMRole, LiteLLMArgs
+from atap_llm_classifier.models import (
+    LiteLLMMessage,
+    LiteLLMRole,
+    LiteLLMCompletionArgs,
+)
 
 
 def format_exception(e: Exception) -> str:
@@ -40,17 +43,19 @@ def is_jupyter_context() -> bool:
 @lru_cache
 def make_dummy_request(
     model: str,
-    api_key: str,
+    api_key: str | None = None,
+    api_base: str | None = None,
 ) -> ModelResponse:
     msg = LiteLLMMessage(content="Say Yes.", role=LiteLLMRole.USER)
     return litellm.completion(
-        **LiteLLMArgs(
+        **LiteLLMCompletionArgs(
             model=model,
             messages=[msg],
             temperature=0,
             top_p=1.0,
             n=1,
             api_key=api_key,
+            api_base=api_base,
         ).to_kwargs(),
         max_tokens=10,
     )

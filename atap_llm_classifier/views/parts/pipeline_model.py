@@ -8,7 +8,7 @@ from atap_llm_classifier.providers.providers import (
     LLMProvider,
     LLMModelProperties,
     LLMProviderUserProperties,
-    LLMUserModelProperties,
+    LLMModelUserProperties,
 )
 from atap_llm_classifier.views.props import ViewProp, PipeModelProps
 
@@ -152,7 +152,7 @@ class PipelineModelConfigView(Viewer):
         return self.model_selector.value
 
     @property
-    def user_model(self) -> LLMUserModelProperties:
+    def user_model(self) -> LLMModelUserProperties:
         return self.provider_user_props.get_model_props(self.model)
 
     @property
