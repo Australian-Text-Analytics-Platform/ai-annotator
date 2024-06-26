@@ -17,7 +17,7 @@ from atap_llm_classifier.ratelimiters import (
 from atap_llm_classifier.utils.utils import is_jupyter_context
 
 __all__ = [
-    "get_settings",
+    "get_env_settings",
     "get_rate_limits",
     "ProviderRateLimits",
 ]
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
 
 @lru_cache(maxsize=1)
-def get_settings() -> Settings:
+def get_env_settings() -> Settings:
     return Settings()
 
 

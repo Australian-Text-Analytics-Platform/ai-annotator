@@ -28,7 +28,7 @@ from atap_llm_classifier.providers.providers import (
 from atap_llm_classifier.ratelimiters import RateLimit, TokenBucket
 from atap_llm_classifier.settings import (
     ProviderRateLimits,
-    get_settings,
+    get_env_settings,
     get_rate_limits,
 )
 from atap_llm_classifier.techniques import Technique, BaseTechnique

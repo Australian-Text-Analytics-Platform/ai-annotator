@@ -7,9 +7,9 @@ from atap_llm_classifier.techniques import Technique, schemas
 
 
 def test_batch():
-    config.mock = True
-    config.mock_tokens_rate_limit = None
-    config.mock_requests_rate_limit = None
+    config.mock.enabled = True
+    config.mock.tokens_rate_limit = None
+    config.mock.requests_rate_limit = None
 
     corpus: Corpus = Corpus([f"Test document {i}" for i in range(10)])
 
