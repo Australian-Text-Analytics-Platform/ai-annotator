@@ -39,6 +39,7 @@ jupyter: _JupyterConfig = _JupyterConfig(
 )
 
 batch: _BatchConfig = _BatchConfig(
+    num_workers=5,
     rate_limit_max_retries=10,
     rate_limit_retry_exp_backoff_first_wait_s=3.0,
 )
