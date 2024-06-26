@@ -12,7 +12,6 @@ from atap_llm_classifier.providers import (
 )
 from atap_llm_classifier.ratelimiters import (
     RateLimit,
-    RateLimiterAlg,
     RateLimiters,
 )
 from atap_llm_classifier.utils.utils import is_jupyter_context
@@ -27,21 +26,6 @@ __all__ = [
 class Settings(BaseSettings):
     LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.YAML
 
-    BATCH_NUM_WORKERS: int = 5
-    RATE_LIMITER_ALG: RateLimiterAlg = RateLimiterAlg.TOKEN_BUCKET
-    BASE_REQUESTS_RATE_LIMIT: RateLimit = RateLimit(
-        max_requests=100,
-        per_seconds=1.0,
-    )
-    # note: on how to override RATE_LIMIT using env vars:
-    #   BASE_REQUESTS_RATE_LIMIT__MAX_REQUESTS=
-    #   BASE_REQUESTS_RATE_LIMIT__PER_SECONDS=
-    JUPYTER_REQUESTS_RATE_LIMIT: RateLimit = RateLimit(
-        max_requests=100, per_seconds=1.0
-    )
-    BATCH_RATE_LIMIT_MAX_RETRIES: int = 10
-    BATCH_RATE_LIMIT_RETRY_EXP_BACKOFF_FIRST_WAIT_S: float = 3.0
-
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
@@ -55,13 +39,9 @@ def get_rate_limiters(
     user_model: LLMModelUserProperties,
 ) -> RateLimiters:
     rate_limits: ProviderRateLimits = get_rate_limits(user_model)
-    rlimiter_reqs = get_settings().RATE_LIMITER_ALG.make_rate_limiter(
-        rate_limits.requests
-    )
-    rlimiter_toks = get_settings().RATE_LIMITER_ALG.make_rate_limiter(
-        rate_limits.tokens
-    )
-    return RateLimiters([rlimiter_reqs, rlimiter_toks])
+    rlimiter_reqs = config.rate_limiter_alg.make_rate_limiter(rate_limits.requests)
+    rlimiter_toks = config.rate_limiter_alg.make_rate_limiter(rate_limits.tokens)
+    return RateLimiters(rlimiter_reqs, rlimiter_toks)
 
 
 @lru_cache
@@ -79,24 +59,24 @@ def get_rate_limit_for_requests(
     user_model: LLMModelUserProperties,
 ) -> RateLimit:
     candidates: list[RateLimit] = list()
-    if not config.mock:
+    if not config.mock.enabled:
         match user_model.provider:
             case LLMProvider.OPENAI:
                 candidates.append(_get_openai_rate_limit(user_model).requests)
             case _:
                 pass  # todo: rate limit for other providers - currently goes to default.
     else:
-        if config.mock_requests_rate_limit is not None:
-            candidates.append(config.mock_requests_rate_limit)
+        if config.mock.requests_rate_limit is not None:
+            candidates.append(config.mock.requests_rate_limit)
 
     if len(candidates) < 1:
         logger.info(
             "No rate limits from provider found. Adding default as base rate limit in candidates."
         )
-        candidates.append(get_settings().BASE_REQUESTS_RATE_LIMIT)
+        candidates.append(config.default_requests_rate_limit)
     if is_jupyter_context():
         logger.info("In jupyter context. Adding jupyter ate limit as a candidate.")
-        candidates.append(get_settings().JUPYTER_REQUESTS_RATE_LIMIT)
+        candidates.append(config.jupyter.requests_rate_limit)
 
     lowest_rate_limit = sorted(candidates, reverse=False)[0]
     return lowest_rate_limit
@@ -105,14 +85,14 @@ def get_rate_limit_for_requests(
 def get_rate_limit_for_tokens(
     user_model: LLMModelUserProperties,
 ) -> RateLimit | None:
-    if not config.mock:
+    if not config.mock.enabled:
         match user_model.provider:
             case LLMProvider.OPENAI:
                 return _get_openai_rate_limit(user_model).tokens
             case _:
                 pass  # todo: rate limit for other providers - currently goes to default.
     else:
-        return config.mock_tokens_rate_limit
+        return config.mock.tokens_rate_limit
 
 
 @lru_cache

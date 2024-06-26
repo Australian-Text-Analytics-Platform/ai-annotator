@@ -71,7 +71,7 @@ async def a_classify(
             stream=False,
         ).to_kwargs(),
         mock_response=formatter.make_mock_response(technique.template.output_keys)
-        if config.mock
+        if config.mock.enabled
         else None,
     )
 

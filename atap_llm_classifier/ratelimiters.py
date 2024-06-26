@@ -4,11 +4,12 @@ from pydantic import BaseModel, computed_field
 import asyncio
 import contextlib
 import enum
-from typing import Coroutine, Generator, ContextManager, Self, Iterable
+from typing import Coroutine, Generator, ContextManager, Self, Iterable, Union
 
 __all__ = [
     "RateLimit",
     "RateLimiterAlg",
+    "RateLimiters",
 ]
 
 
@@ -38,7 +39,7 @@ class RateLimiterAlg(enum.Enum):
 
 
 class RateLimiters(object):
-    def __init__(self, request: "TokenBucket", tokens: "TokenBucket" | None):
+    def __init__(self, request: "TokenBucket", tokens: Union["TokenBucket", None]):
         self._request: TokenBucket = request
         self._tokens: TokenBucket = tokens
 
@@ -49,7 +50,7 @@ class RateLimiters(object):
         return self._request
 
     @property
-    def tokens(self) -> "TokenBucket" | None:
+    def tokens(self) -> Union["TokenBucket", None]:
         return self._tokens
 
     def acquire_for_request(self, tokens: int):

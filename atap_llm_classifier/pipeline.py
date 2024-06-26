@@ -81,6 +81,8 @@ def batch(
     modifier: Modifier,
     on_result_callback: Callable | Coroutine | None = None,
 ) -> BatchResults:
+    # todo: check if API Key is required. If so, then retrieve user_props
+
     user_provider_props: LLMProviderUserProperties = provider.get_user_properties(
         api_key=api_key
     )
@@ -123,7 +125,7 @@ async def a_batch(
     prompt_maker: BaseTechnique = technique.get_prompt_maker(user_schema)
     mod_behaviour: BaseModifier = modifier.get_behaviour()
 
-    rlimit_alg = get_settings().RATE_LIMITER_ALG
+    rlimit_alg = config.RateLimiterAlg
     rlimits: ProviderRateLimits = get_rate_limits(user_model)
     logger.info(f"Rate Limit (request): {rlimits.requests}")
     logger.info(f"Rate Limit (tokens) : {rlimits.tokens}")
@@ -133,7 +135,7 @@ async def a_batch(
     if rlimits.tokens is not None:
         rlimiter_toks = rlimit_alg.make_rate_limiter(rlimits.tokens)
 
-    num_workers: int = get_settings().BATCH_NUM_WORKERS
+    num_workers: int = config.batch.num_workers
     queue: asyncio.Queue[TaskContext] = asyncio.Queue(num_workers)
 
     async def worker(
@@ -148,9 +150,9 @@ async def a_batch(
                 break
 
             logger.info(f"Consume task: {ctx}")
-            retries_remaining: int = get_settings().BATCH_RATE_LIMIT_MAX_RETRIES
+            retries_remaining: int = config.batch.rate_limit_max_retries
             exp_backoff_wait_s: float = (
-                get_settings().BATCH_RATE_LIMIT_RETRY_EXP_BACKOFF_FIRST_WAIT_S
+                config.batch.rate_limit_retry_exp_backoff_first_wait_s
             )
             while retries_remaining >= 0:
                 try:
@@ -200,6 +202,10 @@ async def a_batch(
     if not user_model.known_context_window():
         logger.warning(
             f"Skip batch context window check. Context window is not known for model: {user_model.name}"
+        )
+    elif not user_model.known_tokeniser():
+        logger.warning(
+            f"Skip batch context window check. Tokeniser is not known for model: {user_model.name}"
         )
     else:
         max_num_tokens: int = max(

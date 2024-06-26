@@ -98,7 +98,7 @@ class LLMProvider(Enum):
     @lru_cache
     def get_user_properties(self, api_key: str) -> "LLMProviderUserProperties":
         """Get the llm properties dependent on the user's API Key."""
-        if config.mock:
+        if config.mock.enabled:
             raise ValueError(
                 "There are no user specific provider properties when in mock mode."
             )
@@ -185,6 +185,7 @@ class LLMModelProperties(BaseModel):
     def count_tokens(self, prompt: str) -> int:
         return len(self._get_token_encoder().encode(prompt))
 
+    @lru_cache
     def _get_token_encoder(self) -> TokenEncoder:
         if not self.known_tokeniser():
             raise LookupError(
@@ -245,7 +246,7 @@ def validate_api_key(
     provider: LLMProvider,
     api_key: str,
 ) -> bool:
-    if config.mock:
+    if config.mock.enabled:
         return True
     try:
         make_dummy_request_to_provider(provider, api_key)
@@ -276,17 +277,3 @@ def make_dummy_request_to_provider(
         model=dummy_model,
         api_key=api_key,
     )
-
-
-def get_available_openai_models_for_user(
-    api_key: str,
-) -> set[str]:
-    from openai import OpenAI
-    from openai.pagination import SyncPage
-
-    client = OpenAI(api_key=api_key)
-    paginator: SyncPage = client.models.list()
-    avail_user_models: set[str] = {
-        model.id for page in paginator.iter_pages() for model in page.data
-    }
-    return avail_user_models
