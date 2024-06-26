@@ -1,14 +1,21 @@
 """providers.py"""
 
 from enum import Enum
-from functools import cached_property, lru_cache, partial
+from functools import cached_property, lru_cache
 import re
-from typing import Protocol, Any, Callable
+from typing import Callable
 
 import httpx
 from litellm import ModelResponse, AuthenticationError
 from loguru import logger
-from pydantic import BaseModel, Field, HttpUrl, field_validator, SecretStr, ConfigDict
+from pydantic import (
+    BaseModel,
+    Field,
+    AnyUrl,
+    field_validator,
+    SecretStr,
+    ConfigDict,
+)
 
 from atap_llm_classifier import config
 from atap_llm_classifier.assets import Asset
@@ -214,9 +221,9 @@ class LLMProviderProperties(BaseModel):
 
     name: str = Field(frozen=True)
     description: str = Field(frozen=True)
-    privacy_policy_url: HttpUrl | None = Field(default=None, frozen=True)
+    privacy_policy_url: AnyUrl | None = Field(default=None, frozen=True)
     models: list[LLMModelProperties]
-    endpoint: HttpUrl | None
+    endpoint: AnyUrl | None
 
     @lru_cache
     def get_model_props(self, model: str) -> LLMModelProperties:
