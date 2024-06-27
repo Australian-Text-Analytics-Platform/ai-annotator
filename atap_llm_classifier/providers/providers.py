@@ -3,7 +3,7 @@
 from enum import Enum
 from functools import cached_property, lru_cache
 import re
-from typing import Callable
+from typing import Callable, Self
 
 import httpx
 from litellm import ModelResponse, AuthenticationError
@@ -36,6 +36,10 @@ __all__ = [
     "LLMModelUserProperties",
     "validate_api_key",
 ]
+
+
+def with_custom_endpoint(props: "LLMProviderProperties") -> "LLMProviderProperties":
+    pass
 
 
 class LLMProvider(Enum):
@@ -102,6 +106,7 @@ class LLMProvider(Enum):
             **props,
         )
 
+    # todo: deprecate this in favour of with_api_key
     @lru_cache
     def get_user_properties(self, api_key: str) -> "LLMProviderUserProperties":
         """Get the llm properties dependent on the user's API Key."""
@@ -171,6 +176,7 @@ class LLMModelProperties(BaseModel):
     tokeniser_id: str | None = None
     input_token_cost: float | None = None
     output_token_cost: float | None = None
+    api_key: str = None
 
     @field_validator("description", mode="before")
     @classmethod
@@ -188,6 +194,9 @@ class LLMModelProperties(BaseModel):
 
     def known_output_token_cost(self) -> bool:
         return self.output_token_cost is not None
+
+    def is_authenticated(self) -> bool:
+        return self.api_key is not None
 
     def count_tokens(self, prompt: str) -> int:
         return len(self._get_token_encoder().encode(prompt))
@@ -207,6 +216,7 @@ class LLMModelProperties(BaseModel):
                 )
 
 
+# todo: deprecate this
 class LLMModelUserProperties(LLMModelProperties):
     validated_api_key: SecretStr
 
@@ -221,9 +231,10 @@ class LLMProviderProperties(BaseModel):
 
     name: str = Field(frozen=True)
     description: str = Field(frozen=True)
-    privacy_policy_url: AnyUrl | None = Field(default=None, frozen=True)
     models: list[LLMModelProperties]
-    endpoint: AnyUrl | None
+    privacy_policy_url: AnyUrl | None = Field(default=None, frozen=True)
+    endpoint: AnyUrl | None = None
+    api_key: str | None = None
 
     @lru_cache
     def get_model_props(self, model: str) -> LLMModelProperties:
@@ -232,12 +243,61 @@ class LLMProviderProperties(BaseModel):
                 return model_prop
         raise ValueError(f"{model} does not exist for provider: {self.name}.")
 
+    def is_authenticated(self) -> bool:
+        return self.api_key is not None
+
+    @lru_cache
+    def with_api_key(self, api_key: str) -> Self:
+        if not validate_api_key(self.provider, api_key):
+            raise ValueError(f"Invalid api key given for provider: {self.value}.")
+        copy_: Self = self.model_copy(deep=True)
+        copy_.api_key = api_key
+        match self.provider:
+            case LLMProvider.OPENAI:
+                base_models, ft_ftbase_models = openai_.get_available_models_for_user(
+                    api_key
+                )
+                ft_models = list()
+                for ft, ft_base in ft_ftbase_models:
+                    try:
+                        ft_model = self.get_model_props(ft_base).model_copy(deep=True)
+                        ft_model.name = ft
+                    except ValueError as e:
+                        logger.warning(
+                            f"Finetuned model's base model not found. Skipped model={ft}. Err: {e}"
+                        )
+                        continue
+                    ft_models.append(ft_model)
+                copy_.models = list(
+                    filter(lambda m: m.name in base_models, copy_.models)
+                )
+                for ft_model in ft_models:
+                    copy_.models.append(ft_model)
+            case LLMProvider.OPENAI_AZURE_SIH:
+                raise NotImplementedError()
+            case LLMProvider.OLLAMA:
+                raise NotImplementedError()
+            case _:
+                raise LookupError("Not a valid provider.")
+
+        for m in copy_.models:
+            m.api_key = copy_.api_key
+        return copy_
+
+    def with_endpoint(self, endpoint: str) -> Self:
+        # todo: 1. check endpoint is valid
+        # todo: 2. replace endpoint
+        # todo: 3. adjust models given that endpoint
+        # todo: 4. return a copy of self.
+        raise NotImplementedError()
+
     # override default hash behaviour from BaseModel which does not allow list.
     # needed for lru_cache
     def __hash__(self):
-        return hash((self.name, self.provider))
+        return hash((self.name, self.provider, self.description))
 
 
+# todo: deprecate this in favour of with_api_key
 class LLMProviderUserProperties(LLMProviderProperties):
     validated_api_key: SecretStr
     models: list[LLMModelUserProperties]

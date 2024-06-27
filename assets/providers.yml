@@ -25,3 +25,7 @@ ollama:
   name: "Ollama"
   description: "Ollama is an OSS project aiming to make running of local llm simple."
   endpoint: "http://127.0.0.1:11434"
+  models:
+    llama3:.*:
+      description: |
+        The Llama 3 model by Meta. It is trained on books, articles, websites, and other text sources.

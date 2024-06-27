@@ -1,16 +1,23 @@
-from functools import total_ordering
+from collections import namedtuple
+from functools import total_ordering, lru_cache
 
+from loguru import logger
 from pydantic import BaseModel, computed_field
 import asyncio
 import contextlib
 import enum
-from typing import Coroutine, Generator, ContextManager, Self, Iterable, Union
+from typing import Coroutine, Generator, ContextManager, Self, Union
 
 __all__ = [
     "RateLimit",
     "RateLimiterAlg",
     "RateLimiters",
+    "TokenBucket",
 ]
+
+from atap_llm_classifier import config
+from atap_llm_classifier.providers import LLMModelProperties, LLMProvider
+from atap_llm_classifier.utils import utils
 
 
 @total_ordering
@@ -173,3 +180,112 @@ def token_bucket(
         raise e
     finally:
         replenisher.cancel()
+
+
+ProviderRateLimits = namedtuple("ProviderRateLimits", ["requests", "tokens"])
+
+
+def get_rate_limiters(
+    model_props: LLMModelProperties,
+) -> RateLimiters:
+    rate_limits: ProviderRateLimits = get_rate_limits(model_props)
+    rlimiter_reqs = config.rate_limiter_alg.make_rate_limiter(rate_limits.requests)
+    rlimiter_toks = config.rate_limiter_alg.make_rate_limiter(rate_limits.tokens)
+    return RateLimiters(rlimiter_reqs, rlimiter_toks)
+
+
+@lru_cache
+def get_rate_limits(
+    model_props: LLMModelProperties,
+) -> ProviderRateLimits:
+    return ProviderRateLimits(
+        requests=get_rate_limit_for_requests(model_props),
+        tokens=get_rate_limit_for_tokens(model_props),
+    )
+
+
+@lru_cache
+def get_rate_limit_for_requests(
+    model_props: LLMModelProperties,
+) -> RateLimit:
+    candidates: list[RateLimit] = list()
+    if not config.mock.enabled:
+        match model_props.provider:
+            case LLMProvider.OPENAI:
+                if not model_props.is_authenticated():
+                    raise ValueError("Provided model props is not authenticated.")
+                model, api_key = model_props.name, model_props.api_key
+                candidates.append(
+                    _get_openai_rate_limit(model=model, api_key=api_key).requests
+                )
+            case _:
+                pass  # todo: rate limit for other providers - currently goes to default.
+    else:
+        if config.mock.requests_rate_limit is not None:
+            candidates.append(config.mock.requests_rate_limit)
+
+    if len(candidates) < 1:
+        logger.info(
+            "No rate limits from provider found. Adding default as base rate limit in candidates."
+        )
+        candidates.append(config.default_requests_rate_limit)
+    if utils.is_jupyter_context():
+        logger.info("In jupyter context. Adding jupyter ate limit as a candidate.")
+        candidates.append(config.jupyter.requests_rate_limit)
+
+    lowest_rate_limit = sorted(candidates, reverse=False)[0]
+    return lowest_rate_limit
+
+
+def get_rate_limit_for_tokens(
+    model_props: LLMModelProperties,
+) -> RateLimit | None:
+    if not config.mock.enabled:
+        match model_props.provider:
+            case LLMProvider.OPENAI:
+                if not model_props.is_authenticated():
+                    raise ValueError("Provided model props is not authenticated.")
+                return _get_openai_rate_limit(
+                    model_props.model, model_props.api_key
+                ).tokens
+            case _:
+                pass  # todo: rate limit for other providers - currently goes to default.
+    else:
+        return config.mock.tokens_rate_limit
+    return None
+
+
+@lru_cache
+def _get_openai_rate_limit(
+    model: str,
+    api_key: str,
+) -> ProviderRateLimits:
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=api_key)
+        resp = client.chat.completions.with_raw_response.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": "test",
+                }
+            ],
+            model=model,
+        )
+    except Exception as e:
+        logger.error(f"Failed request rate limits from OpenAI. Err: {e}")
+        raise RuntimeError("Failed to retrieve rate limits from OpenAI.") from e
+    try:
+        max_reqs_per_day = int(resp.headers["x-ratelimit-limit-requests"])
+        max_toks_per_min = int(resp.headers["x-ratelimit-limit-tokens"])
+    except ValueError as ve:
+        logger.error(f"Failed to parse rate limits from OpenAI response. Err: {ve}")
+        raise RuntimeError("Failed to retrieve rate limits from OpenAI.") from ve
+    except KeyError as ke:
+        logger.error(f"No x-ratelimit headers from OpenAI response. Err: {ke}")
+        raise RuntimeError("Failed to retrieve rate limits from OpenAI.") from ke
+    return ProviderRateLimits(
+        requests=RateLimit(max_requests=max_reqs_per_day, per_seconds=60 * 60 * 24),
+        tokens=RateLimit(max_requests=max_toks_per_min, per_seconds=60),
+    )

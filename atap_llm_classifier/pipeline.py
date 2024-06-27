@@ -7,10 +7,8 @@ The output
 
 import asyncio
 import inspect
-import random
 from typing import Coroutine, Callable, Self
 
-import httpx
 from atap_corpus import Corpus
 from atap_corpus._types import Docs
 from litellm import RateLimitError
@@ -18,17 +16,16 @@ from loguru import logger
 from pydantic import BaseModel
 
 from atap_llm_classifier import core, config
-from atap_llm_classifier.core import LLMConfig
+from atap_llm_classifier.models import LLMConfig
 from atap_llm_classifier.modifiers import Modifier, BaseModifier
 from atap_llm_classifier.providers.providers import (
     LLMModelUserProperties,
     LLMProvider,
     LLMProviderUserProperties,
 )
-from atap_llm_classifier.ratelimiters import RateLimit, TokenBucket
+from atap_llm_classifier.ratelimiters import TokenBucket
 from atap_llm_classifier.settings import (
     ProviderRateLimits,
-    get_env_settings,
     get_rate_limits,
 )
 from atap_llm_classifier.techniques import Technique, BaseTechnique
@@ -74,7 +71,6 @@ def batch(
     corpus: Corpus,
     provider: LLMProvider,
     model: str,
-    api_key: str,
     llm_config: LLMConfig,
     technique: Technique,
     user_schema: BaseModel,
@@ -82,6 +78,13 @@ def batch(
     on_result_callback: Callable | Coroutine | None = None,
 ) -> BatchResults:
     # todo: check if API Key is required. If so, then retrieve user_props
+    #   what are the possible flows here
+    #       1. api_key is present from API_KEY env (i guess i'll have to wrap the model props)
+    #       2. endpoint from provider is optional.
+
+    # 1. remove user models from rate limiters
+    # 2. remove cache in llmprovider.properties so its renewed each time. OR have auth, endpoint fns that wraps the props.
+    # 3. wref from llm model props to llm provider props
 
     user_provider_props: LLMProviderUserProperties = provider.get_user_properties(
         api_key=api_key
@@ -283,37 +286,3 @@ async def a_batch(
         successes=successes,
         fails=fails,
     )
-
-
-"""
-```python
-# # todo: do not use this - not implemented.
-# async def a_run_multi_llm(
-#     corpus: Corpus,
-#     models: Sequence[str],
-#     api_keys: Sequence[SecretStr],
-#     technique: Technique | None = None,
-#     modifier: Modifier | None = None,
-# ):
-#     # todo: make model, api_key, sys prompt, a BaseModel
-#     #   allow multiple sys prompts to be used.
-#     #
-#     # todo: this basically runs a_run len(models) times.
-#     #   then, just add an extra column that takes highest classified.
-#     tasks = list()
-#     for model, api_key in zip(models, api_keys):
-#         task: Future = asyncio.create_task(
-#             core.a_classify(
-#                 text=corpus[:1],  # todo: use the corpus docs
-#                 model=model,
-#                 api_key=api_key,
-#                 llm_config=LLMConfig(seed=42),
-#                 technique=technique,
-#                 modifier=modifier,
-#             )
-#         )
-#         tasks.append(task)
-#     results = await asyncio.gather(*tasks)
-#     return results
-```
-"""
