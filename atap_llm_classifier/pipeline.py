@@ -15,19 +15,11 @@ from litellm import RateLimitError
 from loguru import logger
 from pydantic import BaseModel
 
-from atap_llm_classifier import core, config
+from atap_llm_classifier import core, config, ratelimiters
 from atap_llm_classifier.models import LLMConfig
 from atap_llm_classifier.modifiers import Modifier, BaseModifier
-from atap_llm_classifier.providers.providers import (
-    LLMModelUserProperties,
-    LLMProvider,
-    LLMProviderUserProperties,
-)
+from atap_llm_classifier.providers.providers import LLMModelProperties
 from atap_llm_classifier.ratelimiters import TokenBucket
-from atap_llm_classifier.settings import (
-    ProviderRateLimits,
-    get_rate_limits,
-)
 from atap_llm_classifier.techniques import Technique, BaseTechnique
 
 
@@ -45,6 +37,32 @@ class BatchResults(BaseModel):
     llm_config: LLMConfig
     successes: list[BatchResult]
     fails: list[tuple[int, str]]
+
+
+def batch(
+    corpus: Corpus,
+    model_props: LLMModelProperties,
+    llm_config: LLMConfig,
+    technique: Technique,
+    user_schema: BaseModel,
+    modifier: Modifier,
+    on_result_callback: Callable | Coroutine | None = None,
+) -> BatchResults:
+    if config.mock.enabled:
+        logger.info("Mock mode is enabled.")
+    user_schema = technique.prompt_maker_cls.schema.model_validate(user_schema)
+    res = asyncio.run(
+        a_batch(
+            corpus,
+            model_props,
+            llm_config,
+            technique,
+            user_schema,
+            modifier,
+            on_result_callback,
+        ),
+    )
+    return res
 
 
 class TaskContext(object):
@@ -67,49 +85,9 @@ class TaskContext(object):
         return cls(None, None)
 
 
-def batch(
-    corpus: Corpus,
-    provider: LLMProvider,
-    model: str,
-    llm_config: LLMConfig,
-    technique: Technique,
-    user_schema: BaseModel,
-    modifier: Modifier,
-    on_result_callback: Callable | Coroutine | None = None,
-) -> BatchResults:
-    # todo: check if API Key is required. If so, then retrieve user_props
-    #   what are the possible flows here
-    #       1. api_key is present from API_KEY env (i guess i'll have to wrap the model props)
-    #       2. endpoint from provider is optional.
-
-    # 1. remove user models from rate limiters
-    # 2. remove cache in llmprovider.properties so its renewed each time. OR have auth, endpoint fns that wraps the props.
-    # 3. wref from llm model props to llm provider props
-
-    user_provider_props: LLMProviderUserProperties = provider.get_user_properties(
-        api_key=api_key
-    )
-    user_model: LLMModelUserProperties = user_provider_props.get_model_props(
-        model=model
-    )
-
-    res = asyncio.run(
-        a_batch(
-            corpus,
-            user_model,
-            llm_config,
-            technique,
-            user_schema,
-            modifier,
-            on_result_callback,
-        ),
-    )
-    return res
-
-
 async def a_batch(
     corpus: Corpus,
-    user_model: LLMModelUserProperties,
+    model_props: LLMModelProperties,
     llm_config: LLMConfig,
     technique: Technique,
     user_schema: BaseModel,
@@ -128,8 +106,8 @@ async def a_batch(
     prompt_maker: BaseTechnique = technique.get_prompt_maker(user_schema)
     mod_behaviour: BaseModifier = modifier.get_behaviour()
 
-    rlimit_alg = config.RateLimiterAlg
-    rlimits: ProviderRateLimits = get_rate_limits(user_model)
+    rlimit_alg = config.RateLimiterAlg.TOKEN_BUCKET
+    rlimits: ratelimiters.ProviderRateLimits = ratelimiters.get_rate_limits(model_props)
     logger.info(f"Rate Limit (request): {rlimits.requests}")
     logger.info(f"Rate Limit (tokens) : {rlimits.tokens}")
 
@@ -161,11 +139,12 @@ async def a_batch(
                 try:
                     res: core.ClassificationResult = await core.a_classify(
                         text=ctx.text,
-                        model=user_model.name,
-                        api_key=user_model.validated_api_key.get_secret_value(),
+                        model=model_props.name,
                         llm_config=llm_config,
                         technique=prompt_maker,
                         modifier=mod_behaviour,
+                        api_key=model_props.api_key,
+                        endpoint=model_props.endpoint,
                     )
 
                     batch_res = BatchResult(
@@ -202,24 +181,35 @@ async def a_batch(
             #   although async should be single threaded in python.
 
     # perform sanity checks on batch
-    if not user_model.known_context_window():
+    if not model_props.known_context_window():
         logger.warning(
-            f"Skip batch context window check. Context window is not known for model: {user_model.name}"
+            f"Skip batch context window check. Context window is not known for model: {model_props.name}"
         )
-    elif not user_model.known_tokeniser():
+    elif not model_props.known_tokeniser():
         logger.warning(
-            f"Skip batch context window check. Tokeniser is not known for model: {user_model.name}"
+            f"Skip batch context window check. Tokeniser is not known for model: {model_props.name}"
         )
     else:
-        max_num_tokens: int = max(
-            map(user_model.count_tokens, map(prompt_maker.make_prompt, map(str, docs)))
+        num_tokens: list[int] = list(
+            map(model_props.count_tokens, map(prompt_maker.make_prompt, map(str, docs)))
         )
+        exceeded_indices = list(
+            filter(
+                lambda i: num_tokens[i] > model_props.context_window,
+                range(len(num_tokens)),
+            )
+        )
+        max_num_tokens = max(num_tokens)
         logger.info(
-            f"Perform check: max number of tokens < context window for model: {user_model.name}."
+            f"Perform check: max number of tokens < context window for model: {model_props.name}."
         )
-        if max_num_tokens > user_model.context_window:
+        if len(exceeded_indices) > 0:
+            for i in exceeded_indices:
+                logger.error(
+                    f"Document {i} exceeds context window. {num_tokens[i]} > {model_props.context_window}"
+                )
             raise RuntimeError(
-                f"Max number of tokens > context window for model {user_model.name}."
+                f"Max number of tokens in a document > context window for model {model_props.name}."
             )
 
         if rlimiter_toks is not None:
@@ -246,9 +236,9 @@ async def a_batch(
 
         reqs_left, toks_left = None, None
         req_left: int = rlimiter_reqs.remaining
-        if rlimiter_toks is not None:
+        if model_props.known_tokeniser() and rlimiter_toks is not None:
             prompt = prompt_maker.make_prompt(str(doc))
-            num_tokens = user_model.count_tokens(prompt)
+            num_tokens = model_props.count_tokens(prompt)
             release_coros.append(await rlimiter_toks.acquire(num_tokens))
             toks_left = rlimiter_toks.remaining
 
@@ -278,7 +268,7 @@ async def a_batch(
 
     return BatchResults(
         corpus_name=corpus.name,
-        model=user_model.name,
+        model=model_props.name,
         technique=technique,
         user_schema=user_schema,
         modifier=modifier,

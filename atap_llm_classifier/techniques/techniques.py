@@ -26,7 +26,7 @@ class TechniqueInfo(BaseModel):
     paper_url: str = Field(default="", frozen=True)
 
 
-class Technique(Enum):
+class Technique(str, Enum):
     ZERO_SHOT: str = "zero_shot"
     CHAIN_OF_THOUGHT: str = "chain_of_thought"
 
@@ -56,4 +56,6 @@ class Technique(Enum):
                 return ChainOfThought
 
     def get_prompt_maker(self, user_schema: BaseModel | dict) -> BaseTechnique:
+        if isinstance(user_schema, dict):
+            user_schema = self.prompt_maker_cls.schema(**user_schema)
         return self.prompt_maker_cls(user_schema)

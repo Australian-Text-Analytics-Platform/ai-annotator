@@ -5,7 +5,7 @@ from litellm import model_cost
 
 __all__ = [
     "get_available_models",
-    "pretty_print_model_list",
+    "prettify_model_list",
 ]
 
 
@@ -14,7 +14,7 @@ def load_model_cost_as_df() -> pd.DataFrame:
     return pd.DataFrame.from_dict(model_cost, orient="index")
 
 
-def pretty_print_model_list(html: bool = False):
+def prettify_model_list(html: bool = False) -> str:
     df = load_model_cost_as_df()
     df.sort_values(by="litellm_provider", inplace=True)
 
@@ -40,9 +40,11 @@ def pretty_print_model_list(html: bool = False):
     pd.set_option("display.max_rows", len(df))
 
     if html:
-        print(df.reset_index().rename(columns={"index": "model"}).to_html(index=False))
+        return str(
+            df.reset_index().rename(columns={"index": "model"}).to_html(index=False)
+        )
     else:
-        print(df)
+        return str(df)
 
 
 def get_available_models(provider: str) -> list[str]:
@@ -63,3 +65,7 @@ def get_price(model: str) -> tuple[float, float]:
         float(df.loc[model, "input_cost_per_token"]),
         float(df.loc[model, "output_cost_per_token"]),
     )
+
+
+def add_ollama_provider_prefix(model: str) -> str:
+    return "ollama_chat/" + model

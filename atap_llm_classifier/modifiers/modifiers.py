@@ -93,7 +93,7 @@ class ModifierInfo(BaseModel):
     post_behaviour: str
 
 
-class Modifier(Enum):
+class Modifier(str, Enum):
     NO_MODIFIER: str = "no_modifier"
     SELF_CONSISTENCY: str = "self_consistency"
 

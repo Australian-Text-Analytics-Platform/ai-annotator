@@ -48,7 +48,7 @@ def unformat_output(
     match len(found):
         case 0:
             raise errors.CorruptedLLMFormattedOutput(
-                f"Expected LLM output format not found. Format={output_format}."
+                f"Corrupt LLM output format. Format={output_format}."
             )
         case 1:
             content: str = found[0]

@@ -15,6 +15,7 @@ from pydantic import (
     field_validator,
     SecretStr,
     ConfigDict,
+    computed_field,
 )
 
 from atap_llm_classifier import config
@@ -38,11 +39,7 @@ __all__ = [
 ]
 
 
-def with_custom_endpoint(props: "LLMProviderProperties") -> "LLMProviderProperties":
-    pass
-
-
-class LLMProvider(Enum):
+class LLMProvider(str, Enum):
     OPENAI: str = "openai"
     OPENAI_AZURE_SIH: str = "openai_azure_sih"
     OLLAMA: str = "ollama"
@@ -67,16 +64,18 @@ class LLMProvider(Enum):
                     "LLMProvider properties for SIH OpenAI Azure is not yet implemented."
                 )
             case LLMProvider.OLLAMA:
-                try:
-                    available = ollama.get_available_models(
-                        endpoint=props.get("endpoint")
-                    )
-                except httpx.HTTPStatusError:
-                    available = list()
-                except Exception as e:
-                    raise RuntimeError(
-                        "Unable to retrieve ollama properties. Schema may have changed."
-                    ) from e
+                endpoint = props.get("endpoint")
+                if endpoint is not None:
+                    try:
+                        available = ollama.get_available_models(
+                            endpoint=props.get("endpoint")
+                        )
+                    except httpx.HTTPStatusError:
+                        pass
+                    except Exception as e:
+                        raise RuntimeError(
+                            "Unable to retrieve ollama properties. Schema may have changed."
+                        ) from e
             case _:
                 available = litellm_utils.get_available_models(self.value)
                 get_context_window = litellm_utils.get_context_window
@@ -86,7 +85,7 @@ class LLMProvider(Enum):
             re.compile(ptn) for ptn in props.get("models").keys()
         ]
         for model_key in available:
-            values = dict(name=model_key, provider=self)
+            values = dict(name=model_key, provider=self, endpoint=props.get("endpoint"))
             values["context_window"] = get_context_window(model_key)
             inp_cost, out_cost = get_price(model_key)
             values["input_token_cost"] = inp_cost
@@ -173,10 +172,14 @@ class LLMModelProperties(BaseModel):
     provider: LLMProvider
     description: str = Field("")
     context_window: int | None = None
-    tokeniser_id: str | None = None
     input_token_cost: float | None = None
     output_token_cost: float | None = None
-    api_key: str = None
+    api_key: str | None = None
+    endpoint: str | None = None
+
+    @computed_field
+    def id(self) -> str:
+        return self.name[self.name.rfind("/") + 1 :]
 
     @field_validator("description", mode="before")
     @classmethod
@@ -187,7 +190,11 @@ class LLMModelProperties(BaseModel):
         return self.context_window is not None
 
     def known_tokeniser(self) -> bool:
-        return self.token_encoder is not None
+        try:
+            self._get_token_encoder()
+            return True
+        except Exception as e:
+            return False
 
     def known_input_token_cost(self) -> bool:
         return self.input_token_cost is not None
@@ -203,17 +210,21 @@ class LLMModelProperties(BaseModel):
 
     @lru_cache
     def _get_token_encoder(self) -> TokenEncoder:
-        if not self.known_tokeniser():
-            raise LookupError(
-                f"Tokeniser is not known for model {self.name} provider={self.provider.value}."
-            )
-        match self:
+        match self.provider:
             case LLMProvider.OPENAI:
                 return get_token_encoder_for_openai(self.name)
             case _:
                 raise NotImplementedError(
                     "Tokeniser is known but token encoder behaviour is not yet implemented."
                 )
+
+    def __hash__(self):
+        hashables = [self.name, self.provider, self.description]
+        if self.api_key is not None:
+            hashables.append(self.api_key)
+        if self.endpoint is not None:
+            hashables.append(self.endpoint)
+        return hash(tuple(hashables))
 
 
 # todo: deprecate this
@@ -235,11 +246,12 @@ class LLMProviderProperties(BaseModel):
     privacy_policy_url: AnyUrl | None = Field(default=None, frozen=True)
     endpoint: AnyUrl | None = None
     api_key: str | None = None
+    api_key_test_model: str | None = None
 
     @lru_cache
     def get_model_props(self, model: str) -> LLMModelProperties:
         for model_prop in self.models:
-            if model_prop.name == model:
+            if model_prop.id == model:
                 return model_prop
         raise ValueError(f"{model} does not exist for provider: {self.name}.")
 
@@ -249,7 +261,9 @@ class LLMProviderProperties(BaseModel):
     @lru_cache
     def with_api_key(self, api_key: str) -> Self:
         if not validate_api_key(self.provider, api_key):
-            raise ValueError(f"Invalid api key given for provider: {self.value}.")
+            raise ValueError(
+                f"Invalid api key given for provider: {self.provider.value}."
+            )
         copy_: Self = self.model_copy(deep=True)
         copy_.api_key = api_key
         match self.provider:

@@ -25,10 +25,7 @@ mock: _MockConfig = _MockConfig(
         max_requests=100,
         per_seconds=1.0,
     ),
-    tokens_rate_limit=RateLimit(
-        max_requests=20_000,
-        per_seconds=30.0,
-    ),
+    tokens_rate_limit=None,
 )
 
 jupyter: _JupyterConfig = _JupyterConfig(

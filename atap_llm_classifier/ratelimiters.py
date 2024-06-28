@@ -153,35 +153,6 @@ class TokenBucket(object):
         self.destroy()
 
 
-# todo: archive this
-@contextlib.contextmanager
-def token_bucket(
-    on: list[Coroutine],
-    rate_limit: RateLimit,
-) -> ContextManager[tuple[Generator[Coroutine, None, None], asyncio.Semaphore]]:
-    max_requests, per_seconds = rate_limit.max_requests, rate_limit.per_seconds
-
-    sem = asyncio.Semaphore(max_requests)
-
-    async def replenish_tokens():
-        while True:
-            await asyncio.sleep(per_seconds)
-            for i in range(max_requests):
-                sem.release()
-
-    async def rate_limited(coro: Coroutine):
-        async with sem:
-            return await coro
-
-    replenisher = asyncio.create_task(replenish_tokens())
-    try:
-        yield [rate_limited(coro=coro) for coro in on], sem
-    except Exception as e:
-        raise e
-    finally:
-        replenisher.cancel()
-
-
 ProviderRateLimits = namedtuple("ProviderRateLimits", ["requests", "tokens"])
 
 
@@ -194,7 +165,6 @@ def get_rate_limiters(
     return RateLimiters(rlimiter_reqs, rlimiter_toks)
 
 
-@lru_cache
 def get_rate_limits(
     model_props: LLMModelProperties,
 ) -> ProviderRateLimits:
@@ -204,7 +174,6 @@ def get_rate_limits(
     )
 
 
-@lru_cache
 def get_rate_limit_for_requests(
     model_props: LLMModelProperties,
 ) -> RateLimit:
@@ -246,7 +215,7 @@ def get_rate_limit_for_tokens(
                 if not model_props.is_authenticated():
                     raise ValueError("Provided model props is not authenticated.")
                 return _get_openai_rate_limit(
-                    model_props.model, model_props.api_key
+                    model_props.name, model_props.api_key
                 ).tokens
             case _:
                 pass  # todo: rate limit for other providers - currently goes to default.
@@ -285,7 +254,10 @@ def _get_openai_rate_limit(
     except KeyError as ke:
         logger.error(f"No x-ratelimit headers from OpenAI response. Err: {ke}")
         raise RuntimeError("Failed to retrieve rate limits from OpenAI.") from ke
+    margin_s = 2.0
     return ProviderRateLimits(
-        requests=RateLimit(max_requests=max_reqs_per_day, per_seconds=60 * 60 * 24),
-        tokens=RateLimit(max_requests=max_toks_per_min, per_seconds=60),
+        requests=RateLimit(
+            max_requests=max_reqs_per_day, per_seconds=(60 * 60 * 24) + margin_s
+        ),
+        tokens=RateLimit(max_requests=max_toks_per_min, per_seconds=60 + margin_s),
     )

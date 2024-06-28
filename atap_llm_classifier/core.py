@@ -21,6 +21,7 @@ from atap_llm_classifier.models import (
     LiteLLMRole,
 )
 from atap_llm_classifier.modifiers import BaseModifier
+from atap_llm_classifier.providers import LLMModelProperties
 from atap_llm_classifier.techniques import BaseTechnique
 from atap_llm_classifier.techniques.schemas import LLMoutputModel
 
@@ -40,10 +41,11 @@ class ClassificationResult(BaseModel):
 async def a_classify(
     text: str,
     model: str,
-    api_key: str,
     llm_config: LLMConfig,
     technique: BaseTechnique,
     modifier: BaseModifier,
+    api_key: str | None = None,
+    endpoint: str | None = None,
 ) -> ClassificationResult:
     prompt: str = technique.make_prompt(text)
     prompt, llm_config = modifier.pre(
@@ -62,13 +64,14 @@ async def a_classify(
     msg = LiteLLMMessage(content=prompt, role=LiteLLMRole.USER)
     response: ModelResponse = await acompletion(
         **LiteLLMCompletionArgs(
-            model=model,
+            model=model if not config.mock.enabled else "openai/gpt-3.5-turbo",
             messages=[msg],
             temperature=llm_config.temperature,
             top_p=llm_config.top_p,
             n=llm_config.n_completions,
             stream=False,
             api_key=api_key,
+            base_url=endpoint,
         ).to_kwargs(),
         mock_response=formatter.make_mock_response(technique.template.output_keys)
         if config.mock.enabled
