@@ -37,7 +37,7 @@ atapllmc classify batch \
 --out-dir './out' \
 --provider openai \
 --model 'gpt-3.5-turbo' \
---technique zero-shot \
+--technique zero_shot \
 --user-schema 'user_schema.json'  \   # this can also be a raw json.
 --api-key <your-api-key>
 
@@ -48,7 +48,7 @@ atapllmc classify batch \
 --out-dir './out' \
 --provider ollama \
 --model 'llama3:8b' \
---technique zero-shot \
+--technique zero_shot \
 --user-schema 'user_schema.json'    # this can also be a raw json.
 # --endpoint <custom endpoint else http://127.0.0.1:11434 (see assets/providers.yml)>
 ```
