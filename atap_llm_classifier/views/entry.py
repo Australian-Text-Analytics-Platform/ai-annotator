@@ -3,7 +3,6 @@ from panel.viewable import Viewer, Viewable
 
 from atap_corpus_loader import CorpusLoader
 from atap_corpus import Corpus
-from pydantic import SecretStr
 
 from atap_llm_classifier.views.parts.pipe_config import PipeConfigView
 from atap_llm_classifier.views.parts.pipeline import create_pipeline
@@ -22,7 +21,7 @@ class EntryWidget(Viewer):
         # react to any loader builds and update selectable corpus
         latest_corpus, set_latest_corpus = utils.rx(self.loader.get_latest_corpus())
         self.r_latest_corpus: pn.rx[Corpus] = latest_corpus
-        loader.set_build_callback(set_latest_corpus)
+        loader.register_event_callback("build", set_latest_corpus)
 
         self.r_loader_corpus_names: pn.rx[list[str]] = pn.rx(
             lambda lc: [c.name for c in loader.controller.corpora.items()]
