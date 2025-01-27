@@ -8,7 +8,7 @@ from atap_llm_classifier import config
 from atap_llm_classifier.formatter.models import OutputFormat
 from atap_llm_classifier.providers import (
     LLMProvider,
-    LLMModelUserProperties,
+    LLMModelProperties
 )
 from atap_llm_classifier.ratelimiters import (
     RateLimit,
@@ -36,7 +36,7 @@ ProviderRateLimits = namedtuple("ProviderRateLimits", ["requests", "tokens"])
 
 
 def get_rate_limiters(
-    user_model: LLMModelUserProperties,
+    user_model: LLMModelProperties,
 ) -> RateLimiters:
     rate_limits: ProviderRateLimits = get_rate_limits(user_model)
     rlimiter_reqs = config.rate_limiter_alg.make_rate_limiter(rate_limits.requests)
@@ -46,7 +46,7 @@ def get_rate_limiters(
 
 @lru_cache
 def get_rate_limits(
-    user_model: LLMModelUserProperties,
+    user_model: LLMModelProperties,
 ) -> ProviderRateLimits:
     return ProviderRateLimits(
         requests=get_rate_limit_for_requests(user_model),
@@ -56,7 +56,7 @@ def get_rate_limits(
 
 @lru_cache
 def get_rate_limit_for_requests(
-    user_model: LLMModelUserProperties,
+    user_model: LLMModelProperties,
 ) -> RateLimit:
     candidates: list[RateLimit] = list()
     if not config.mock.enabled:
@@ -83,7 +83,7 @@ def get_rate_limit_for_requests(
 
 
 def get_rate_limit_for_tokens(
-    user_model: LLMModelUserProperties,
+    user_model: LLMModelProperties,
 ) -> RateLimit | None:
     if not config.mock.enabled:
         match user_model.provider:
@@ -97,12 +97,12 @@ def get_rate_limit_for_tokens(
 
 @lru_cache
 def _get_openai_rate_limit(
-    user_model_props: LLMModelUserProperties,
+    user_model_props: LLMModelProperties,
 ) -> ProviderRateLimits:
     try:
         from openai import OpenAI
 
-        client = OpenAI(api_key=user_model_props.validated_api_key.get_secret_value())
+        client = OpenAI(api_key=user_model_props.api_key)
         resp = client.chat.completions.with_raw_response.create(
             messages=[
                 {

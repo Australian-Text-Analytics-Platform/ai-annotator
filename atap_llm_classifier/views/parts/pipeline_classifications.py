@@ -126,7 +126,7 @@ class PipelineClassifications(Viewer):
             res: core.ClassificationResult = await core.a_classify(
                 text=text,
                 model=self.pipe_mconfig.user_model.name,
-                api_key=self.pipe_mconfig.user_model.validated_api_key.get_secret_value(),
+                api_key=self.pipe_mconfig.provider_user_props.api_key,
                 llm_config=self.pipe_mconfig.llm_config,
                 technique=self.technique.get_prompt_maker(
                     self.pipe_prompt.user_schema_rx.rx.value
@@ -162,7 +162,7 @@ class PipelineClassifications(Viewer):
 
             batch_results: pipeline.BatchResults = await pipeline.a_batch(
                 corpus=self.corpus,
-                user_model=self.pipe_mconfig.user_model,
+                model_props=self.pipe_mconfig.user_model,
                 llm_config=self.pipe_mconfig.llm_config,
                 technique=self.technique,
                 user_schema=self.pipe_prompt.user_schema,

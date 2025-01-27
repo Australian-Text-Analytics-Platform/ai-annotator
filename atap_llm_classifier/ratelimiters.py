@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from collections import namedtuple
 from functools import total_ordering, lru_cache
 
@@ -16,8 +19,10 @@ __all__ = [
 ]
 
 from atap_llm_classifier import config
-from atap_llm_classifier.providers import LLMModelProperties, LLMProvider
 from atap_llm_classifier.utils import utils
+
+if TYPE_CHECKING:
+    from atap_llm_classifier.providers import LLMModelProperties
 
 
 @total_ordering
@@ -179,8 +184,8 @@ def get_rate_limit_for_requests(
 ) -> RateLimit:
     candidates: list[RateLimit] = list()
     if not config.mock.enabled:
-        match model_props.provider:
-            case LLMProvider.OPENAI:
+        match model_props.provider.value:
+            case "openai":
                 if not model_props.is_authenticated():
                     raise ValueError("Provided model props is not authenticated.")
                 model, api_key = model_props.name, model_props.api_key
@@ -210,8 +215,8 @@ def get_rate_limit_for_tokens(
     model_props: LLMModelProperties,
 ) -> RateLimit | None:
     if not config.mock.enabled:
-        match model_props.provider:
-            case LLMProvider.OPENAI:
+        match model_props.provider.value:
+            case "openai":
                 if not model_props.is_authenticated():
                     raise ValueError("Provided model props is not authenticated.")
                 return _get_openai_rate_limit(
