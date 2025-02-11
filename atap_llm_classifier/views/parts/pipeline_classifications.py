@@ -1,4 +1,5 @@
 import asyncio
+from io import BytesIO
 
 import panel as pn
 from panel.viewable import Viewer, Viewable
@@ -90,6 +91,11 @@ class PipelineClassifications(Viewer):
             width=600,
         )
 
+        self.download_annotations_btn = pn.widgets.FileDownload(
+            filename='annotated.csv',
+            callback=self._df_as_csv
+        )
+
         self.layout = pn.Column(
             self.df_widget,
             pn.Row(
@@ -101,6 +107,9 @@ class PipelineClassifications(Viewer):
                 self.classify_all_btn,
                 self.all_progress_bar,
             ),
+            pn.Row(
+                self.download_annotations_btn
+            )
         )
 
         self.last_batch_results: pipeline.BatchResults | None = None
@@ -212,3 +221,9 @@ class PipelineClassifications(Viewer):
                 ),
             )
         )
+
+    def _df_as_csv(self) -> BytesIO:
+        file_obj = BytesIO()
+        self.df.to_csv(file_obj)
+        file_obj.seek(0)
+        return file_obj
