@@ -1,4 +1,5 @@
 import asyncio
+from io import BytesIO
 
 import panel as pn
 from panel.viewable import Viewer, Viewable
@@ -90,6 +91,11 @@ class PipelineClassifications(Viewer):
             width=600,
         )
 
+        self.download_annotations_btn = pn.widgets.FileDownload(
+            filename='annotated.csv',
+            callback=self._df_as_csv
+        )
+
         self.layout = pn.Column(
             self.df_widget,
             pn.Row(
@@ -101,6 +107,9 @@ class PipelineClassifications(Viewer):
                 self.classify_all_btn,
                 self.all_progress_bar,
             ),
+            pn.Row(
+                self.download_annotations_btn
+            )
         )
 
         self.last_batch_results: pipeline.BatchResults | None = None
@@ -126,7 +135,7 @@ class PipelineClassifications(Viewer):
             res: core.ClassificationResult = await core.a_classify(
                 text=text,
                 model=self.pipe_mconfig.user_model.name,
-                api_key=self.pipe_mconfig.user_model.validated_api_key.get_secret_value(),
+                api_key=self.pipe_mconfig.provider_user_props.api_key,
                 llm_config=self.pipe_mconfig.llm_config,
                 technique=self.technique.get_prompt_maker(
                     self.pipe_prompt.user_schema_rx.rx.value
@@ -162,7 +171,7 @@ class PipelineClassifications(Viewer):
 
             batch_results: pipeline.BatchResults = await pipeline.a_batch(
                 corpus=self.corpus,
-                user_model=self.pipe_mconfig.user_model,
+                model_props=self.pipe_mconfig.user_model,
                 llm_config=self.pipe_mconfig.llm_config,
                 technique=self.technique,
                 user_schema=self.pipe_prompt.user_schema,
@@ -212,3 +221,9 @@ class PipelineClassifications(Viewer):
                 ),
             )
         )
+
+    def _df_as_csv(self) -> BytesIO:
+        file_obj = BytesIO()
+        self.df.to_csv(file_obj)
+        file_obj.seek(0)
+        return file_obj

@@ -7,8 +7,7 @@ from atap_llm_classifier.models import LLMConfig
 from atap_llm_classifier.providers.providers import (
     LLMProvider,
     LLMModelProperties,
-    LLMProviderUserProperties,
-    LLMModelUserProperties,
+    LLMProviderProperties,
 )
 from atap_llm_classifier.views.props import ViewProp, PipeModelProps
 
@@ -32,9 +31,9 @@ COMP_TOOLTIP_MARGIN: tuple[int, int, int, int] = (0, 0, 0, 5)
 
 # todo: sensible defaults based on technique (given in LLMProvider's properties)
 class PipelineModelConfigView(Viewer):
-    def __init__(self, provider_user_props: LLMProviderUserProperties, **params):
+    def __init__(self, provider_user_props: LLMProviderProperties, **params):
         super().__init__(**params)
-        self.provider_user_props: LLMProviderUserProperties = provider_user_props
+        self.provider_user_props: LLMProviderProperties = provider_user_props
 
         mprops_rx = pn.rx(self.provider_user_props.models)
         self.model_selector = pn.widgets.Select(
@@ -152,7 +151,7 @@ class PipelineModelConfigView(Viewer):
         return self.model_selector.value
 
     @property
-    def user_model(self) -> LLMModelUserProperties:
+    def user_model(self) -> LLMModelProperties:
         return self.provider_user_props.get_model_props(self.model)
 
     @property

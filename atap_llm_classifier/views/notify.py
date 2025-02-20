@@ -2,7 +2,7 @@ import enum
 import functools
 import inspect
 from typing import Callable, Any, Awaitable
-from venv import logger
+from loguru import logger
 
 import panel as pn
 

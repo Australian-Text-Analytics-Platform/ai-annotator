@@ -33,8 +33,6 @@ __all__ = [
     "LLMProvider",
     "LLMModelProperties",
     "LLMProviderProperties",
-    "LLMProviderUserProperties",
-    "LLMModelUserProperties",
     "validate_api_key",
 ]
 
@@ -105,67 +103,6 @@ class LLMProvider(str, Enum):
             **props,
         )
 
-    # todo: deprecate this in favour of with_api_key
-    @lru_cache
-    def get_user_properties(self, api_key: str) -> "LLMProviderUserProperties":
-        """Get the llm properties dependent on the user's API Key."""
-        if config.mock.enabled:
-            raise ValueError(
-                "There are no user specific provider properties when in mock mode."
-            )
-
-        if not validate_api_key(self, api_key):
-            raise ValueError(f"Invalid api key given for provider: {self.value}.")
-
-        props_copy: LLMProviderProperties = self.properties.copy()
-        match self:
-            case LLMProvider.OPENAI:
-                base_models, ft_ftbase_models = openai_.get_available_models_for_user(
-                    api_key
-                )
-                ft_models_prop_list = list()
-                for ft, ft_base in ft_ftbase_models:
-                    try:
-                        ft_model_props = props_copy.get_model_props(ft_base).model_copy(
-                            deep=True
-                        )
-                        ft_model_props.name = ft
-                    except ValueError as e:
-                        logger.warning(
-                            f"Finetuned base model not found. Skipped id={ft}. Err: {e}"
-                        )
-                        continue
-                    ft_models_prop_list.append(ft_model_props)
-                props_copy.models = [
-                    model for model in props_copy.models if model.name in base_models
-                ]
-                for ft_model_props in ft_models_prop_list:
-                    props_copy.models.append(ft_model_props)
-            case LLMProvider.OPENAI_AZURE_SIH:
-                raise NotImplementedError(
-                    "LLM user models based on SIH's OpenAI on Azure is not yet implemented."
-                )
-            case LLMProvider.OLLAMA:
-                raise NotImplementedError(
-                    "LLM user models based on Ollama is not yet implemented."
-                )
-            case _:
-                raise LookupError("Not a valid provider.")
-
-        user_models = [
-            LLMModelUserProperties(validated_api_key=api_key, **model.model_dump())
-            for model in props_copy.models
-        ]
-        return LLMProviderUserProperties(
-            validated_api_key=api_key,
-            models=user_models,
-            **props_copy.model_dump(
-                exclude={
-                    "models",
-                }
-            ),
-        )
-
 
 class LLMModelProperties(BaseModel):
     name: str
@@ -225,14 +162,6 @@ class LLMModelProperties(BaseModel):
         if self.endpoint is not None:
             hashables.append(self.endpoint)
         return hash(tuple(hashables))
-
-
-# todo: deprecate this
-class LLMModelUserProperties(LLMModelProperties):
-    validated_api_key: SecretStr
-
-    def __hash__(self):
-        return hash((self.name, self.validated_api_key.get_secret_value()))
 
 
 class LLMProviderProperties(BaseModel):
@@ -309,18 +238,6 @@ class LLMProviderProperties(BaseModel):
     # needed for lru_cache
     def __hash__(self):
         return hash((self.name, self.provider, self.description))
-
-
-# todo: deprecate this in favour of with_api_key
-class LLMProviderUserProperties(LLMProviderProperties):
-    validated_api_key: SecretStr
-    models: list[LLMModelUserProperties]
-
-    def get_model_props(self, model: str) -> LLMModelUserProperties:
-        return super().get_model_props(model=model)
-
-    def __hash__(self):
-        return hash((self.name, self.validated_api_key.get_secret_value()))
 
 
 def validate_api_key(
