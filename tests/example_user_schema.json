@@ -1,0 +1,12 @@
+{
+  "classes": [
+    {
+      "name": "Positive",
+      "description": "Describes a positive sentiment or event"
+    },
+    {
+      "name": "Negative",
+      "description": "Describes a negative sentiment or event"
+    }
+  ]
+}
