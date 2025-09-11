@@ -1,0 +1,34 @@
+{
+  "classes": [
+    {
+      "name": "Positive",
+      "description": "Describes a positive sentiment or event"
+    },
+    {
+      "name": "Negative", 
+      "description": "Describes a negative sentiment or event"
+    }
+  ],
+  "examples": [
+    {
+      "query": "I absolutely love this new restaurant! The food was amazing and the service was excellent.",
+      "classification": "Positive",
+      "reason": "The text contains strong positive words like 'love', 'amazing', and 'excellent' which clearly indicate positive sentiment about the restaurant experience."
+    },
+    {
+      "query": "This product is terrible. It broke after just one day and customer support was unhelpful.",
+      "classification": "Negative", 
+      "reason": "The text uses negative language like 'terrible', 'broke', and 'unhelpful' to describe a bad experience with both the product and customer service."
+    },
+    {
+      "query": "What a fantastic day! The weather is perfect and I'm feeling great.",
+      "classification": "Positive",
+      "reason": "The exclamatory tone with 'fantastic' and 'perfect' along with 'feeling great' expresses clear positive emotions about the day and mood."
+    },
+    {
+      "query": "I'm really disappointed with the movie. The plot was confusing and the acting was poor.",
+      "classification": "Negative",
+      "reason": "The text expresses disappointment and criticizes multiple aspects (plot, acting) using negative descriptors like 'confusing' and 'poor'."
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "classes": [
+    {
+      "name": "Positive",
+      "description": "Describes a positive sentiment or event"
+    },
+    {
+      "name": "Negative", 
+      "description": "Describes a negative sentiment or event"
+    }
+  ],
+  "examples": [
+    {
+      "query": "I absolutely love this new restaurant! The food was amazing and the service was excellent.",
+      "classification": "Positive"
+    },
+    {
+      "query": "This product is terrible. It broke after just one day and customer support was unhelpful.",
+      "classification": "Negative"
+    },
+    {
+      "query": "What a fantastic day! The weather is perfect and I'm feeling great.",
+      "classification": "Positive"
+    },
+    {
+      "query": "I'm really disappointed with the movie. The plot was confusing and the acting was poor.",
+      "classification": "Negative"
+    }
+  ]
+}
