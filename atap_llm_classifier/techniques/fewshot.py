@@ -1,38 +1,37 @@
-"""cot.py
+"""fewshot.py
 
-Chain of Thought - allows for N number of 'shots'.
+Few-Shot Learning - provides examples without requiring reasoning.
 """
 
 from atap_llm_classifier.techniques import Technique, BaseTechnique
 from atap_llm_classifier.techniques.schemas import (
-    CoTPromptTemplate,
-    CoTUserSchema,
-    CoTClass,
-    CoTExample,
+    FewShotPromptTemplate,
+    FewShotUserSchema,
+    FewShotClass,
+    FewShotExample,
 )
 
 __all__ = [
-    "ChainOfThought",
+    "FewShot",
 ]
 
 
-def make_prompt_examples(user_schema: CoTUserSchema) -> str:
+def make_prompt_examples(user_schema: FewShotUserSchema) -> str:
     return "\n".join(
         map(
-            lambda ex: ChainOfThought.template.user_schema_templates.example.format(
+            lambda ex: FewShot.template.user_schema_templates.example.format(
                 example=ex.query,
                 classification=ex.classification,
-                reason=ex.reason if ex.reason is not None else "No specific reasoning provided.",
             ),
             user_schema.examples,
         )
     )
 
 
-def make_prompt_classes(user_schema: CoTUserSchema) -> str:
+def make_prompt_classes(user_schema: FewShotUserSchema) -> str:
     return "\n".join(
         map(
-            lambda c: ChainOfThought.template.user_schema_templates.clazz.format(
+            lambda c: FewShot.template.user_schema_templates.clazz.format(
                 name=c.name,
                 description=c.description,
             ),
@@ -41,9 +40,9 @@ def make_prompt_classes(user_schema: CoTUserSchema) -> str:
     )
 
 
-class ChainOfThought(BaseTechnique):
-    schema: CoTUserSchema = CoTUserSchema
-    template: CoTPromptTemplate = Technique.CHAIN_OF_THOUGHT.prompt_template
+class FewShot(BaseTechnique):
+    schema: FewShotUserSchema = FewShotUserSchema
+    template: FewShotPromptTemplate = Technique.FEW_SHOT.prompt_template
 
     def make_prompt(self, text: str) -> str:
         examples: str = make_prompt_examples(user_schema=self.user_schema)
@@ -56,9 +55,9 @@ class ChainOfThought(BaseTechnique):
         )
 
     @property
-    def examples(self) -> list[CoTExample]:
+    def examples(self) -> list[FewShotExample]:
         return self.user_schema.examples
 
     @property
-    def classes(self) -> list[CoTClass]:
+    def classes(self) -> list[FewShotClass]:
         return self.user_schema.classes

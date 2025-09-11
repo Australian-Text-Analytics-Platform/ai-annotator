@@ -10,6 +10,7 @@ from atap_llm_classifier.assets import Asset
 from atap_llm_classifier.techniques.base import BaseTechnique
 from atap_llm_classifier.techniques.schemas import (
     ZeroShotPromptTemplate,
+    FewShotPromptTemplate,
     CoTPromptTemplate,
 )
 
@@ -28,6 +29,7 @@ class TechniqueInfo(BaseModel):
 
 class Technique(str, Enum):
     ZERO_SHOT: str = "zero_shot"
+    FEW_SHOT: str = "few_shot"
     CHAIN_OF_THOUGHT: str = "chain_of_thought"
 
     @cached_property
@@ -35,11 +37,13 @@ class Technique(str, Enum):
         return TechniqueInfo(**Asset.TECHNIQUES.get(self.value))
 
     @cached_property
-    def prompt_template(self) -> ZeroShotPromptTemplate | CoTPromptTemplate:
+    def prompt_template(self) -> ZeroShotPromptTemplate | FewShotPromptTemplate | CoTPromptTemplate:
         template: dict = Asset.PROMPT_TEMPLATES.get(self.value)
         match self:
             case Technique.ZERO_SHOT:
                 return ZeroShotPromptTemplate(**template)
+            case Technique.FEW_SHOT:
+                return FewShotPromptTemplate(**template)
             case Technique.CHAIN_OF_THOUGHT:
                 return CoTPromptTemplate(**template)
 
@@ -50,6 +54,10 @@ class Technique(str, Enum):
                 from .zeroshot import ZeroShot
 
                 return ZeroShot
+            case Technique.FEW_SHOT:
+                from .fewshot import FewShot
+
+                return FewShot
             case Technique.CHAIN_OF_THOUGHT:
                 from .cot import ChainOfThought
 

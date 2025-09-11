@@ -4,6 +4,12 @@ zero_shot:
   explanation: ""
   paper_url: ""
 
+few_shot:
+  name: "Few Shot"
+  description: "Provide examples without reasoning to guide the LLM."
+  explanation: "Uses provided examples of query-classification pairs to demonstrate the task."
+  paper_url: ""
+
 chain_of_thought:
   name: "Chain Of Thought"
   description: "Use a series of intermediate reasoning steps to guide the LLM."

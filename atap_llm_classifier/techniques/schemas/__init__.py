@@ -22,4 +22,5 @@ class BasePromptTemplate(BaseModel, metaclass=abc.ABCMeta):
 
 
 from .cot import *
+from .fewshot import *
 from .zeroshot import *

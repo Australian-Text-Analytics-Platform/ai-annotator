@@ -22,6 +22,47 @@ zero_shot:
       description: {description}
       </class>
 
+few_shot:
+  structure: |
+    You are provided with {num_classes} classes with a description of each. 
+    Followed by examples with a query and its correct classification.
+    Each class is demarcated with the format: 
+    <class>
+    name: 
+    description: 
+    </class>
+    Each example is demarcated with the format:
+    <example>
+    query: 
+    class:
+    </example>
+    
+    Below are the classes.
+    
+    {classes}
+    
+    Below are the examples.
+    
+    {examples}
+    
+    Referencing each of the classes and the examples provided above, your task is to classify the following 
+    query into one of the provided classes.
+    
+    query: {text}
+
+  user_schema_templates:
+    clazz: |
+      <class>
+      name: {name}
+      description: {description}
+      </class>
+
+    example: |
+      <example>
+      query: {example}
+      class: {classification}
+      </example>
+
 chain_of_thought:
   structure: |
     You are provided with {num_classes} classes and a description of each. 
