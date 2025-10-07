@@ -4,6 +4,9 @@
 # envs
 **/.env*
 
+# ignore all zip files
+*.zip
+
 # jupyter
 .ipynb_checkpoints
 
@@ -13,18 +16,20 @@ todos.txt
 corpus_files/
 tests/ltest*
 
-# Claude Code
-.claude/
-.history/
+# Ignore all markdown files
+*.md
+# But don't ignore README.md
+!README.md
+
+# Ignore all dot files
+.*
+# But don't ignore
+!.env.example
+!.gitignore
 
 # Development notes and archives
-CLAUDE.md
-notes.md
-notes_fastapi_implementation.md
-integration_notes.md
 keep-paths.txt
 filter-migration.py
-Archive.zip
 pyproject-fastapi.toml
 
 # Example outputs
