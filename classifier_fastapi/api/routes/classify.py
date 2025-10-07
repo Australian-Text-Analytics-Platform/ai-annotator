@@ -157,14 +157,13 @@ async def estimate_classification_cost(
         provider = LLMProvider[request.provider.upper()]
         technique = Technique[request.technique.upper()]
 
-        model_props = provider.properties.get_model_props(request.model)
         user_schema = technique.prompt_maker_cls.schema.model_validate(request.user_schema)
         prompt_maker = technique.get_prompt_maker(user_schema)
 
-        # Estimate tokens
+        # Estimate tokens using LiteLLM token_counter
         token_estimate = CostEstimator.estimate_tokens(
             request.texts,
-            model_props,
+            request.model,
             prompt_maker
         )
 
@@ -172,16 +171,18 @@ async def estimate_classification_cost(
         if token_estimate.get("warning"):
             warnings.append(token_estimate["warning"])
 
-        # Estimate cost
+        # Estimate cost using LiteLLM pricing
         cost = None
+        pricing_per_million = None
         if token_estimate.get("total_tokens"):
             cost = CostEstimator.estimate_cost(
                 token_estimate,
-                request.provider,
                 request.model
             )
             if cost is None:
-                warnings.append(f"Pricing information not available for {request.provider}/{request.model}")
+                warnings.append(f"Pricing information not available for {request.model}")
+            else:
+                pricing_per_million = CostEstimator.get_pricing_per_million(request.model)
 
         return CostEstimateResponse(
             estimated_tokens=token_estimate.get("total_tokens", 0),
@@ -189,6 +190,10 @@ async def estimate_classification_cost(
             provider=request.provider,
             model=request.model,
             num_texts=len(request.texts),
+            input_tokens=token_estimate.get("input_tokens"),
+            output_tokens=token_estimate.get("estimated_output_tokens"),
+            input_cost_per_1m=pricing_per_million.get("input_per_million") if pricing_per_million else None,
+            output_cost_per_1m=pricing_per_million.get("output_per_million") if pricing_per_million else None,
             warnings=warnings
         )
 

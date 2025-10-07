@@ -12,3 +12,25 @@
 todos.txt
 corpus_files/
 tests/ltest*
+
+# Claude Code
+.claude/
+.history/
+
+# Development notes and archives
+CLAUDE.md
+notes.md
+notes_fastapi_implementation.md
+integration_notes.md
+keep-paths.txt
+filter-migration.py
+Archive.zip
+pyproject-fastapi.toml
+
+# Example outputs
+example_out*/
+
+# Test copies
+tests/example_run2 copy.sh
+tests/example_run_ollama.sh
+tests/example_user_schema2.json

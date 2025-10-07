@@ -1,94 +1,123 @@
 """cost.py
 
 Cost estimation and calculation for LLM classification jobs.
-Provides token counting and pricing calculations for different providers.
+Uses LiteLLM's dynamic pricing data for accurate, up-to-date cost calculations.
 """
 
 from typing import Dict, Optional
 from loguru import logger
+from litellm import model_cost, token_counter
 
-from classifier_fastapi.providers.providers import LLMModelProperties
 from classifier_fastapi.techniques import BaseTechnique
 
-# Pricing data (USD per token) - Updated as of 2024
-# Source: OpenAI pricing page
-PRICING = {
-    "openai": {
-        "gpt-4o-mini": {"input": 0.150 / 1_000_000, "output": 0.600 / 1_000_000},
-        "gpt-4o": {"input": 5.00 / 1_000_000, "output": 15.00 / 1_000_000},
-        "gpt-4o-2024-08-06": {"input": 2.50 / 1_000_000, "output": 10.00 / 1_000_000},
-        "gpt-4-turbo": {"input": 10.00 / 1_000_000, "output": 30.00 / 1_000_000},
-        "gpt-4-turbo-2024-04-09": {"input": 10.00 / 1_000_000, "output": 30.00 / 1_000_000},
-        "gpt-4": {"input": 30.00 / 1_000_000, "output": 60.00 / 1_000_000},
-        "gpt-3.5-turbo": {"input": 0.50 / 1_000_000, "output": 1.50 / 1_000_000},
-        "gpt-3.5-turbo-0125": {"input": 0.50 / 1_000_000, "output": 1.50 / 1_000_000},
-    },
-    "anthropic": {
-        "claude-3-5-sonnet-20241022": {"input": 3.00 / 1_000_000, "output": 15.00 / 1_000_000},
-        "claude-3-5-sonnet-20240620": {"input": 3.00 / 1_000_000, "output": 15.00 / 1_000_000},
-        "claude-3-opus-20240229": {"input": 15.00 / 1_000_000, "output": 75.00 / 1_000_000},
-        "claude-3-sonnet-20240229": {"input": 3.00 / 1_000_000, "output": 15.00 / 1_000_000},
-        "claude-3-haiku-20240307": {"input": 0.25 / 1_000_000, "output": 1.25 / 1_000_000},
-    },
-    # Ollama models are typically free (self-hosted)
-    "ollama": {},
-}
+__all__ = [
+    "CostEstimator",
+]
 
 # Default output token estimate per classification
 DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION = 50
 
 
 class CostEstimator:
-    """Cost estimation for LLM classification jobs"""
+    """Cost estimation for LLM classification jobs using LiteLLM's dynamic pricing"""
+
+    @staticmethod
+    def get_model_pricing(model: str) -> Optional[Dict]:
+        """
+        Get pricing information for a model from LiteLLM's model_cost dictionary.
+
+        Args:
+            model: Model name (e.g., 'gpt-4o-mini', 'claude-3-5-sonnet-20241022')
+
+        Returns:
+            Dict with pricing info, or None if not available
+        """
+        # Try exact match first
+        if model in model_cost:
+            pricing = model_cost[model]
+            # Only return if it's a chat/completion model
+            if pricing.get("mode") in ["chat", "completion"]:
+                return pricing
+
+        # Try with provider prefix stripped (e.g., "openai/gpt-4o-mini" -> "gpt-4o-mini")
+        if "/" in model:
+            base_model = model.split("/")[-1]
+            if base_model in model_cost:
+                pricing = model_cost[base_model]
+                if pricing.get("mode") in ["chat", "completion"]:
+                    return pricing
+
+        return None
+
+    @staticmethod
+    def is_pricing_available(model: str) -> bool:
+        """Check if pricing is available for a model"""
+        return CostEstimator.get_model_pricing(model) is not None
 
     @staticmethod
     def estimate_tokens(
         texts: list[str],
-        model_props: LLMModelProperties,
+        model: str,
         prompt_maker: BaseTechnique,
     ) -> Dict:
         """
-        Estimate token usage for a batch of texts.
+        Estimate token usage for a batch of texts using LiteLLM's token_counter.
+
+        Args:
+            texts: List of texts to classify
+            model: Model name for tokenization
+            prompt_maker: Technique to generate prompts
 
         Returns:
             Dict with keys: input_tokens, estimated_output_tokens, total_tokens, warning (optional)
         """
-        if not model_props.known_tokeniser():
-            logger.warning(f"Tokenizer not available for {model_props.name}")
+        try:
+            total_input_tokens = 0
+
+            for text in texts:
+                prompt = prompt_maker.make_prompt(text)
+                # Format as LiteLLM messages
+                messages = [{"role": "user", "content": prompt}]
+
+                try:
+                    tokens = token_counter(model=model, messages=messages)
+                    total_input_tokens += tokens
+                except Exception as e:
+                    logger.warning(f"Failed to count tokens for model {model}: {e}")
+                    return {
+                        "input_tokens": None,
+                        "estimated_output_tokens": None,
+                        "total_tokens": None,
+                        "warning": f"Token counting not available for {model}"
+                    }
+
+            # Estimate output tokens (rough approximation)
+            total_output_tokens = len(texts) * DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION
+
+            return {
+                "input_tokens": total_input_tokens,
+                "estimated_output_tokens": total_output_tokens,
+                "total_tokens": total_input_tokens + total_output_tokens
+            }
+        except Exception as e:
+            logger.error(f"Error estimating tokens: {e}")
             return {
                 "input_tokens": None,
                 "estimated_output_tokens": None,
                 "total_tokens": None,
-                "warning": f"Tokenizer not available for {model_props.name}"
+                "warning": f"Token estimation failed: {str(e)}"
             }
-
-        total_input_tokens = 0
-        for text in texts:
-            prompt = prompt_maker.make_prompt(text)
-            tokens = model_props.count_tokens(prompt)
-            total_input_tokens += tokens
-
-        # Estimate output tokens (rough approximation)
-        total_output_tokens = len(texts) * DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION
-
-        return {
-            "input_tokens": total_input_tokens,
-            "estimated_output_tokens": total_output_tokens,
-            "total_tokens": total_input_tokens + total_output_tokens
-        }
 
     @staticmethod
     def estimate_cost(
         tokens: Dict,
-        provider: str,
         model: str,
     ) -> Optional[float]:
         """
-        Estimate cost in USD based on token counts and provider pricing.
+        Estimate cost in USD based on token counts and LiteLLM pricing data.
 
         Args:
             tokens: Dict with input_tokens and estimated_output_tokens
-            provider: Provider name (e.g., "openai", "anthropic")
             model: Model name
 
         Returns:
@@ -97,22 +126,21 @@ class CostEstimator:
         if tokens.get("input_tokens") is None:
             return None
 
-        provider_lower = provider.lower()
+        pricing = CostEstimator.get_model_pricing(model)
 
-        # Handle litellm model naming (e.g., "openai/gpt-4o-mini" -> "gpt-4o-mini")
-        model_name = model.split("/")[-1] if "/" in model else model
-
-        if provider_lower not in PRICING:
-            logger.warning(f"Pricing not available for provider: {provider}")
+        if not pricing:
+            logger.warning(f"Pricing not available for model: {model}")
             return None
 
-        if model_name not in PRICING[provider_lower]:
-            logger.warning(f"Pricing not available for model: {model_name} from provider: {provider}")
+        input_cost_per_token = pricing.get("input_cost_per_token", 0)
+        output_cost_per_token = pricing.get("output_cost_per_token", 0)
+
+        if input_cost_per_token == 0 and output_cost_per_token == 0:
+            logger.warning(f"Zero pricing found for model: {model}")
             return None
 
-        pricing = PRICING[provider_lower][model_name]
-        input_cost = tokens["input_tokens"] * pricing["input"]
-        output_cost = tokens["estimated_output_tokens"] * pricing["output"]
+        input_cost = tokens["input_tokens"] * input_cost_per_token
+        output_cost = tokens["estimated_output_tokens"] * output_cost_per_token
 
         return input_cost + output_cost
 
@@ -120,7 +148,6 @@ class CostEstimator:
     def calculate_actual_cost(
         input_tokens: int,
         output_tokens: int,
-        provider: str,
         model: str,
     ) -> Optional[float]:
         """
@@ -129,43 +156,51 @@ class CostEstimator:
         Args:
             input_tokens: Actual input tokens used
             output_tokens: Actual output tokens used
-            provider: Provider name
             model: Model name
 
         Returns:
             Actual cost in USD, or None if pricing not available
         """
-        provider_lower = provider.lower()
+        pricing = CostEstimator.get_model_pricing(model)
 
-        # Handle litellm model naming
-        model_name = model.split("/")[-1] if "/" in model else model
-
-        if provider_lower not in PRICING:
-            logger.warning(f"Pricing not available for provider: {provider}")
+        if not pricing:
+            logger.warning(f"Pricing not available for model: {model}")
             return None
 
-        if model_name not in PRICING[provider_lower]:
-            logger.warning(f"Pricing not available for model: {model_name} from provider: {provider}")
+        input_cost_per_token = pricing.get("input_cost_per_token", 0)
+        output_cost_per_token = pricing.get("output_cost_per_token", 0)
+
+        if input_cost_per_token == 0 and output_cost_per_token == 0:
             return None
 
-        pricing = PRICING[provider_lower][model_name]
-        input_cost = input_tokens * pricing["input"]
-        output_cost = output_tokens * pricing["output"]
+        input_cost = input_tokens * input_cost_per_token
+        output_cost = output_tokens * output_cost_per_token
 
         return input_cost + output_cost
 
     @staticmethod
-    def get_available_pricing() -> Dict:
-        """Get all available pricing information"""
-        return PRICING.copy()
+    def get_pricing_per_million(model: str) -> Optional[Dict[str, float]]:
+        """
+        Get pricing per million tokens for display purposes.
 
-    @staticmethod
-    def supports_pricing(provider: str, model: str) -> bool:
-        """Check if pricing is available for a provider/model combination"""
-        provider_lower = provider.lower()
-        model_name = model.split("/")[-1] if "/" in model else model
+        Args:
+            model: Model name
 
-        return (
-            provider_lower in PRICING and
-            model_name in PRICING[provider_lower]
-        )
+        Returns:
+            Dict with input_per_million and output_per_million, or None
+        """
+        pricing = CostEstimator.get_model_pricing(model)
+
+        if not pricing:
+            return None
+
+        input_cost = pricing.get("input_cost_per_token", 0)
+        output_cost = pricing.get("output_cost_per_token", 0)
+
+        if input_cost == 0 and output_cost == 0:
+            return None
+
+        return {
+            "input_per_million": input_cost * 1_000_000,
+            "output_per_million": output_cost * 1_000_000
+        }
