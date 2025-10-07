@@ -9,7 +9,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 
 from classifier_fastapi.assets import Asset
-from classifier_fastapi.models import (
+from classifier_fastapi.core.models import (
     LLMConfig,
 )
 from classifier_fastapi.techniques import BaseTechnique

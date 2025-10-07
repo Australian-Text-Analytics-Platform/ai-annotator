@@ -10,7 +10,7 @@ from functools import lru_cache
 import litellm
 from litellm import ModelResponse
 
-from classifier_fastapi.models import (
+from classifier_fastapi.core.models import (
     LiteLLMMessage,
     LiteLLMRole,
     LiteLLMCompletionArgs,

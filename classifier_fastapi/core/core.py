@@ -12,9 +12,10 @@ from litellm import acompletion, ModelResponse, Choices
 from loguru import logger
 from pydantic import BaseModel
 
-from classifier_fastapi import errors, config
+from classifier_fastapi import errors
+from classifier_fastapi.core import config
 from classifier_fastapi.formatter import formatter
-from classifier_fastapi.models import (
+from classifier_fastapi.core.models import (
     LLMConfig,
     LiteLLMMessage,
     LiteLLMCompletionArgs,

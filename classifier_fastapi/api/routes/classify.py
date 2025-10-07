@@ -31,7 +31,7 @@ async def process_classification_job(job_id: str, request: ClassificationRequest
         from classifier_fastapi.providers import LLMProvider
         from classifier_fastapi.techniques import Technique
         from classifier_fastapi.modifiers import Modifier
-        from classifier_fastapi.models import LLMConfig
+        from classifier_fastapi.core.models import LLMConfig
         from classifier_fastapi.core import pipeline
 
         provider = LLMProvider[request.provider.upper()]

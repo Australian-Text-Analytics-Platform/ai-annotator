@@ -18,7 +18,7 @@ from pydantic import (
     computed_field,
 )
 
-from classifier_fastapi import config
+from classifier_fastapi.core import config
 from classifier_fastapi.assets import Asset
 from classifier_fastapi.utils import litellm_ as litellm_utils
 from classifier_fastapi.utils.prompt import TokenEncoder, get_token_encoder_for_openai

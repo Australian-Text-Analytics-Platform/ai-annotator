@@ -18,7 +18,7 @@ __all__ = [
     "TokenBucket",
 ]
 
-from classifier_fastapi import config
+from classifier_fastapi.core import config
 from classifier_fastapi.utils import utils
 
 if TYPE_CHECKING:
