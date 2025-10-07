@@ -45,12 +45,16 @@ class Settings(BaseSettings):
     # CORS (comma-separated origins)
     CORS_ORIGINS: str = "*"
 
+    # Logging
+    LOG_LEVEL: str = "INFO"
+
     # Output format
     LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.YAML
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"  # Ignore extra fields from .env
 
     @property
     def service_api_keys(self) -> Set[str]:

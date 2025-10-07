@@ -25,12 +25,12 @@ async def get_current_api_key(
         Validated API key
     """
     auth_service = get_auth_service()
-    try:
-        return auth_service.validate_api_key(api_key)
-    except HTTPException:
-        raise
-    except Exception as e:
+
+    # Validate the API key
+    if api_key not in auth_service.valid_api_keys:
         raise HTTPException(status_code=403, detail="Invalid API key")
+
+    return api_key
 
 
 async def validate_batch_size(batch_size: int) -> int:
