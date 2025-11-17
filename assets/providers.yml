@@ -2,6 +2,7 @@ openai:
   name: "OpenAI"
   description: "OpenAI the company"
   privacy_policy_url: "https://openai.com/policies/privacy-policy"
+  api_key_test_model: "gpt-4.1-mini"
   models:
     # regex match prioritised in order
     .*gpt-3.5-turbo.*:

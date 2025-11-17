@@ -1,4 +1,5 @@
 from functools import lru_cache
+import math
 
 import pandas as pd
 from litellm import model_cost
@@ -54,9 +55,13 @@ def get_available_models(provider: str) -> list[str]:
     return df[mask].index.tolist()
 
 
-def get_context_window(model: str) -> int:
+def get_context_window(model: str) -> int | None:
     df = load_model_cost_as_df()
-    return int(df.loc[model, "max_input_tokens"])
+    max_input_tokens = df.loc[model, "max_input_tokens"]
+    # Handle NaN or missing values
+    if pd.isna(max_input_tokens) or (isinstance(max_input_tokens, float) and math.isnan(max_input_tokens)):
+        return None
+    return int(max_input_tokens)
 
 
 def get_price(model: str) -> tuple[float, float]:

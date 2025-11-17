@@ -1,7 +1,9 @@
 # AI Annotator
 
-This repository provides an AI annotator tool for the LDaCA/ATAP Platform. 
+This repository provides an AI annotator tool for the LDaCA/ATAP Platform.
 The tool enables automated text classification using large language models with support for zero-shot, few-shot, and chain-of-thought prompting techniques.
+
+Available as both a **CLI tool** and **REST API service** for flexible integration.
 
 
 ## Installation 
@@ -140,6 +142,155 @@ results = pipeline.batch(
     user_schema=user_schema,
     modifier=Modifier.NO_MODIFIER
 )
+```
+
+## FastAPI REST API
+
+The classifier is also available as a REST API service for integration with other applications and services.
+
+### Starting the API Server
+
+```shell
+# Using the development server
+python run_api.py
+
+# Or using uvicorn directly
+uvicorn classifier_fastapi.api.main:app --host 0.0.0.0 --port 8002 --reload
+```
+
+The API will be available at `http://localhost:8002` with interactive documentation at:
+- Swagger UI: `http://localhost:8002/docs`
+- ReDoc: `http://localhost:8002/redoc`
+
+### Configuration
+
+Set environment variables in `.env` file:
+
+```shell
+SERVICE_API_KEYS=your-api-key-1,your-api-key-2
+MAX_BATCH_SIZE=1000
+MAX_CONCURRENT_JOBS=100
+DEFAULT_WORKERS=5
+CORS_ORIGINS="*"
+```
+
+### API Endpoints
+
+**Authentication**: All endpoints (except `/health/`) require an `X-API-Key` header.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health/` | GET | Health check (no auth required) |
+| `/models/` | GET | List available models and pricing |
+| `/classify/estimate-cost` | POST | Estimate cost before classification |
+| `/classify/batch` | POST | Submit classification job |
+| `/jobs/{job_id}` | GET | Get job status and results |
+| `/jobs/{job_id}` | DELETE | Cancel a running job |
+
+### Example Usage
+
+**Submit a Classification Job:**
+
+```bash
+curl -X POST http://localhost:8002/classify/batch \
+  -H "X-API-Key: test-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "texts": ["This is great!", "I hate this", "It is okay"],
+    "user_schema": {
+      "classes": [
+        {"name": "positive", "description": "Positive sentiment"},
+        {"name": "negative", "description": "Negative sentiment"},
+        {"name": "neutral", "description": "Neutral sentiment"}
+      ]
+    },
+    "provider": "openai",
+    "model": "gpt-4.1-mini",
+    "technique": "zero_shot",
+    "temperature": 0.7,
+    "llm_api_key": "your-key"
+  }'
+```
+
+Response:
+```json
+{
+  "job_id": "4e5b8835-34cf-46f7-81d7-c836053ca24d",
+  "status": "pending",
+  "message": "Classification job created successfully",
+  "created_at": "2025-11-17T22:55:26.047218"
+}
+```
+
+**Check Job Status:**
+
+```bash
+curl http://localhost:8002/jobs/4e5b8835-34cf-46f7-81d7-c836053ca24d \
+  -H "X-API-Key: test-api-key"
+```
+
+Response:
+```json
+{
+  "job_id": "4e5b8835-34cf-46f7-81d7-c836053ca24d",
+  "status": "completed",
+  "progress": {
+    "total": 3,
+    "completed": 3,
+    "failed": 0,
+    "percentage": 100.0
+  },
+  "results": [
+    {
+      "index": 0,
+      "text": "This is great!",
+      "classification": "positive"
+    }
+  ],
+  "cost": {
+    "total_usd": 0.000022,
+    "total_tokens": 90
+  }
+}
+```
+
+### Python Client Example
+
+```python
+import requests
+
+API_URL = "http://localhost:8002"
+API_KEY = "your-api-key"
+
+# Submit job
+response = requests.post(
+    f"{API_URL}/classify/batch",
+    headers={"X-API-Key": API_KEY},
+    json={
+        "texts": ["Amazing product!", "Terrible service"],
+        "user_schema": {
+            "classes": [
+                {"name": "positive", "description": "Positive sentiment"},
+                {"name": "negative", "description": "Negative sentiment"}
+            ]
+        },
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "technique": "zero_shot",
+        "llm_api_key": "your-openai-key"
+    }
+)
+
+job_id = response.json()["job_id"]
+
+# Check status
+status = requests.get(
+    f"{API_URL}/jobs/{job_id}",
+    headers={"X-API-Key": API_KEY}
+).json()
+
+print(f"Status: {status['status']}")
+print(f"Results: {status['results']}")
 ```
 
 ## CLI Reference

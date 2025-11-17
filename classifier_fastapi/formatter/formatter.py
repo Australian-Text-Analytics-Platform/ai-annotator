@@ -3,7 +3,7 @@ import io
 import yaml
 from loguru import logger
 
-from classifier_fastapi import errors
+from classifier_fastapi.core import errors
 from classifier_fastapi.formatter.models import OutputFormat
 from classifier_fastapi.settings import get_env_settings
 from classifier_fastapi.techniques.schemas import LLMoutputModel

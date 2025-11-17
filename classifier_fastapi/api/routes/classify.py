@@ -44,7 +44,15 @@ async def process_classification_job(job_id: str, request: ClassificationRequest
         if request.llm_api_key:
             model_props = model_props.with_api_key(request.llm_api_key)
 
-        model_props = model_props.get_model_props(request.model)
+        try:
+            model_props = model_props.get_model_props(request.model)
+        except ValueError as e:
+            # Better error message when model not found
+            available_models = [m.id for m in model_props.models[:10]]  # Show first 10
+            raise HTTPException(
+                status_code=400,
+                detail=f"Model '{request.model}' not found or not accessible with provided API key. Available models: {', '.join(available_models)}... (showing first 10)"
+            )
 
         llm_config = LLMConfig(
             temperature=request.temperature or 1.0,
@@ -159,6 +167,16 @@ async def estimate_classification_cost(
 
         user_schema = technique.prompt_maker_cls.schema.model_validate(request.user_schema)
         prompt_maker = technique.get_prompt_maker(user_schema)
+
+        # Validate model exists (without API key, just check in general list)
+        try:
+            _ = provider.properties.get_model_props(request.model)
+        except ValueError:
+            available_models = [m.id for m in provider.properties.models[:10]]
+            raise HTTPException(
+                status_code=400,
+                detail=f"Model '{request.model}' not found for provider '{request.provider}'. Available models: {', '.join(available_models)}... (showing first 10)"
+            )
 
         # Estimate tokens using LiteLLM token_counter
         token_estimate = CostEstimator.estimate_tokens(

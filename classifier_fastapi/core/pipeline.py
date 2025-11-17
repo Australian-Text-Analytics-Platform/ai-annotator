@@ -153,7 +153,10 @@ async def a_batch(
                     tokens_used = None
                     if hasattr(res.response, 'usage') and res.response.usage:
                         tokens_used = res.response.usage.total_tokens
-                        total_tokens += tokens_used
+                        # Only add if tokens_used is a valid number (not NaN or None)
+                        import math
+                        if tokens_used is not None and not (isinstance(tokens_used, float) and math.isnan(tokens_used)):
+                            total_tokens += tokens_used
 
                     batch_res = BatchResult(
                         text_idx=ctx.text_idx,
@@ -285,7 +288,8 @@ async def a_batch(
 
     # Calculate estimated cost if available
     estimated_cost = None
-    if total_tokens > 0:
+    import math
+    if total_tokens > 0 and not (isinstance(total_tokens, float) and math.isnan(total_tokens)):
         from classifier_fastapi.core.cost import CostEstimator
         # Estimate input/output split (rough approximation)
         estimated_input_tokens = int(total_tokens * 0.8)
@@ -293,7 +297,6 @@ async def a_batch(
         estimated_cost = CostEstimator.calculate_actual_cost(
             input_tokens=estimated_input_tokens,
             output_tokens=estimated_output_tokens,
-            provider=model_props.provider.value,
             model=model_props.name,
         )
 
