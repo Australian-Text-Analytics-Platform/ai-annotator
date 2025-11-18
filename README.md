@@ -293,6 +293,26 @@ print(f"Status: {status['status']}")
 print(f"Results: {status['results']}")
 ```
 
+### Testing the FastAPI Service
+
+Run the comprehensive test suite:
+
+```bash
+# Run all tests
+pytest tests/test_fastapi_*.py -v
+
+# Run with coverage report
+pytest tests/test_fastapi_*.py --cov=classifier_fastapi --cov-report=html
+
+# Run specific test file
+pytest tests/test_fastapi_health.py -v
+
+# Skip integration tests (requires real API keys)
+pytest tests/test_fastapi_*.py -v -m "not integration"
+```
+
+Test coverage report will be generated in `htmlcov/index.html`.
+
 ## CLI Reference
 
 ### Commands
