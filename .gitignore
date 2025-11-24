@@ -39,3 +39,8 @@ example_out*/
 tests/example_run2 copy.sh
 tests/example_run_ollama.sh
 tests/example_user_schema2.json
+
+# GitHub Pages - allow docs folder and HTML files for deployment
+!docs/
+!docs/*.html
+!docs/**/*.html
