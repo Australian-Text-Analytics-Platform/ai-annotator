@@ -1,5 +1,7 @@
 # AI Annotator
 
+**[📊 Overview](https://australian-text-analytics-platform.github.io/ai-annotator/)**
+
 This repository provides an AI annotator tool for the LDaCA/ATAP Platform.
 The tool enables automated text classification using large language models with support for zero-shot, few-shot, and chain-of-thought prompting techniques.
 
@@ -512,3 +514,15 @@ After classification, the following files are generated in the output directory:
 - `user_schema.json` - User schema used for classification
 - `corpus.zip` - Serialized corpus data
 - `corpus.csv` - CSV format of the corpus with results
+
+## Author
+
+Sebastian Haan
+
+## Acknowledgments
+
+Acknowledgments are an important way for us to demonstrate the value we bring to your research. Your research outcomes are vital for ongoing funding of the Sydney Informatics Hub.
+
+If you make use of this software for your research project, please include the following acknowledgment:
+
+"This research was supported by the Sydney Informatics Hub, a Core Research Facility of the University of Sydney."
