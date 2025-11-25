@@ -187,7 +187,8 @@ class LLMProviderProperties(BaseModel):
     @lru_cache
     def get_model_props(self, model: str) -> LLMModelProperties:
         for model_prop in self.models:
-            if model_prop.id == model:
+            # Match by ID (without prefix) or full name (with prefix)
+            if model_prop.id == model or model_prop.name == model:
                 return model_prop
         raise ValueError(f"{model} does not exist for provider: {self.name}.")
 
@@ -196,10 +197,12 @@ class LLMProviderProperties(BaseModel):
 
     @lru_cache
     def with_api_key(self, api_key: str) -> Self:
-        if not validate_api_key(self.provider, api_key):
-            raise ValueError(
-                f"Invalid api key given for provider: {self.provider.value}."
-            )
+        # Ollama doesn't require API keys, skip validation
+        if self.provider != LLMProvider.OLLAMA:
+            if not validate_api_key(self.provider, api_key):
+                raise ValueError(
+                    f"Invalid api key given for provider: {self.provider.value}."
+                )
         copy_: Self = self.model_copy(deep=True)
         copy_.api_key = api_key
         match self.provider:
@@ -226,7 +229,11 @@ class LLMProviderProperties(BaseModel):
             case LLMProvider.OPENAI_AZURE_SIH:
                 raise NotImplementedError()
             case LLMProvider.OLLAMA:
-                raise NotImplementedError()
+                # Ollama doesn't require API keys, just return copy
+                pass
+            case LLMProvider.GEMINI | LLMProvider.ANTHROPIC:
+                # These providers just need the API key set, no special model fetching
+                pass
             case _:
                 raise LookupError("Not a valid provider.")
 
@@ -235,11 +242,60 @@ class LLMProviderProperties(BaseModel):
         return copy_
 
     def with_endpoint(self, endpoint: str) -> Self:
-        # todo: 1. check endpoint is valid
-        # todo: 2. replace endpoint
-        # todo: 3. adjust models given that endpoint
-        # todo: 4. return a copy of self.
-        raise NotImplementedError()
+        """
+        Create a copy with a custom endpoint.
+        Currently only implemented for Ollama.
+        """
+        if self.provider != LLMProvider.OLLAMA:
+            raise NotImplementedError(
+                f"with_endpoint is not implemented for provider: {self.provider.value}"
+            )
+
+        # Validate endpoint and fetch models for Ollama
+        import httpx
+        from pydantic import AnyUrl
+
+        try:
+            # Fetch models from the new endpoint
+            available = ollama.get_available_models(endpoint=endpoint)
+        except httpx.HTTPStatusError as e:
+            raise ValueError(f"Failed to connect to Ollama at {endpoint}: {e}")
+        except Exception as e:
+            raise ValueError(f"Unable to retrieve Ollama models from {endpoint}: {e}")
+
+        # Create a copy and update endpoint and models
+        copy_: Self = self.model_copy(deep=True)
+        copy_.endpoint = AnyUrl(endpoint)
+
+        # Rebuild model list with new endpoint
+        props: dict = Asset.PROVIDERS.get(self.provider.value)
+        model_regex_ptns: list[re.Pattern] = [
+            re.compile(ptn) for ptn in props.get("models").keys()
+        ]
+
+        models = []
+        for model_key in available:
+            values = dict(
+                name=model_key,
+                provider=self.provider,
+                endpoint=endpoint,
+                context_window=None,
+                input_token_cost=None,
+                output_token_cost=None,
+                description=""
+            )
+
+            # Assign description based on regex pattern
+            for ptn in model_regex_ptns:
+                if ptn.match(model_key) is not None:
+                    d = props.get("models")[ptn.pattern]["description"]
+                    values["description"] = d
+                    break
+
+            models.append(LLMModelProperties(**values))
+
+        copy_.models = models
+        return copy_
 
     # override default hash behaviour from BaseModel which does not allow list.
     # needed for lru_cache

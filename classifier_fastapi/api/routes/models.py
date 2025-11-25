@@ -9,8 +9,6 @@ from loguru import logger
 from classifier_fastapi.api.models import ModelsListResponse, ModelInfo
 from classifier_fastapi.api.dependencies import get_current_api_key
 from classifier_fastapi.providers import LLMProvider
-from classifier_fastapi.utils.litellm_ import get_available_models
-from classifier_fastapi.core.cost import CostEstimator
 
 router = APIRouter(prefix="/models", tags=["Models"])
 
@@ -20,8 +18,8 @@ async def list_models(api_key: str = Depends(get_current_api_key)):
     """
     List all available models and providers.
 
-    Uses LiteLLM's model_cost to dynamically discover available models
-    and their pricing information.
+    For Ollama: queries the actual local Ollama instance.
+    For other providers: uses LiteLLM's model_cost database.
     """
     models = []
     providers = []
@@ -30,37 +28,30 @@ async def list_models(api_key: str = Depends(get_current_api_key)):
         providers.append(provider.value)
 
         try:
-            # Get available models for this provider from LiteLLM
-            model_names = get_available_models(provider.value)
+            # Get provider properties which handles Ollama differently
+            provider_props = provider.properties
 
-            for model_name in model_names:
+            # Use models from provider properties
+            for model_prop in provider_props.models:
                 try:
-                    # Get pricing info from LiteLLM
-                    pricing = CostEstimator.get_model_pricing(model_name)
+                    # Convert token costs to per-million format
+                    input_cost_per_1m = None
+                    output_cost_per_1m = None
 
-                    if pricing:
-                        context_window = pricing.get("max_input_tokens")
-                        input_cost_per_1m = pricing.get("input_cost_per_token", 0) * 1_000_000
-                        output_cost_per_1m = pricing.get("output_cost_per_token", 0) * 1_000_000
+                    if model_prop.input_token_cost is not None:
+                        input_cost_per_1m = model_prop.input_token_cost * 1_000_000
+                    if model_prop.output_token_cost is not None:
+                        output_cost_per_1m = model_prop.output_token_cost * 1_000_000
 
-                        models.append(ModelInfo(
-                            name=model_name,
-                            provider=provider.value,
-                            context_window=context_window,
-                            input_cost_per_1m_tokens=input_cost_per_1m if input_cost_per_1m > 0 else None,
-                            output_cost_per_1m_tokens=output_cost_per_1m if output_cost_per_1m > 0 else None
-                        ))
-                    else:
-                        # Include model even if pricing not available
-                        models.append(ModelInfo(
-                            name=model_name,
-                            provider=provider.value,
-                            context_window=None,
-                            input_cost_per_1m_tokens=None,
-                            output_cost_per_1m_tokens=None
-                        ))
+                    models.append(ModelInfo(
+                        name=model_prop.name,
+                        provider=provider.value,
+                        context_window=model_prop.context_window,
+                        input_cost_per_1m_tokens=input_cost_per_1m if input_cost_per_1m and input_cost_per_1m > 0 else None,
+                        output_cost_per_1m_tokens=output_cost_per_1m if output_cost_per_1m and output_cost_per_1m > 0 else None
+                    ))
                 except Exception as e:
-                    logger.warning(f"Could not get info for model {model_name}: {e}")
+                    logger.warning(f"Could not get info for model {model_prop.name}: {e}")
                     continue
 
         except Exception as e:
