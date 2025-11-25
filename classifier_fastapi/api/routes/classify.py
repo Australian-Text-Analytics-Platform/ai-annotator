@@ -92,12 +92,40 @@ async def process_classification_job(job_id: str, request: ClassificationRequest
                 "error": error
             })
 
-        # Store cost
+        # Store cost with detailed breakdown
         if results.estimated_cost_usd or results.total_tokens:
-            await job_manager.set_cost(job_id, {
+            from classifier_fastapi.core.cost import CostEstimator
+
+            cost_data = {
                 "total_usd": results.estimated_cost_usd,
-                "total_tokens": results.total_tokens
-            })
+                "total_tokens": results.total_tokens,
+            }
+
+            # Add token breakdown only if available
+            if results.prompt_tokens > 0:
+                cost_data["input_tokens"] = results.prompt_tokens
+            if results.completion_tokens > 0:
+                cost_data["output_tokens"] = results.completion_tokens
+            if results.reasoning_tokens > 0:
+                cost_data["reasoning_tokens"] = results.reasoning_tokens
+
+            # Calculate individual costs for each token type if breakdown available
+            if results.prompt_tokens > 0 and results.completion_tokens > 0:
+                pricing = CostEstimator.get_model_pricing(results.model)
+                if pricing:
+                    input_cost_per_token = pricing.get("input_cost_per_token", 0)
+                    output_cost_per_token = pricing.get("completion_cost_per_token", 0)
+
+                    cost_data["input_cost_usd"] = results.prompt_tokens * input_cost_per_token
+                    cost_data["output_cost_usd"] = results.completion_tokens * output_cost_per_token
+
+                    # Reasoning tokens typically billed at output rate or special rate
+                    if results.reasoning_tokens > 0:
+                        # Check if there's a specific reasoning token cost
+                        reasoning_cost_per_token = pricing.get("reasoning_cost_per_token", output_cost_per_token)
+                        cost_data["reasoning_cost_usd"] = results.reasoning_tokens * reasoning_cost_per_token
+
+            await job_manager.set_cost(job_id, cost_data)
 
         await job_manager.update_status(job_id, JobStatus.COMPLETED)
 

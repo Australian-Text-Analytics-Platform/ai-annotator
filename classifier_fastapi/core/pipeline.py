@@ -27,6 +27,9 @@ class BatchResult(BaseModel):
     classification: str
     prompt: str
     tokens_used: int | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    reasoning_tokens: int | None = None
 
 
 class BatchResults(BaseModel):
@@ -38,6 +41,9 @@ class BatchResults(BaseModel):
     successes: list[BatchResult]
     fails: list[tuple[int, str]]
     total_tokens: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    reasoning_tokens: int = 0
     estimated_cost_usd: float | None = None
 
 
@@ -151,8 +157,25 @@ async def a_batch(
 
                     # Extract token usage from response
                     tokens_used = None
+                    prompt_tokens_val = None
+                    completion_tokens_val = None
+                    reasoning_tokens_val = None
+
                     if hasattr(res.response, 'usage') and res.response.usage:
-                        tokens_used = res.response.usage.total_tokens
+                        usage = res.response.usage
+                        tokens_used = usage.total_tokens
+
+                        # Extract detailed token breakdown
+                        if hasattr(usage, 'prompt_tokens'):
+                            prompt_tokens_val = usage.prompt_tokens
+                        if hasattr(usage, 'completion_tokens'):
+                            completion_tokens_val = usage.completion_tokens
+
+                        # Extract reasoning tokens if available (gpt-4.1 models)
+                        if hasattr(usage, 'completion_tokens_details') and usage.completion_tokens_details:
+                            if hasattr(usage.completion_tokens_details, 'reasoning_tokens'):
+                                reasoning_tokens_val = usage.completion_tokens_details.reasoning_tokens
+
                         # Only add if tokens_used is a valid number (not NaN or None)
                         import math
                         if tokens_used is not None and not (isinstance(tokens_used, float) and math.isnan(tokens_used)):
@@ -164,6 +187,9 @@ async def a_batch(
                         classification=res.classification,
                         prompt=res.prompt,
                         tokens_used=tokens_used,
+                        prompt_tokens=prompt_tokens_val,
+                        completion_tokens=completion_tokens_val,
+                        reasoning_tokens=reasoning_tokens_val,
                     )
                     successes.append(batch_res)
 
@@ -286,19 +312,40 @@ async def a_batch(
         rlimiter_toks.destroy()
     logger.info("Cleaned up rate limiter background replenishers.")
 
+    # Aggregate detailed token counts
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
+    total_reasoning_tokens = 0
+
+    for success in successes:
+        if success.prompt_tokens is not None:
+            total_prompt_tokens += success.prompt_tokens
+        if success.completion_tokens is not None:
+            total_completion_tokens += success.completion_tokens
+        if success.reasoning_tokens is not None:
+            total_reasoning_tokens += success.reasoning_tokens
+
     # Calculate estimated cost if available
     estimated_cost = None
     import math
     if total_tokens > 0 and not (isinstance(total_tokens, float) and math.isnan(total_tokens)):
         from classifier_fastapi.core.cost import CostEstimator
-        # Estimate input/output split (rough approximation)
-        estimated_input_tokens = int(total_tokens * 0.8)
-        estimated_output_tokens = int(total_tokens * 0.2)
-        estimated_cost = CostEstimator.calculate_actual_cost(
-            input_tokens=estimated_input_tokens,
-            output_tokens=estimated_output_tokens,
-            model=model_props.name,
-        )
+        # Use actual token breakdown if available, otherwise estimate
+        if total_prompt_tokens > 0 and total_completion_tokens > 0:
+            estimated_cost = CostEstimator.calculate_actual_cost(
+                input_tokens=total_prompt_tokens,
+                output_tokens=total_completion_tokens,
+                model=model_props.name,
+            )
+        else:
+            # Fallback to estimation if detailed breakdown not available
+            estimated_input_tokens = int(total_tokens * 0.8)
+            estimated_output_tokens = int(total_tokens * 0.2)
+            estimated_cost = CostEstimator.calculate_actual_cost(
+                input_tokens=estimated_input_tokens,
+                output_tokens=estimated_output_tokens,
+                model=model_props.name,
+            )
 
     return BatchResults(
         model=model_props.name,
@@ -309,5 +356,8 @@ async def a_batch(
         successes=successes,
         fails=fails,
         total_tokens=total_tokens,
+        prompt_tokens=total_prompt_tokens,
+        completion_tokens=total_completion_tokens,
+        reasoning_tokens=total_reasoning_tokens,
         estimated_cost_usd=estimated_cost,
     )

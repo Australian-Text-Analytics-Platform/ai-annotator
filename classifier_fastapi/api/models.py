@@ -74,7 +74,7 @@ class JobStatusResponse(BaseModel):
     progress: JobProgress
     results: Optional[List[ClassificationResultItem]] = None
     errors: Optional[List[Dict[str, Any]]] = None
-    cost: Optional[Dict[str, float]] = None
+    cost: Optional[Dict[str, Any]] = None  # Allow any type for token counts and costs
     created_at: str
     started_at: Optional[str] = None
     completed_at: Optional[str] = None

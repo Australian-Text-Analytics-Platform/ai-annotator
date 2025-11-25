@@ -31,7 +31,10 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = "ATAP LLM Classifier API"
     SERVICE_VERSION: str = "0.1.0"
 
-    # API authentication (comma-separated API keys)
+    # API authentication
+    # Single API key (preferred for simple setups)
+    SERVICE_API_KEY: str = ""
+    # Comma-separated API keys (for multiple keys, backward compatibility)
     SERVICE_API_KEYS: str = ""
 
     # Batch configuration
@@ -51,6 +54,9 @@ class Settings(BaseSettings):
     # Output format
     LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.YAML
 
+    # Ollama settings
+    OLLAMA_ENDPOINT: str = "http://127.0.0.1:11434"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -58,10 +64,21 @@ class Settings(BaseSettings):
 
     @property
     def service_api_keys(self) -> Set[str]:
-        """Parse API keys from comma-separated string"""
-        if not self.SERVICE_API_KEYS:
-            return set()
-        return set(key.strip() for key in self.SERVICE_API_KEYS.split(","))
+        """
+        Parse API keys from environment variables.
+        Supports both SERVICE_API_KEY (single) and SERVICE_API_KEYS (comma-separated).
+        """
+        keys = set()
+
+        # Add single API key if set
+        if self.SERVICE_API_KEY:
+            keys.add(self.SERVICE_API_KEY.strip())
+
+        # Add comma-separated keys if set
+        if self.SERVICE_API_KEYS:
+            keys.update(key.strip() for key in self.SERVICE_API_KEYS.split(",") if key.strip())
+
+        return keys
 
 
 @lru_cache(maxsize=1)

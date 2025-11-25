@@ -41,6 +41,8 @@ class LLMProvider(str, Enum):
     OPENAI: str = "openai"
     OPENAI_AZURE_SIH: str = "openai_azure_sih"
     OLLAMA: str = "ollama"
+    GEMINI: str = "gemini"
+    ANTHROPIC: str = "anthropic"
 
     @cached_property
     def properties(self) -> "LLMProviderProperties":
@@ -62,17 +64,22 @@ class LLMProvider(str, Enum):
                     "LLMProvider properties for SIH OpenAI Azure is not yet implemented."
                 )
             case LLMProvider.OLLAMA:
-                endpoint = props.get("endpoint")
+                # Use environment variable for endpoint if set, otherwise fall back to config
+                from classifier_fastapi.settings import get_settings
+                settings = get_settings()
+                endpoint = settings.OLLAMA_ENDPOINT
+
                 if endpoint is not None:
                     try:
-                        available = ollama.get_available_models(
-                            endpoint=props.get("endpoint")
-                        )
-                    except httpx.HTTPStatusError:
+                        available = ollama.get_available_models(endpoint=endpoint)
+                    except httpx.HTTPStatusError as e:
+                        logger.warning(f"Failed to connect to Ollama at {endpoint}: {e}")
                         pass
                     except Exception as e:
+                        logger.error(f"Unable to retrieve ollama models from {endpoint}: {e}")
                         raise RuntimeError(
-                            "Unable to retrieve ollama properties. Schema may have changed."
+                            f"Unable to retrieve ollama properties from {endpoint}. "
+                            "Make sure Ollama is running and the endpoint is correct."
                         ) from e
             case _:
                 available = litellm_utils.get_available_models(self.value)

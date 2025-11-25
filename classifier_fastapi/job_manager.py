@@ -20,7 +20,7 @@ class Job(BaseModel):
     request_data: Dict
     results: List = []
     errors: List = []
-    cost: Optional[Dict[str, float]] = None
+    cost: Optional[Dict] = None  # Allow any type for flexibility with token counts
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -93,7 +93,7 @@ class JobManager:
             if job := self._jobs.get(job_id):
                 job.errors.append(error)
 
-    async def set_cost(self, job_id: str, cost: Dict[str, float]):
+    async def set_cost(self, job_id: str, cost: Dict):
         """Set job cost"""
         async with self._lock:
             if job := self._jobs.get(job_id):
