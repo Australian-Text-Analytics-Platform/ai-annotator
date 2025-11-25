@@ -5,7 +5,7 @@
 This repository provides an AI annotator tool for the LDaCA/ATAP Platform.
 The tool enables automated text classification using large language models with support for zero-shot, few-shot, and chain-of-thought prompting techniques.
 
-Available as both a **CLI tool** and **REST API service** for flexible integration.
+Available as a **CLI tool**, **REST API service**, and **Streamlit web interface** for flexible integration.
 
 
 ## Installation 
@@ -314,6 +314,105 @@ pytest tests/test_fastapi_*.py -v -m "not integration"
 ```
 
 Test coverage report will be generated in `htmlcov/index.html`.
+
+## Streamlit Web Interface
+
+A minimal web interface is available for interactive batch classification through a Streamlit app. The app provides a user-friendly interface on top of the FastAPI service.
+
+### Prerequisites
+
+1. Ensure the FastAPI server is running:
+   ```bash
+   python run_api.py
+   ```
+
+2. Set the `SERVICE_API_KEY` in your `.env` file:
+   ```bash
+   SERVICE_API_KEY="your-api-key"
+   ```
+   The app will automatically load environment variables from the `.env` file.
+
+3. Install dependencies (if not already done):
+   ```bash
+   poetry install
+   ```
+
+### Starting the Streamlit App
+
+```bash
+streamlit run streamlit_app/app.py
+```
+
+The app will be available at `http://localhost:8501`
+
+### Features
+
+The Streamlit interface provides:
+
+- **Provider Support**: OpenAI and Ollama with LiteLLM integration
+  - *Note: Gemini and Anthropic support is in development due to LiteLLM model compatibility issues*
+- **CSV Upload**: Upload CSV files and select the text column to classify
+- **Schema Templates**: Pre-defined templates for common classification tasks or create custom schemas
+- **Classification Techniques**: Zero-shot and few-shot classification
+- **Cost Estimation**: Estimate costs before submitting jobs
+- **Job Management**: Real-time progress tracking with auto-refresh and job cancellation
+- **Results Export**: Download classification results as CSV
+
+### Usage Flow
+
+1. **Configure Settings** (Sidebar):
+   - Select LLM provider (OpenAI or Ollama)
+   - Enter API key (OpenAI) or endpoint URL (Ollama)
+   - Choose model from available options
+   - Select classification technique
+   - Adjust advanced settings (temperature, top_p)
+
+2. **Upload CSV File**:
+   - Upload your CSV file
+   - Select the column containing text to classify
+   - Review data preview
+   - Confirm if batch size exceeds 100 texts
+
+3. **Configure Schema**:
+   - Select a pre-defined template or create custom schema
+   - Edit JSON schema in the text area
+   - Validation feedback is shown in real-time
+
+4. **Submit Job**:
+   - Optionally estimate cost before submitting
+   - Submit the classification job
+   - Job ID is displayed immediately
+
+5. **Monitor Progress**:
+   - Progress bar updates automatically every 2 seconds
+   - Cancel job if needed (with confirmation)
+   - View results when complete
+   - Download results as CSV
+
+### Schema Templates
+
+The app includes three pre-defined templates:
+
+- **Sentiment Analysis (Zero-shot)**: Classify text as Positive, Negative, or Neutral
+- **Topic Classification (Zero-shot)**: Categorize by Technology, Health, Business, Entertainment, or Other
+- **Sentiment with Examples (Few-shot)**: Sentiment classification with example queries
+
+### Environment Variables
+
+The following environment variables can be set in your `.env` file:
+
+- **SERVICE_API_KEY** (required): API key for FastAPI authentication
+- **OPENAI_API_KEY** (optional): OpenAI API key (auto-detected if present)
+- **OLLAMA_ENDPOINT** (optional): Ollama server endpoint URL (default: `http://127.0.0.1:11434`)
+  - Set this if your Ollama is running on a different port
+  - Example: `OLLAMA_ENDPOINT="http://127.0.0.1:58907"`
+
+### Notes
+
+- The FastAPI server must be running on `http://localhost:8002`
+- Large batches (>100 texts) require explicit confirmation
+- Jobs timeout after 60 minutes
+- The modifier is fixed to `no_modifier` for simplicity
 
 ## CLI Reference
 
