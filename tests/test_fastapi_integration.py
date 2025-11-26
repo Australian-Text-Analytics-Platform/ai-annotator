@@ -269,6 +269,116 @@ class TestRealAPIIntegration:
 
             await asyncio.sleep(2)
 
+    @pytest.mark.skip(reason="Requires real API key and makes actual API calls")
+    @pytest.mark.asyncio
+    async def test_real_gemini_classification(
+        self,
+        async_client: AsyncClient,
+        auth_headers: dict,
+        sample_user_schema: dict
+    ):
+        """Test real Gemini API classification"""
+        import os
+
+        if not os.getenv("GEMINI_API_KEY"):
+            pytest.skip("GEMINI_API_KEY not set")
+
+        request = {
+            "texts": [
+                "This product is amazing!",
+                "Terrible experience, very disappointed."
+            ],
+            "user_schema": sample_user_schema,
+            "provider": "gemini",
+            "model": "gemini-2.5-flash-lite",
+            "technique": "zero_shot",
+            "llm_api_key": os.getenv("GEMINI_API_KEY")
+        }
+
+        # Submit job
+        submit_response = await async_client.post(
+            "/classify/batch",
+            json=request,
+            headers=auth_headers
+        )
+        assert submit_response.status_code == 200
+        job_id = submit_response.json()["job_id"]
+
+        # Wait for completion
+        max_wait = 60
+        start_time = time.time()
+
+        while (time.time() - start_time) < max_wait:
+            response = await async_client.get(
+                f"/jobs/{job_id}",
+                headers=auth_headers
+            )
+            data = response.json()
+
+            if data["status"] == "completed":
+                assert len(data["results"]) == 2
+                assert data["cost"] is not None
+                break
+            elif data["status"] == "failed":
+                pytest.fail(f"Job failed: {data['errors']}")
+
+            await asyncio.sleep(2)
+
+    @pytest.mark.skip(reason="Requires real API key and makes actual API calls")
+    @pytest.mark.asyncio
+    async def test_real_claude_classification(
+        self,
+        async_client: AsyncClient,
+        auth_headers: dict,
+        sample_user_schema: dict
+    ):
+        """Test real Anthropic Claude API classification"""
+        import os
+
+        if not os.getenv("ANTHROPIC_API_KEY"):
+            pytest.skip("ANTHROPIC_API_KEY not set")
+
+        request = {
+            "texts": [
+                "This product is amazing!",
+                "Terrible experience, very disappointed."
+            ],
+            "user_schema": sample_user_schema,
+            "provider": "anthropic",
+            "model": "claude-haiku-4-5",
+            "technique": "zero_shot",
+            "llm_api_key": os.getenv("ANTHROPIC_API_KEY")
+        }
+
+        # Submit job
+        submit_response = await async_client.post(
+            "/classify/batch",
+            json=request,
+            headers=auth_headers
+        )
+        assert submit_response.status_code == 200
+        job_id = submit_response.json()["job_id"]
+
+        # Wait for completion
+        max_wait = 60
+        start_time = time.time()
+
+        while (time.time() - start_time) < max_wait:
+            response = await async_client.get(
+                f"/jobs/{job_id}",
+                headers=auth_headers
+            )
+            data = response.json()
+
+            if data["status"] == "completed":
+                assert len(data["results"]) == 2
+                assert data["cost"] is not None
+                break
+            elif data["status"] == "failed":
+                pytest.fail(f"Job failed: {data['errors']}")
+
+            await asyncio.sleep(2)
+
 
 class TestErrorHandling:
     """Test error handling in integration scenarios"""

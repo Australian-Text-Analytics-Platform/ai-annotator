@@ -504,3 +504,95 @@ class TestClassifyTopPValidation:
             headers=auth_headers
         )
         assert response.status_code == 422
+
+
+class TestGeminiProvider:
+    """Test classification with Gemini provider"""
+
+    @patch("classifier_fastapi.utils.litellm_.get_context_window")
+    @patch("classifier_fastapi.utils.litellm_.get_price")
+    @patch("classifier_fastapi.utils.litellm_.get_available_models")
+    @patch("classifier_fastapi.api.routes.classify.process_classification_job")
+    def test_gemini_flash_lite_classification(
+        self,
+        mock_process_job,
+        mock_get_models,
+        mock_get_price,
+        mock_get_context_window,
+        client: TestClient,
+        auth_headers: dict,
+        sample_user_schema: dict,
+        sample_texts: list
+    ):
+        """Test classification job creation with Gemini gemini-2.5-flash-lite model"""
+        # Mock Gemini model availability
+        mock_get_models.return_value = ["gemini-2.5-flash-lite"]
+        mock_get_price.return_value = (0.000001, 0.000002)
+        mock_get_context_window.return_value = 1048576
+
+        request = {
+            "texts": sample_texts,
+            "user_schema": sample_user_schema,
+            "provider": "gemini",
+            "model": "gemini-2.5-flash-lite",
+            "technique": "zero_shot",
+            "llm_api_key": "test-gemini-key"
+        }
+
+        response = client.post(
+            "/classify/batch",
+            json=request,
+            headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "job_id" in data
+        assert data["status"] == "pending"
+        mock_process_job.assert_called_once()
+
+
+class TestAnthropicProvider:
+    """Test classification with Anthropic Claude provider"""
+
+    @patch("classifier_fastapi.utils.litellm_.get_context_window")
+    @patch("classifier_fastapi.utils.litellm_.get_price")
+    @patch("classifier_fastapi.utils.litellm_.get_available_models")
+    @patch("classifier_fastapi.api.routes.classify.process_classification_job")
+    def test_claude_haiku_classification(
+        self,
+        mock_process_job,
+        mock_get_models,
+        mock_get_price,
+        mock_get_context_window,
+        client: TestClient,
+        auth_headers: dict,
+        sample_user_schema: dict,
+        sample_texts: list
+    ):
+        """Test classification job creation with Anthropic claude-haiku-4-5 model"""
+        # Mock Anthropic model availability
+        mock_get_models.return_value = ["claude-haiku-4-5"]
+        mock_get_price.return_value = (0.0000008, 0.000004)
+        mock_get_context_window.return_value = 200000
+
+        request = {
+            "texts": sample_texts,
+            "user_schema": sample_user_schema,
+            "provider": "anthropic",
+            "model": "claude-haiku-4-5",
+            "technique": "zero_shot",
+            "llm_api_key": "test-anthropic-key"
+        }
+
+        response = client.post(
+            "/classify/batch",
+            json=request,
+            headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "job_id" in data
+        assert data["status"] == "pending"
+        mock_process_job.assert_called_once()
