@@ -183,6 +183,21 @@ def reset_job_manager_singleton():
     classifier_fastapi.job_manager._job_manager = None
 
 
+@pytest.fixture(autouse=True)
+def clear_provider_cache():
+    """Clear LLMProvider cached properties between tests"""
+    from classifier_fastapi.providers import LLMProvider
+    # Clear the cached_property for each provider
+    for provider in LLMProvider:
+        if 'properties' in provider.__dict__:
+            del provider.__dict__['properties']
+    yield
+    # Clear again after test
+    for provider in LLMProvider:
+        if 'properties' in provider.__dict__:
+            del provider.__dict__['properties']
+
+
 # Pytest configuration
 def pytest_configure(config):
     """Configure pytest with custom markers"""

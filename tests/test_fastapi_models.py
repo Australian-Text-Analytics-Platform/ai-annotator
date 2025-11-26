@@ -211,12 +211,14 @@ class TestModelInfoStructure:
             for field in expected_fields:
                 assert field in model
 
+    @patch("classifier_fastapi.utils.litellm_.get_context_window")
+    @patch("classifier_fastapi.utils.litellm_.get_price")
     @patch("classifier_fastapi.utils.litellm_.get_available_models")
-    @patch("classifier_fastapi.core.cost.CostEstimator.get_model_pricing")
     def test_cost_conversion_to_per_million(
         self,
-        mock_get_pricing,
         mock_get_models,
+        mock_get_price,
+        mock_get_context_window,
         client: TestClient,
         auth_headers: dict
     ):
@@ -224,11 +226,8 @@ class TestModelInfoStructure:
         mock_get_models.return_value = ["test-model"]
 
         # Cost per token: $0.0000001 = $0.10 per million
-        mock_get_pricing.return_value = {
-            "max_input_tokens": 100000,
-            "input_cost_per_token": 0.0000001,
-            "output_cost_per_token": 0.0000002
-        }
+        mock_get_price.return_value = (0.0000001, 0.0000002)
+        mock_get_context_window.return_value = 100000
 
         response = client.get("/models/", headers=auth_headers)
         data = response.json()
