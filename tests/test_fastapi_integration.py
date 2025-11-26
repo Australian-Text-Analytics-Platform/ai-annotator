@@ -10,6 +10,8 @@ from fastapi.testclient import TestClient
 import asyncio
 import time
 from unittest.mock import patch, AsyncMock
+import os
+from dotenv import load_dotenv
 
 
 @pytest.mark.integration
@@ -214,7 +216,6 @@ class TestRealAPIIntegration:
     Run with: pytest -m integration
     """
 
-    @pytest.mark.skip(reason="Requires real API key and makes actual API calls")
     @pytest.mark.asyncio
     async def test_real_openai_classification(
         self,
@@ -222,11 +223,11 @@ class TestRealAPIIntegration:
         auth_headers: dict,
         sample_user_schema: dict
     ):
-        """Test real OpenAI API classification"""
-        import os
+        """Test real OpenAI API classification (requires OPENAI_API_KEY in .env)"""
+        load_dotenv()
 
         if not os.getenv("OPENAI_API_KEY"):
-            pytest.skip("OPENAI_API_KEY not set")
+            pytest.skip("OPENAI_API_KEY not set in .env file")
 
         request = {
             "texts": [
@@ -269,7 +270,6 @@ class TestRealAPIIntegration:
 
             await asyncio.sleep(2)
 
-    @pytest.mark.skip(reason="Requires real API key and makes actual API calls")
     @pytest.mark.asyncio
     async def test_real_gemini_classification(
         self,
@@ -277,11 +277,11 @@ class TestRealAPIIntegration:
         auth_headers: dict,
         sample_user_schema: dict
     ):
-        """Test real Gemini API classification"""
-        import os
+        """Test real Gemini API classification (requires GEMINI_API_KEY in .env)"""
+        load_dotenv()
 
         if not os.getenv("GEMINI_API_KEY"):
-            pytest.skip("GEMINI_API_KEY not set")
+            pytest.skip("GEMINI_API_KEY not set in .env file")
 
         request = {
             "texts": [
@@ -290,7 +290,7 @@ class TestRealAPIIntegration:
             ],
             "user_schema": sample_user_schema,
             "provider": "gemini",
-            "model": "gemini-2.5-flash-lite",
+            "model": "gemini/gemini-2.5-flash-lite",
             "technique": "zero_shot",
             "llm_api_key": os.getenv("GEMINI_API_KEY")
         }
@@ -324,7 +324,6 @@ class TestRealAPIIntegration:
 
             await asyncio.sleep(2)
 
-    @pytest.mark.skip(reason="Requires real API key and makes actual API calls")
     @pytest.mark.asyncio
     async def test_real_claude_classification(
         self,
@@ -332,11 +331,11 @@ class TestRealAPIIntegration:
         auth_headers: dict,
         sample_user_schema: dict
     ):
-        """Test real Anthropic Claude API classification"""
-        import os
+        """Test real Anthropic Claude API classification (requires ANTHROPIC_API_KEY in .env)"""
+        load_dotenv()
 
         if not os.getenv("ANTHROPIC_API_KEY"):
-            pytest.skip("ANTHROPIC_API_KEY not set")
+            pytest.skip("ANTHROPIC_API_KEY not set in .env file")
 
         request = {
             "texts": [
@@ -345,7 +344,7 @@ class TestRealAPIIntegration:
             ],
             "user_schema": sample_user_schema,
             "provider": "anthropic",
-            "model": "claude-haiku-4-5",
+            "model": "claude-3-5-haiku-20241022",
             "technique": "zero_shot",
             "llm_api_key": os.getenv("ANTHROPIC_API_KEY")
         }
