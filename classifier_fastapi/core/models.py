@@ -37,4 +37,11 @@ class LiteLLMCompletionArgs(BaseModel):
 
     def to_kwargs(self) -> dict:
         # note: so that Enums are converted to str. - just being lazy.
-        return json.loads(self.model_dump_json())
+        kwargs = json.loads(self.model_dump_json())
+
+        # Anthropic models don't support both temperature and top_p at the same time
+        # Remove top_p for Anthropic models (claude-* models)
+        if self.model and 'claude' in self.model.lower():
+            kwargs.pop('top_p', None)
+
+        return kwargs
