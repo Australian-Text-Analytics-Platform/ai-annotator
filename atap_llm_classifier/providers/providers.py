@@ -39,7 +39,6 @@ __all__ = [
 
 class LLMProvider(str, Enum):
     OPENAI: str = "openai"
-    OPENAI_AZURE_SIH: str = "openai_azure_sih"
     OLLAMA: str = "ollama"
 
     @cached_property
@@ -56,11 +55,6 @@ class LLMProvider(str, Enum):
             )
         )
         match self:
-            case LLMProvider.OPENAI_AZURE_SIH:
-                # todo: SIH azure openai properties are not yet defined.
-                raise NotImplementedError(
-                    "LLMProvider properties for SIH OpenAI Azure is not yet implemented."
-                )
             case LLMProvider.OLLAMA:
                 endpoint = props.get("endpoint")
                 if endpoint is not None:
@@ -216,8 +210,6 @@ class LLMProviderProperties(BaseModel):
                 )
                 for ft_model in ft_models:
                     copy_.models.append(ft_model)
-            case LLMProvider.OPENAI_AZURE_SIH:
-                raise NotImplementedError()
             case LLMProvider.OLLAMA:
                 raise NotImplementedError()
             case _:

@@ -39,10 +39,9 @@ __all__ = [
 
 class LLMProvider(str, Enum):
     OPENAI: str = "openai"
-    OPENAI_AZURE_SIH: str = "openai_azure_sih"
-    OLLAMA: str = "ollama"
     GEMINI: str = "gemini"
     ANTHROPIC: str = "anthropic"
+    OLLAMA: str = "ollama"
 
     @cached_property
     def properties(self) -> "LLMProviderProperties":
@@ -58,11 +57,6 @@ class LLMProvider(str, Enum):
             )
         )
         match self:
-            case LLMProvider.OPENAI_AZURE_SIH:
-                # todo: SIH azure openai properties are not yet defined.
-                raise NotImplementedError(
-                    "LLMProvider properties for SIH OpenAI Azure is not yet implemented."
-                )
             case LLMProvider.OLLAMA:
                 # Use environment variable for endpoint if set, otherwise fall back to config
                 from classifier_fastapi.settings import get_settings
@@ -226,8 +220,6 @@ class LLMProviderProperties(BaseModel):
                 )
                 for ft_model in ft_models:
                     copy_.models.append(ft_model)
-            case LLMProvider.OPENAI_AZURE_SIH:
-                raise NotImplementedError()
             case LLMProvider.OLLAMA:
                 # Ollama doesn't require API keys, just return copy
                 pass

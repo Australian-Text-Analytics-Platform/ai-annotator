@@ -430,7 +430,7 @@ The main entry point is `atapllmc` with the following subcommands:
 - `--dataset TEXT` - Path to input dataset (CSV or XLSX file) **[required]**
 - `--column TEXT` - Column name containing text to classify **[required]**
 - `--out-dir TEXT` - Output directory for results **[required]**
-- `--provider [openai|openai_azure_sih|ollama]` - LLM provider **[required]**
+- `--provider [openai|ollama|gemini|anthropic]` - LLM provider **[required]**
 - `--model TEXT` - Model name to use for classification **[required]**
 - `--user-schema TEXT` - Path to JSON schema file or raw JSON string **[required]**
 
@@ -453,10 +453,15 @@ Available providers and their supported models:
 - Requires: `--api-key`
 - Example: `--provider openai --model gpt-4.1-mini --api-key <your-key>`
 
-#### OpenAI Azure SIH (`openai_azure_sih`)
-- Azure-hosted OpenAI models via Sydney Infrastructure Hub
+#### Google Gemini (`gemini`)
+- Models: `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-pro`, etc.
 - Requires: `--api-key`
-- Example: `--provider openai_azure_sih --model gpt-4.1-mini --api-key <your-key>`
+- Example: `--provider gemini --model gemini-2.5-flash --api-key <your-key>`
+
+#### Anthropic Claude (`anthropic`)
+- Models: `claude-4.5-haiku`, `claude-4.5-sonnet`, `claude-3-5-sonnet`, etc.
+- Requires: `--api-key`
+- Example: `--provider anthropic --model claude-4.5-haiku --api-key <your-key>`
 
 #### Ollama (`ollama`)
 - Models: `llama3:8b`, `llama3:70b`, `mistral`, etc. (depends on local installation)

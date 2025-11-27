@@ -195,12 +195,12 @@ def build_classification_request(
     Args:
         texts: List of texts to classify
         user_schema: Classification schema
-        provider: LLM provider ("openai" or "ollama")
+        provider: LLM provider ("openai", "gemini", "anthropic", or "ollama")
         model: Model name
         technique: Classification technique
         temperature: Temperature value
         top_p: Top P value
-        llm_api_key: Optional LLM API key (for OpenAI)
+        llm_api_key: Optional LLM API key (for OpenAI, Gemini, Anthropic)
         llm_endpoint: Optional LLM endpoint (for Ollama)
 
     Returns:
@@ -218,7 +218,7 @@ def build_classification_request(
     }
 
     # Add provider-specific fields
-    if provider == "openai" and llm_api_key:
+    if provider in ["openai", "gemini", "anthropic"] and llm_api_key:
         payload["llm_api_key"] = llm_api_key
     elif provider == "ollama" and llm_endpoint:
         payload["llm_endpoint"] = llm_endpoint

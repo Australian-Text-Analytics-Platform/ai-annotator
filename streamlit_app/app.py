@@ -111,11 +111,19 @@ def load_models(client: FastAPIClient, provider: str) -> List[str]:
         List of model names
     """
     try:
+        import re
         models_data = client.get_models()
         provider_models = [
             m['name'] for m in models_data['models']
             if m['provider'] == provider
         ]
+
+        # Filter out VertexAI models for Gemini provider
+        # VertexAI models end in -XXX (e.g., gemini-1.5-flash-001)
+        # Gemini API models don't have version suffixes
+        if provider == "gemini":
+            provider_models = [m for m in provider_models if not re.search(r'-\d{3}$', m)]
+
         return provider_models
     except Exception as e:
         st.error(f"Failed to load models: {str(e)}")
@@ -131,8 +139,7 @@ def render_sidebar(client: FastAPIClient):
 
     # Provider selection
     st.sidebar.subheader("Provider Settings")
-    # Note: Gemini and Anthropic are temporarily disabled due to LiteLLM compatibility issues
-    providers = ["openai", "ollama"]  # "gemini", "anthropic" disabled for now
+    providers = ["openai", "gemini", "anthropic", "ollama"]
     try:
         provider_index = providers.index(st.session_state.provider)
     except ValueError:
@@ -143,7 +150,7 @@ def render_sidebar(client: FastAPIClient):
         providers,
         index=provider_index,
         key="provider_radio",
-        help="Gemini and Anthropic support coming soon"
+        help="Select your preferred LLM provider"
     )
 
     if provider != st.session_state.provider:
@@ -535,7 +542,7 @@ def render_job_submission(client: FastAPIClient):
                     technique=st.session_state.technique,
                     temperature=st.session_state.temperature,
                     top_p=st.session_state.top_p,
-                    llm_api_key=st.session_state.llm_api_key if st.session_state.provider == "openai" else None,
+                    llm_api_key=st.session_state.llm_api_key if st.session_state.provider in ["openai", "gemini", "anthropic"] else None,
                     llm_endpoint=st.session_state.ollama_endpoint if st.session_state.provider == "ollama" else None
                 )
 
