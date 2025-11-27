@@ -9,13 +9,16 @@ from loguru import logger
 from litellm import model_cost, token_counter
 
 from classifier_fastapi.techniques import BaseTechnique
+from classifier_fastapi.formatter import formatter
 
 __all__ = [
     "CostEstimator",
 ]
 
 # Default output token estimate per classification
-DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION = 50
+# Based on real API testing with gpt-4o-mini, gemini-2.5-flash-lite, claude-3-5-haiku:
+# Actual output is ~8 tokens per simple zero-shot classification (YAML formatted response)
+DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION = 8
 
 
 class CostEstimator:
@@ -74,14 +77,27 @@ class CostEstimator:
         try:
             total_input_tokens = 0
 
-            for text in texts:
-                prompt = prompt_maker.make_prompt(text)
+            for i, text in enumerate(texts):
+                # Generate base prompt
+                base_prompt = prompt_maker.make_prompt(text)
+                # Add formatting instructions (same as actual classification)
+                full_prompt = formatter.format_prompt(
+                    prompt=base_prompt,
+                    output_keys=prompt_maker.template.output_keys
+                )
                 # Format as LiteLLM messages
-                messages = [{"role": "user", "content": prompt}]
+                messages = [{"role": "user", "content": full_prompt}]
 
                 try:
                     tokens = token_counter(model=model, messages=messages)
                     total_input_tokens += tokens
+
+                    # Debug logging for first few texts
+                    if i < 3:
+                        logger.debug(f"Text {i}: {text[:50]}...")
+                        logger.debug(f"  Base prompt length: {len(base_prompt)} chars")
+                        logger.debug(f"  Full prompt length: {len(full_prompt)} chars")
+                        logger.debug(f"  Tokens counted: {tokens}")
                 except Exception as e:
                     logger.warning(f"Failed to count tokens for model {model}: {e}")
                     return {
@@ -93,6 +109,8 @@ class CostEstimator:
 
             # Estimate output tokens (rough approximation)
             total_output_tokens = len(texts) * DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION
+
+            logger.info(f"Cost estimation complete: {len(texts)} texts, {total_input_tokens} input tokens ({total_input_tokens/len(texts):.1f} avg/text)")
 
             return {
                 "input_tokens": total_input_tokens,

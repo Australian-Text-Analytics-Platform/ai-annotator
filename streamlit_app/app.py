@@ -448,6 +448,7 @@ def render_job_submission(client: FastAPIClient):
             with st.spinner("Estimating cost..."):
                 # Take first few texts as sample
                 sample_texts = st.session_state.texts[:min(5, len(st.session_state.texts))]
+                total_texts = len(st.session_state.texts)
 
                 estimate_request = {
                     "texts": sample_texts,
@@ -457,8 +458,26 @@ def render_job_submission(client: FastAPIClient):
                     "technique": st.session_state.technique
                 }
 
-                cost_estimate = client.estimate_cost(estimate_request)
-                st.session_state.cost_estimate = cost_estimate
+                sample_estimate = client.estimate_cost(estimate_request)
+
+                # Extrapolate to full dataset
+                if sample_estimate and len(sample_texts) > 0:
+                    scaling_factor = total_texts / len(sample_texts)
+
+                    cost_estimate = {
+                        "num_texts": total_texts,
+                        "sample_size": len(sample_texts),
+                        "input_tokens": int(sample_estimate.get("input_tokens", 0) * scaling_factor) if sample_estimate.get("input_tokens") else None,
+                        "output_tokens": int(sample_estimate.get("output_tokens", 0) * scaling_factor) if sample_estimate.get("output_tokens") else None,
+                        "estimated_tokens": int(sample_estimate.get("estimated_tokens", 0) * scaling_factor) if sample_estimate.get("estimated_tokens") else None,
+                        "estimated_cost_usd": sample_estimate.get("estimated_cost_usd") * scaling_factor if sample_estimate.get("estimated_cost_usd") else None,
+                        "input_cost_per_1m": sample_estimate.get("input_cost_per_1m"),
+                        "output_cost_per_1m": sample_estimate.get("output_cost_per_1m"),
+                        "warnings": sample_estimate.get("warnings", [])
+                    }
+                    st.session_state.cost_estimate = cost_estimate
+                else:
+                    st.session_state.cost_estimate = sample_estimate
 
         except Exception as e:
             st.error(f"Failed to estimate cost: {str(e)}")
@@ -467,6 +486,10 @@ def render_job_submission(client: FastAPIClient):
     if st.session_state.cost_estimate:
         st.subheader("Cost Estimate")
         est = st.session_state.cost_estimate
+
+        # Show sampling info if applicable
+        if est.get('sample_size') and est.get('num_texts') and est['sample_size'] < est['num_texts']:
+            st.info(f"📊 Estimated based on {est['sample_size']} sample texts, extrapolated to {est['num_texts']} total texts")
 
         # Show breakdown if available
         if est.get('input_tokens') and est.get('output_tokens'):
