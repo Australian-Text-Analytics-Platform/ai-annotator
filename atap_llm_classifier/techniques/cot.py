@@ -3,6 +3,8 @@
 Chain of Thought - allows for N number of 'shots'.
 """
 
+from functools import cached_property
+
 from atap_llm_classifier.techniques import Technique, BaseTechnique
 from atap_llm_classifier.techniques.schemas import (
     CoTPromptTemplate,
@@ -48,12 +50,21 @@ class ChainOfThought(BaseTechnique):
     def make_prompt(self, text: str) -> str:
         examples: str = make_prompt_examples(user_schema=self.user_schema)
         classes: str = make_prompt_classes(user_schema=self.user_schema)
+        reasoning_instruction = self._get_reasoning_instruction()
         return self.template.structure.format(
             num_classes=len(self.classes),
             examples=examples,
             classes=classes,
             text=text,
+            reasoning_instruction=reasoning_instruction,
         )
+
+    @cached_property
+    def output_keys(self) -> list[str]:
+        keys = [self.template.output_classification_key] + self.template.additional_output_keys
+        if self.enable_reasoning:
+            keys.append("reasoning")
+        return keys
 
     @property
     def examples(self) -> list[CoTExample]:

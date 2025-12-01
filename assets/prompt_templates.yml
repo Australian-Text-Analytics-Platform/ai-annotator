@@ -1,19 +1,21 @@
 zero_shot:
   structure: |
-    You are provided with {num_classes} classes with a description of each. 
-    Each class is demarcated with the format: 
+    You are provided with {num_classes} classes with a description of each.
+    Each class is demarcated with the format:
     <class>
-    name: 
-    description: 
+    name:
+    description:
     </class>
-    
+
     Below are the classes:
-    
+
     {classes}
-    
+
     Referencing the above classes, your task is to classify the following text into one of them.
-    
+
     text: {text}
+
+    Provide a confidence score between 0 and 1 for your classification, where 1 is completely certain and 0 is completely uncertain.{reasoning_instruction}
 
   user_schema_templates:
     clazz: |
@@ -22,33 +24,38 @@ zero_shot:
       description: {description}
       </class>
 
+  additional_output_keys:
+    - confidence
+
 few_shot:
   structure: |
-    You are provided with {num_classes} classes with a description of each. 
+    You are provided with {num_classes} classes with a description of each.
     Followed by examples with a query and its correct classification.
-    Each class is demarcated with the format: 
+    Each class is demarcated with the format:
     <class>
-    name: 
-    description: 
+    name:
+    description:
     </class>
     Each example is demarcated with the format:
     <example>
-    query: 
+    query:
     class:
     </example>
-    
+
     Below are the classes.
-    
+
     {classes}
-    
+
     Below are the examples.
-    
+
     {examples}
-    
-    Referencing each of the classes and the examples provided above, your task is to classify the following 
+
+    Referencing each of the classes and the examples provided above, your task is to classify the following
     query into one of the provided classes.
-    
+
     query: {text}
+
+    Provide a confidence score between 0 and 1 for your classification, where 1 is completely certain and 0 is completely uncertain.{reasoning_instruction}
 
   user_schema_templates:
     clazz: |
@@ -63,34 +70,39 @@ few_shot:
       class: {classification}
       </example>
 
+  additional_output_keys:
+    - confidence
+
 chain_of_thought:
   structure: |
-    You are provided with {num_classes} classes and a description of each. 
+    You are provided with {num_classes} classes and a description of each.
     Followed by examples with a query, class and reason.
-    Each class is demarcated with the format: 
+    Each class is demarcated with the format:
     <class>
-    name: 
-    description: 
+    name:
+    description:
     </class>
     Each example is demarcated with the format:
     <example>
-    query: 
+    query:
     class:
-    reason: 
+    reason:
     </example>
-    
+
     Below are the classes.
-    
+
     {classes}
-    
+
     Below are the examples.
-    
+
     {examples}
-    
-    Referencing each of the classes and the examples provided above, your task is to classify the following 
+
+    Referencing each of the classes and the examples provided above, your task is to classify the following
     query into one of the provided classes and provide your reasoning.
-    
+
     query: {text}
+
+    Provide a confidence score between 0 and 1 for your classification, where 1 is completely certain and 0 is completely uncertain.{reasoning_instruction}
 
   user_schema_templates:
     clazz: |
@@ -107,4 +119,5 @@ chain_of_thought:
       </example>
 
   additional_output_keys:
+    - confidence
     - reason

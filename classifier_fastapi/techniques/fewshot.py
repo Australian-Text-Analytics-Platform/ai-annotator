@@ -3,6 +3,8 @@
 Few-Shot Learning - provides examples without requiring reasoning.
 """
 
+from functools import cached_property
+
 from classifier_fastapi.techniques import Technique, BaseTechnique
 from classifier_fastapi.techniques.schemas import (
     FewShotPromptTemplate,
@@ -47,12 +49,21 @@ class FewShot(BaseTechnique):
     def make_prompt(self, text: str) -> str:
         examples: str = make_prompt_examples(user_schema=self.user_schema)
         classes: str = make_prompt_classes(user_schema=self.user_schema)
+        reasoning_instruction = self._get_reasoning_instruction()
         return self.template.structure.format(
             num_classes=len(self.classes),
             examples=examples,
             classes=classes,
             text=text,
+            reasoning_instruction=reasoning_instruction,
         )
+
+    @cached_property
+    def output_keys(self) -> list[str]:
+        keys = [self.template.output_classification_key] + self.template.additional_output_keys
+        if self.enable_reasoning:
+            keys.append("reasoning")
+        return keys
 
     @property
     def examples(self) -> list[FewShotExample]:

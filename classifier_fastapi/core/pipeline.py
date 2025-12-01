@@ -30,6 +30,9 @@ class BatchResult(BaseModel):
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
     reasoning_tokens: int | None = None
+    confidence: float | None = None
+    reasoning: str | None = None
+    reasoning_content: str | None = None
 
 
 class BatchResults(BaseModel):
@@ -190,6 +193,9 @@ async def a_batch(
                         prompt_tokens=prompt_tokens_val,
                         completion_tokens=completion_tokens_val,
                         reasoning_tokens=reasoning_tokens_val,
+                        confidence=res.confidence,
+                        reasoning=res.reasoning,
+                        reasoning_content=res.reasoning_content,
                     )
                     successes.append(batch_res)
 

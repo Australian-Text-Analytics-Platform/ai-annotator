@@ -75,7 +75,14 @@ def unformat_output(
 
 
 def make_mock_response(output_keys: list[str]) -> str:
-    output_dict = {k: "This is a mock {}.".format(k) for k in output_keys}
+    output_dict = {}
+    for k in output_keys:
+        if k == "confidence":
+            output_dict[k] = 0.95
+        elif k in ["reasoning", "reason"]:
+            output_dict[k] = "This is a mock reasoning explanation."
+        else:
+            output_dict[k] = f"This is a mock {k}."
     output_format = get_env_settings().LLM_OUTPUT_FORMAT
     match output_format:
         case OutputFormat.YAML:

@@ -63,7 +63,12 @@ class Technique(str, Enum):
 
                 return ChainOfThought
 
-    def get_prompt_maker(self, user_schema: BaseModel | dict) -> BaseTechnique:
+    def get_prompt_maker(
+        self,
+        user_schema: BaseModel | dict,
+        enable_reasoning: bool = False,
+        max_reasoning_chars: int = 150,
+    ) -> BaseTechnique:
         if isinstance(user_schema, dict):
             user_schema = self.prompt_maker_cls.schema(**user_schema)
-        return self.prompt_maker_cls(user_schema)
+        return self.prompt_maker_cls(user_schema, enable_reasoning, max_reasoning_chars)
