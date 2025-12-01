@@ -59,6 +59,18 @@ def classify_batch(
     ] = Modifier.NO_MODIFIER,
     temperature: Annotated[Optional[float], typer.Option()] = None,
     top_p: Annotated[Optional[float], typer.Option()] = None,
+    reasoning_effort: Annotated[
+        Optional[str],
+        typer.Option(help="Reasoning mode: low, medium, or high")
+    ] = None,
+    enable_reasoning: Annotated[
+        bool,
+        typer.Option(help="Enable reasoning output in results")
+    ] = False,
+    max_reasoning_chars: Annotated[
+        int,
+        typer.Option(help="Maximum characters for reasoning output")
+    ] = 150,
     api_key: Annotated[Optional[str], typer.Option()] = None,
     endpoint: Annotated[Optional[str], typer.Option()] = None,
 ):
@@ -99,12 +111,18 @@ def classify_batch(
 
     corpus: Corpus = Corpus.from_dataframe(df=df, col_doc=column)
 
+    # Validate reasoning_effort
+    if reasoning_effort and reasoning_effort not in ["low", "medium", "high"]:
+        print_err("reasoning_effort must be 'low', 'medium', or 'high'")
+        exit(1)
+
     default: LLMConfig = LLMConfig()
     default_temp = default.temperature
     default_top_p = default.top_p
     llm_config: LLMConfig = LLMConfig(
         temperature=temperature if temperature is not None else default_temp,
         top_p=top_p if top_p is not None else default_top_p,
+        reasoning_effort=reasoning_effort,
     )
 
     provider_props = provider.properties
@@ -148,7 +166,23 @@ def classify_batch(
         user_schema=user_schema,
         modifier=modifier,
         on_result_callback=on_results,
+        enable_reasoning=enable_reasoning,
+        max_reasoning_chars=max_reasoning_chars,
     )
+
+    # Enrich corpus with classification results
+    for result in batch_results.successes:
+        doc_idx = result.doc_idx
+        cr = result.classification_result
+        doc = corpus.docs()[doc_idx]
+
+        doc.set_meta("classification", cr.classification)
+        if cr.confidence is not None:
+            doc.set_meta("confidence", cr.confidence)
+        if cr.reasoning:
+            doc.set_meta("reasoning", cr.reasoning)
+        if cr.reasoning_content:
+            doc.set_meta("reasoning_content", cr.reasoning_content)
     out_dir.mkdir(exist_ok=True)
     with open(out_dir / "results.json", "w") as h:
         h.write(batch_results.model_dump_json(exclude=["user_schema"]))
