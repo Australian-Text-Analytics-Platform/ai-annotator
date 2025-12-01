@@ -56,7 +56,8 @@ async def process_classification_job(job_id: str, request: ClassificationRequest
 
         llm_config = LLMConfig(
             temperature=request.temperature or 1.0,
-            top_p=request.top_p or 1.0
+            top_p=request.top_p or 1.0,
+            reasoning_effort=request.reasoning_effort,
         )
 
         # Validate user schema
@@ -74,7 +75,9 @@ async def process_classification_job(job_id: str, request: ClassificationRequest
             technique=technique,
             user_schema=user_schema,
             modifier=modifier,
-            on_progress_callback=on_progress
+            on_progress_callback=on_progress,
+            enable_reasoning=request.enable_reasoning,
+            max_reasoning_chars=request.max_reasoning_chars,
         )
 
         # Store results
@@ -84,6 +87,9 @@ async def process_classification_job(job_id: str, request: ClassificationRequest
                 "text": success.text,
                 "classification": success.classification,
                 "prompt": success.prompt,
+                "confidence": success.confidence,
+                "reasoning": success.reasoning,
+                "reasoning_content": success.reasoning_content,
             })
 
         for idx, error in results.fails:
@@ -194,7 +200,11 @@ async def estimate_classification_cost(
         technique = Technique[request.technique.upper()]
 
         user_schema = technique.prompt_maker_cls.schema.model_validate(request.user_schema)
-        prompt_maker = technique.get_prompt_maker(user_schema)
+        prompt_maker = technique.get_prompt_maker(
+            user_schema,
+            enable_reasoning=request.enable_reasoning,
+            max_reasoning_chars=request.max_reasoning_chars,
+        )
 
         # Validate model exists (without API key, just check in general list)
         try:

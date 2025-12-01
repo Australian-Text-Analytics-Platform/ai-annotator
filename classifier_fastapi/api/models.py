@@ -3,7 +3,7 @@ API Request/Response Models
 
 Pydantic models for FastAPI endpoints.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
 from enum import Enum
 from datetime import datetime
@@ -29,8 +29,28 @@ class ClassificationRequest(BaseModel):
     modifier: str = Field("no_modifier", description="Response modifier")
     temperature: Optional[float] = Field(None, gt=0, le=2.0)
     top_p: Optional[float] = Field(None, gt=0, le=1.0)
+    reasoning_effort: Optional[str] = Field(
+        None,
+        description="Reasoning mode: 'low', 'medium', or 'high'"
+    )
+    enable_reasoning: bool = Field(
+        False,
+        description="Enable reasoning output in classification results"
+    )
+    max_reasoning_chars: int = Field(
+        150,
+        gt=0,
+        description="Maximum characters for reasoning output"
+    )
     llm_api_key: Optional[str] = Field(None, description="LLM provider API key")
     llm_endpoint: Optional[str] = Field(None, description="Custom LLM endpoint")
+
+    @field_validator("reasoning_effort", mode="after")
+    @classmethod
+    def validate_reasoning_effort(cls, v: str | None):
+        if v is not None and v not in ["low", "medium", "high"]:
+            raise ValueError("reasoning_effort must be 'low', 'medium', 'high', or None")
+        return v
 
 
 class CostEstimateRequest(BaseModel):
@@ -40,6 +60,8 @@ class CostEstimateRequest(BaseModel):
     provider: str = Field(..., description="LLM provider")
     model: str = Field(..., description="Model name")
     technique: str = Field("zero_shot", description="Classification technique")
+    enable_reasoning: bool = Field(False, description="Enable reasoning for token estimation")
+    max_reasoning_chars: int = Field(150, gt=0)
 
 
 # Response Models
@@ -65,6 +87,9 @@ class ClassificationResultItem(BaseModel):
     text: str
     classification: str
     prompt: Optional[str] = None
+    confidence: Optional[float] = Field(None, description="Confidence score (0-1)")
+    reasoning: Optional[str] = Field(None, description="Reasoning for classification")
+    reasoning_content: Optional[str] = Field(None, description="Native reasoning mode output")
 
 
 class JobStatusResponse(BaseModel):
