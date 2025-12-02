@@ -591,7 +591,7 @@ def render_job_submission(client: FastAPIClient):
         # Warning about reasoning tokens for reasoning models
         if st.session_state.model and 'gpt-4.1' in st.session_state.model.lower():
             st.warning(
-                "⚠️ **Note on Reasoning Models:** This model uses reasoning tokens which are NOT included in this estimate. "
+                "⚠️ **Note on Reasoning Models:** Some models may use reasoning tokens which are NOT included in this estimate. "
                 "Actual costs may be significantly higher due to additional reasoning tokens generated during inference."
             )
 

@@ -15,9 +15,11 @@ __all__ = [
     "CostEstimator",
 ]
 
-# Default output token estimate per classification
+# Default output token estimate per classification (base case without reasoning)
 # Based on real API testing with gpt-4o-mini, gemini-2.5-flash-lite, claude-3-5-haiku:
 # Actual output is ~8 tokens per simple zero-shot classification (JSON formatted response)
+# Format: {"classification": "value", "confidence": 0.95}
+# Note: Additional tokens are added dynamically if reasoning is enabled
 DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION = 8
 
 
@@ -107,10 +109,22 @@ class CostEstimator:
                         "warning": f"Token counting not available for {model}"
                     }
 
-            # Estimate output tokens (rough approximation)
-            total_output_tokens = len(texts) * DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION
+            # Estimate output tokens based on actual output structure
+            tokens_per_classification = DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION
 
-            logger.info(f"Cost estimation complete: {len(texts)} texts, {total_input_tokens} input tokens ({total_input_tokens/len(texts):.1f} avg/text)")
+            # Check if reasoning is included in output
+            output_keys = getattr(prompt_maker, 'output_keys', prompt_maker.template.output_keys)
+            if 'reasoning' in output_keys:
+                # Reasoning is enabled - estimate additional tokens
+                # Rough approximation: 1 token ≈ 4 characters for English text
+                max_reasoning_chars = getattr(prompt_maker, 'max_reasoning_chars', 150)
+                reasoning_tokens = max_reasoning_chars // 4
+                tokens_per_classification += reasoning_tokens
+                logger.debug(f"Reasoning enabled: adding ~{reasoning_tokens} tokens per classification")
+
+            total_output_tokens = len(texts) * tokens_per_classification
+
+            logger.info(f"Cost estimation complete: {len(texts)} texts, {total_input_tokens} input tokens ({total_input_tokens/len(texts):.1f} avg/text), ~{tokens_per_classification} output tokens/text")
 
             return {
                 "input_tokens": total_input_tokens,
