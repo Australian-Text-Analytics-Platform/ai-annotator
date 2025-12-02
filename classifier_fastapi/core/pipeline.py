@@ -58,6 +58,8 @@ def batch(
     user_schema: BaseModel,
     modifier: Modifier,
     on_progress_callback: Callable | Coroutine | None = None,
+    enable_reasoning: bool = False,
+    max_reasoning_chars: int = 150,
 ) -> BatchResults:
     if config.mock.enabled:
         logger.info("Mock mode is enabled.")
@@ -71,6 +73,8 @@ def batch(
             user_schema,
             modifier,
             on_progress_callback,
+            enable_reasoning,
+            max_reasoning_chars,
         ),
     )
     return res
@@ -104,6 +108,8 @@ async def a_batch(
     user_schema: BaseModel,
     modifier: Modifier,
     on_progress_callback: Callable | Coroutine | None = None,
+    enable_reasoning: bool = False,
+    max_reasoning_chars: int = 150,
 ) -> BatchResults:
     successes: list[BatchResult] = list()
     fails: list[tuple[int, str]] = list()
@@ -113,7 +119,11 @@ async def a_batch(
     if on_progress_callback is not None:
         cb_info = (on_progress_callback, inspect.iscoroutinefunction(on_progress_callback))
 
-    prompt_maker: BaseTechnique = technique.get_prompt_maker(user_schema)
+    prompt_maker: BaseTechnique = technique.get_prompt_maker(
+        user_schema,
+        enable_reasoning=enable_reasoning,
+        max_reasoning_chars=max_reasoning_chars,
+    )
     mod_behaviour: BaseModifier = modifier.get_behaviour()
 
     rlimit_alg = config.RateLimiterAlg.TOKEN_BUCKET

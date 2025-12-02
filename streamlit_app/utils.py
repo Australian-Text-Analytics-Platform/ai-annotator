@@ -146,17 +146,22 @@ def format_results_for_download(results: List[Dict[str, Any]]) -> str:
         CSV string
     """
     if not results:
-        return "index,text,classification\n"
+        return "index,text,classification,confidence,reasoning,reasoning_content\n"
 
-    # Create DataFrame from results
-    df = pd.DataFrame([
-        {
+    # Create DataFrame from results with all fields
+    data = []
+    for r in results:
+        row = {
             'index': r['index'],
             'text': r['text'],
-            'classification': r['classification']
+            'classification': r['classification'],
+            'confidence': r.get('confidence'),
+            'reasoning': r.get('reasoning'),
+            'reasoning_content': r.get('reasoning_content')
         }
-        for r in results
-    ])
+        data.append(row)
+
+    df = pd.DataFrame(data)
 
     # Convert to CSV
     csv_buffer = StringIO()
@@ -187,7 +192,10 @@ def build_classification_request(
     temperature: float,
     top_p: float,
     llm_api_key: Optional[str] = None,
-    llm_endpoint: Optional[str] = None
+    llm_endpoint: Optional[str] = None,
+    reasoning_effort: Optional[str] = None,
+    enable_reasoning: bool = False,
+    max_reasoning_chars: int = 150
 ) -> Dict[str, Any]:
     """
     Build request payload for /classify/batch endpoint
@@ -202,6 +210,9 @@ def build_classification_request(
         top_p: Top P value
         llm_api_key: Optional LLM API key (for OpenAI, Gemini, Anthropic)
         llm_endpoint: Optional LLM endpoint (for Ollama)
+        reasoning_effort: Optional reasoning mode ("low", "medium", "high")
+        enable_reasoning: Enable reasoning output (default: False)
+        max_reasoning_chars: Maximum characters for reasoning (default: 150)
 
     Returns:
         Request payload dictionary
@@ -214,7 +225,10 @@ def build_classification_request(
         "technique": technique,
         "modifier": "no_modifier",
         "temperature": temperature,
-        "top_p": top_p
+        "top_p": top_p,
+        "reasoning_effort": reasoning_effort,
+        "enable_reasoning": enable_reasoning,
+        "max_reasoning_chars": max_reasoning_chars
     }
 
     # Add provider-specific fields

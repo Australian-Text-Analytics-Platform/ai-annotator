@@ -53,8 +53,16 @@ class LiteLLMCompletionArgs(BaseModel):
         if self.model and 'claude' in self.model.lower():
             kwargs.pop('top_p', None)
 
-        # Remove reasoning_effort if None to avoid passing it to LiteLLM unnecessarily
-        if kwargs.get('reasoning_effort') is None:
+        # Remove reasoning_effort if None or if model doesn't support it
+        # Only o1, o3-mini models support reasoning_effort
+        reasoning_effort = kwargs.get('reasoning_effort')
+        if reasoning_effort is not None:
+            model_lower = self.model.lower() if self.model else ''
+            # Check if model supports reasoning_effort (o1, o3-mini models)
+            supports_reasoning = any(pattern in model_lower for pattern in ['o1', 'o3-mini'])
+            if not supports_reasoning:
+                kwargs.pop('reasoning_effort', None)
+        else:
             kwargs.pop('reasoning_effort', None)
 
         return kwargs

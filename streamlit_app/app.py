@@ -46,6 +46,11 @@ def init_session_state():
         'llm_api_key': '',
         'ollama_endpoint': os.getenv('OLLAMA_ENDPOINT', 'http://127.0.0.1:11434'),
 
+        # Reasoning parameters
+        'enable_reasoning': False,
+        'max_reasoning_chars': 150,
+        'reasoning_effort': None,
+
         # Data
         'uploaded_file': None,
         'df': None,
@@ -290,6 +295,66 @@ def render_sidebar(client: FastAPIClient):
         )
         st.session_state.top_p = top_p
 
+        st.markdown("#### Reasoning Settings")
+
+        # Enable reasoning toggle
+        enable_reasoning = st.checkbox(
+            "Enable Reasoning Output",
+            value=st.session_state.enable_reasoning,
+            help="Request the LLM to provide a brief explanation for each classification"
+        )
+        st.session_state.enable_reasoning = enable_reasoning
+
+        # Max reasoning characters (only show if enable_reasoning is True)
+        if enable_reasoning:
+            max_reasoning_chars = st.slider(
+                "Max Reasoning Characters",
+                min_value=50,
+                max_value=500,
+                value=st.session_state.max_reasoning_chars,
+                step=50,
+                help="Maximum length of reasoning explanations"
+            )
+            st.session_state.max_reasoning_chars = max_reasoning_chars
+
+        # Reasoning effort (for compatible models)
+        reasoning_effort_options = ["None", "low", "medium", "high"]
+        reasoning_effort_index = 0
+        if st.session_state.reasoning_effort in ["low", "medium", "high"]:
+            reasoning_effort_index = reasoning_effort_options.index(st.session_state.reasoning_effort)
+
+        reasoning_effort_display = st.selectbox(
+            "Reasoning Effort",
+            options=reasoning_effort_options,
+            index=reasoning_effort_index,
+            help="Native reasoning mode for o1, o3-mini models (leave as 'None' for other models)"
+        )
+        reasoning_effort = None if reasoning_effort_display == "None" else reasoning_effort_display.lower()
+        st.session_state.reasoning_effort = reasoning_effort
+
+        # Display info about reasoning modes
+        if reasoning_effort:
+            st.info("Native reasoning effort is only supported by some models and will be ignored for others.")
+
+    # Help documentation for reasoning features
+    with st.sidebar.expander("About Reasoning Features"):
+        st.markdown("""
+        ### Confidence Scores
+        All classifications include a confidence score (0-1) indicating the model's certainty.
+
+        ### Reasoning Output
+        Enable "Reasoning Output" to request explanations for classifications.
+        The model will provide a brief rationale for its decisions.
+
+        ### Reasoning Effort
+        For models like o1 and o3-mini that support native reasoning:
+        - **Low**: Faster, basic reasoning
+        - **Medium**: Balanced reasoning depth
+        - **High**: Most thorough reasoning (slower, more expensive)
+
+        Note: Reasoning effort only works with compatible models and will be ignored otherwise.
+        """)
+
 
 def render_file_upload():
     """Render file upload section"""
@@ -455,7 +520,9 @@ def render_job_submission(client: FastAPIClient):
                     "user_schema": st.session_state.user_schema,
                     "provider": st.session_state.provider,
                     "model": st.session_state.model,
-                    "technique": st.session_state.technique
+                    "technique": st.session_state.technique,
+                    "enable_reasoning": st.session_state.enable_reasoning,
+                    "max_reasoning_chars": st.session_state.max_reasoning_chars
                 }
 
                 sample_estimate = client.estimate_cost(estimate_request)
@@ -566,7 +633,10 @@ def render_job_submission(client: FastAPIClient):
                     temperature=st.session_state.temperature,
                     top_p=st.session_state.top_p,
                     llm_api_key=st.session_state.llm_api_key if st.session_state.provider in ["openai", "gemini", "anthropic"] else None,
-                    llm_endpoint=st.session_state.ollama_endpoint if st.session_state.provider == "ollama" else None
+                    llm_endpoint=st.session_state.ollama_endpoint if st.session_state.provider == "ollama" else None,
+                    reasoning_effort=st.session_state.reasoning_effort,
+                    enable_reasoning=st.session_state.enable_reasoning,
+                    max_reasoning_chars=st.session_state.max_reasoning_chars
                 )
 
                 # Submit job
@@ -672,17 +742,28 @@ def render_job_status_and_results(client: FastAPIClient):
     if st.session_state.job_status == "completed" and st.session_state.job_results:
         st.subheader("Results")
 
-        # Create results DataFrame
-        results_df = pd.DataFrame([
-            {
+        # Create results DataFrame with new reasoning fields
+        results_data = []
+        for r in st.session_state.job_results:
+            row = {
                 'Index': r['index'],
                 'Text': r['text'][:100] + '...' if len(r['text']) > 100 else r['text'],
                 'Classification': r['classification']
             }
-            for r in st.session_state.job_results
-        ])
+            # Add confidence if available
+            if 'confidence' in r and r['confidence'] is not None:
+                row['Confidence'] = round(r['confidence'], 2)
+            # Add reasoning if available
+            if 'reasoning' in r and r['reasoning']:
+                row['Reasoning'] = r['reasoning']
+            # Add reasoning_content if available
+            if 'reasoning_content' in r and r['reasoning_content']:
+                row['Reasoning (Native)'] = r['reasoning_content']
+            results_data.append(row)
 
-        st.dataframe(results_df, width='stretch')
+        results_df = pd.DataFrame(results_data)
+
+        st.dataframe(results_df, use_container_width=True)
 
         # Download button
         csv_data = format_results_for_download(st.session_state.job_results)
