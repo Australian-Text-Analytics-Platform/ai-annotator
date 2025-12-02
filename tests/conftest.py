@@ -74,18 +74,31 @@ def mock_job_manager(test_job_manager):
 
 @pytest.fixture
 def mock_litellm():
-    """Mock LiteLLM to avoid real API calls"""
-    with patch("litellm.acompletion") as mock_completion:
-        # Mock response
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="classified_result"))]
-        mock_response.usage = Mock(
-            prompt_tokens=10,
-            completion_tokens=5,
-            total_tokens=15
-        )
-        mock_completion.return_value = mock_response
-        yield mock_completion
+    """Mock LiteLLM to avoid real API calls - patch where it's imported"""
+    # Patch acompletion where it's imported in the core module
+    patcher = patch("classifier_fastapi.core.core.acompletion")
+    mock_completion = patcher.start()
+
+    # Mock response with JSON format (current default)
+    mock_response = Mock()
+    mock_response.choices = [Mock(message=Mock(content='''```json
+{
+  "classification": "positive",
+  "confidence": 0.95,
+  "reasoning": "Test reasoning"
+}
+```'''))]
+    mock_response.usage = Mock(
+        prompt_tokens=10,
+        completion_tokens=5,
+        total_tokens=15
+    )
+    mock_completion.return_value = mock_response
+
+    yield mock_completion
+
+    # Explicitly stop the patcher to ensure cleanup
+    patcher.stop()
 
 
 @pytest_asyncio.fixture
