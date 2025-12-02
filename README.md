@@ -610,14 +610,169 @@ Available providers and their supported models:
 }
 ```
 
+## Reasoning Features
+
+All classification results now include **confidence scores** by default, and you can optionally enable **reasoning output** and **native reasoning modes** for supported models.
+
+### Confidence Scores
+
+All classifications automatically include a confidence score (0-1):
+
+```python
+# CLI: Results include confidence in corpus metadata
+for result in batch_results.successes:
+    confidence = result.classification_result.confidence  # 0.0 to 1.0
+
+# FastAPI: Results include confidence field
+{
+  "index": 0,
+  "text": "This is great!",
+  "classification": "positive",
+  "confidence": 0.95
+}
+```
+
+### Enable Reasoning Output
+
+Request the LLM to provide a brief explanation for its classification:
+
+**CLI:**
+```bash
+atapllmc classify batch \
+  --dataset 'example.csv' \
+  --column 'text' \
+  --out-dir './out' \
+  --provider openai \
+  --model 'gpt-4o-mini' \
+  --technique zero_shot \
+  --user-schema 'schema.json' \
+  --api-key <key> \
+  --enable-reasoning \
+  --max-reasoning-chars 200
+```
+
+**Python API:**
+```python
+results = pipeline.batch(
+    corpus=corpus,
+    model_props=model_props,
+    llm_config=llm_config,
+    technique=Technique.ZERO_SHOT,
+    user_schema=user_schema,
+    modifier=Modifier.NO_MODIFIER,
+    enable_reasoning=True,
+    max_reasoning_chars=150
+)
+
+# Access reasoning in results
+for success in results.successes:
+    reasoning = success.classification_result.reasoning
+    print(f"Classification: {success.classification_result.classification}")
+    print(f"Reasoning: {reasoning}")
+```
+
+**FastAPI:**
+```bash
+curl -X POST http://localhost:8002/classify/batch \
+  -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "texts": ["This is great!"],
+    "user_schema": {...},
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "technique": "zero_shot",
+    "enable_reasoning": true,
+    "max_reasoning_chars": 150
+  }'
+```
+
+### Native Reasoning Modes
+
+For models that support native reasoning (o1, o3-mini, etc.), use `reasoning_effort`:
+
+**CLI:**
+```bash
+atapllmc classify batch \
+  --dataset 'example.csv' \
+  --column 'text' \
+  --out-dir './out' \
+  --provider openai \
+  --model 'o3-mini' \
+  --technique zero_shot \
+  --user-schema 'schema.json' \
+  --api-key <key> \
+  --reasoning-effort medium
+```
+
+**Python API:**
+```python
+llm_config = LLMConfig(
+    temperature=1.0,
+    top_p=0.9,
+    reasoning_effort="medium"  # "low", "medium", or "high"
+)
+
+results = pipeline.batch(
+    corpus=corpus,
+    model_props=model_props,
+    llm_config=llm_config,
+    technique=Technique.ZERO_SHOT,
+    user_schema=user_schema,
+    modifier=Modifier.NO_MODIFIER
+)
+
+# Access native reasoning content
+for success in results.successes:
+    reasoning_content = success.classification_result.reasoning_content
+    if reasoning_content:
+        print(f"Native reasoning: {reasoning_content}")
+```
+
+**FastAPI:**
+```bash
+curl -X POST http://localhost:8002/classify/batch \
+  -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "texts": ["Complex text to classify"],
+    "user_schema": {...},
+    "provider": "openai",
+    "model": "o3-mini",
+    "technique": "zero_shot",
+    "reasoning_effort": "high"
+  }'
+```
+
+### CLI Arguments for Reasoning
+
+- `--enable-reasoning` - Enable reasoning output in classification results (flag, default: False)
+- `--max-reasoning-chars INTEGER` - Maximum characters for reasoning output (default: 150)
+- `--reasoning-effort [low|medium|high]` - Native reasoning mode level (optional)
+
+### Result Fields
+
+Classification results include the following reasoning-related fields:
+
+- `confidence` (float): Confidence score from 0.0 to 1.0 (always included)
+- `reasoning` (str): Brief explanation when `enable_reasoning=True`
+- `reasoning_content` (str): Native reasoning output when using reasoning models with `reasoning_effort`
+
+### Backward Compatibility
+
+All reasoning features are optional and backward compatible:
+- Existing code continues to work without modifications
+- Default behavior: confidence scores included, no reasoning output
+- Reasoning fields are `None` when not enabled
+
 ### Output Files
 
 After classification, the following files are generated in the output directory:
 
-- `results.json` - Classification results and metadata
+- `results.json` - Classification results and metadata (includes confidence/reasoning if enabled)
 - `user_schema.json` - User schema used for classification
 - `corpus.zip` - Serialized corpus data
-- `corpus.csv` - CSV format of the corpus with results
+- `corpus.csv` - CSV format of the corpus with results (includes confidence/reasoning columns)
 
 ## Author
 
