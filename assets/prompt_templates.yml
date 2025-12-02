@@ -15,7 +15,7 @@ zero_shot:
 
     text: {text}
 
-    Provide a confidence score between 0 and 1 for your classification, where 1 is completely certain and 0 is completely uncertain.{reasoning_instruction}
+    Provide a numeric confidence score as a decimal number between 0 and 1 for your classification (e.g., 0.95), where 1 is completely certain and 0 is completely uncertain.{reasoning_instruction}
 
   user_schema_templates:
     clazz: |
@@ -55,7 +55,7 @@ few_shot:
 
     query: {text}
 
-    Provide a confidence score between 0 and 1 for your classification, where 1 is completely certain and 0 is completely uncertain.{reasoning_instruction}
+    Provide a numeric confidence score as a decimal number between 0 and 1 for your classification (e.g., 0.95), where 1 is completely certain and 0 is completely uncertain.{reasoning_instruction}
 
   user_schema_templates:
     clazz: |
@@ -102,7 +102,7 @@ chain_of_thought:
 
     query: {text}
 
-    Provide a confidence score between 0 and 1 for your classification, where 1 is completely certain and 0 is completely uncertain.{reasoning_instruction}
+    Provide a numeric confidence score as a decimal number between 0 and 1 for your classification (e.g., 0.95), where 1 is completely certain and 0 is completely uncertain.{reasoning_instruction}
 
   user_schema_templates:
     clazz: |

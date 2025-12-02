@@ -9,6 +9,7 @@ Note:
 """
 
 from litellm import acompletion, ModelResponse, Choices
+from litellm.exceptions import BadRequestError, UnsupportedParamsError
 from loguru import logger
 from pydantic import BaseModel
 
@@ -69,22 +70,66 @@ async def a_classify(
 
     # preconditions: technique, modifier, formatter applied to prompt and llm configs.
     msg = LiteLLMMessage(content=prompt, role=LiteLLMRole.USER)
-    response: ModelResponse = await acompletion(
-        **LiteLLMCompletionArgs(
-            model=model if not config.mock.enabled else "openai/gpt-3.5-turbo",
-            messages=[msg],
-            temperature=llm_config.temperature,
-            top_p=llm_config.top_p,
-            n=llm_config.n_completions,
-            stream=False,
-            api_key=api_key,
-            base_url=endpoint,
-            reasoning_effort=llm_config.reasoning_effort,
-        ).to_kwargs(),
-        mock_response=formatter.make_mock_response(output_keys)
-        if config.mock.enabled
-        else None,
-    )
+
+    # Try with all parameters first, retry without unsupported ones if needed
+    reasoning_effort_used = llm_config.reasoning_effort  # Track what was actually sent
+    retry_count = 0
+    max_retries = 2
+
+    while retry_count <= max_retries:
+        try:
+            # Build completion args
+            completion_args = LiteLLMCompletionArgs(
+                model=model if not config.mock.enabled else "openai/gpt-3.5-turbo",
+                messages=[msg],
+                temperature=llm_config.temperature,
+                top_p=llm_config.top_p,
+                n=llm_config.n_completions,
+                stream=False,
+                api_key=api_key,
+                base_url=endpoint,
+                reasoning_effort=reasoning_effort_used,
+            )
+
+            # On retry attempts, remove unsupported params
+            kwargs = completion_args.to_kwargs()
+            if retry_count == 1:
+                # First retry: remove reasoning_effort
+                kwargs.pop('reasoning_effort', None)
+                reasoning_effort_used = None
+            elif retry_count == 2:
+                # Second retry: remove top_p and temperature too
+                kwargs.pop('top_p', None)
+                kwargs.pop('temperature', None)
+
+            response: ModelResponse = await acompletion(
+                **kwargs,
+                mock_response=formatter.make_mock_response(output_keys)
+                if config.mock.enabled
+                else None,
+            )
+            break  # Success, exit loop
+
+        except (BadRequestError, UnsupportedParamsError) as e:
+            error_message = str(e)
+
+            # Check if it's an unsupported parameter error
+            if "reasoning_effort" in error_message.lower() and retry_count == 0:
+                logger.warning(
+                    f"Model {model} does not support reasoning_effort parameter. Retrying without it."
+                )
+                retry_count = 1
+                continue
+
+            elif ("top_p" in error_message.lower() or "temperature" in error_message.lower()) and retry_count <= 1:
+                logger.warning(
+                    f"Model {model} does not support top_p/temperature parameters. Retrying without them."
+                )
+                retry_count = 2
+                continue
+            else:
+                # Re-raise if it's a different error or we've exhausted retries
+                raise
 
     unformatted_outputs: list[LLMoutputModel | None] = list()
     choice: Choices
@@ -133,6 +178,16 @@ async def a_classify(
     reasoning_content = None
     if hasattr(response.choices[0].message, 'reasoning_content'):
         reasoning_content = response.choices[0].message.reasoning_content
+        if reasoning_content:
+            logger.info(f"Extracted reasoning_content from response (length: {len(reasoning_content)})")
+
+    # Debug log if reasoning_effort was actually sent but no reasoning_content found
+    if reasoning_effort_used and not reasoning_content:
+        logger.info(
+            f"reasoning_effort={reasoning_effort_used} was sent to model {model}, "
+            f"but no reasoning_content found in response. This may be expected for models "
+            f"that don't populate this field."
+        )
 
     return ClassificationResult(
         text=text,

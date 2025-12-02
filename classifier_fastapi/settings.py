@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # Output format
-    LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.YAML
+    LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.JSON
 
     # Ollama settings
     OLLAMA_ENDPOINT: str = "http://127.0.0.1:11434"

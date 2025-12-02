@@ -114,6 +114,10 @@ class CostEstimateResponse(BaseModel):
     num_texts: int
     input_tokens: Optional[int] = Field(None, description="Estimated input tokens")
     output_tokens: Optional[int] = Field(None, description="Estimated output tokens")
+    reasoning_tokens: Optional[int] = Field(None, description="Estimated reasoning tokens")
+    input_cost_usd: Optional[float] = Field(None, description="Input cost in USD")
+    output_cost_usd: Optional[float] = Field(None, description="Output cost in USD")
+    reasoning_cost_usd: Optional[float] = Field(None, description="Reasoning cost in USD")
     input_cost_per_1m: Optional[float] = Field(None, description="Input cost per 1M tokens (USD)")
     output_cost_per_1m: Optional[float] = Field(None, description="Output cost per 1M tokens (USD)")
     warnings: List[str] = []

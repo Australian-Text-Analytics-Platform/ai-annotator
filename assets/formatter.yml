@@ -7,6 +7,12 @@ templates:
       {}
       ```
     unformat_regex: "```yaml\n(.*)```"
+  json:
+    format_str: |
+      ```json
+      {}
+      ```
+    unformat_regex: "```json\n(.*)```"
 structure: |
   {instruction}
   {templated}

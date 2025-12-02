@@ -17,7 +17,7 @@ __all__ = [
 
 # Default output token estimate per classification
 # Based on real API testing with gpt-4o-mini, gemini-2.5-flash-lite, claude-3-5-haiku:
-# Actual output is ~8 tokens per simple zero-shot classification (YAML formatted response)
+# Actual output is ~8 tokens per simple zero-shot classification (JSON formatted response)
 DEFAULT_OUTPUT_TOKENS_PER_CLASSIFICATION = 8
 
 

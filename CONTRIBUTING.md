@@ -65,7 +65,10 @@ Also see `settings.py`, so you can supply env var `LLM_OUTPUT_FORMAT` to change 
 
 #### Supported:
 
-1. Yaml
+1. JSON (default)
+2. YAML
+
+The default format is JSON for better reliability with LLM outputs. You can change this by setting `LLM_OUTPUT_FORMAT=yaml` in your environment or `.env` file.
 
 #### Extending:
 

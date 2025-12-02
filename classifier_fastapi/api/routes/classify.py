@@ -120,7 +120,7 @@ async def process_classification_job(job_id: str, request: ClassificationRequest
                 pricing = CostEstimator.get_model_pricing(results.model)
                 if pricing:
                     input_cost_per_token = pricing.get("input_cost_per_token", 0)
-                    output_cost_per_token = pricing.get("completion_cost_per_token", 0)
+                    output_cost_per_token = pricing.get("output_cost_per_token", 0)
 
                     cost_data["input_cost_usd"] = results.prompt_tokens * input_cost_per_token
                     cost_data["output_cost_usd"] = results.completion_tokens * output_cost_per_token
@@ -230,6 +230,11 @@ async def estimate_classification_cost(
         # Estimate cost using LiteLLM pricing
         cost = None
         pricing_per_million = None
+        input_cost_usd = None
+        output_cost_usd = None
+        reasoning_cost_usd = None
+        reasoning_tokens = None
+
         if token_estimate.get("total_tokens"):
             cost = CostEstimator.estimate_cost(
                 token_estimate,
@@ -240,6 +245,24 @@ async def estimate_classification_cost(
             else:
                 pricing_per_million = CostEstimator.get_pricing_per_million(request.model)
 
+                # Calculate individual cost breakdowns
+                pricing = CostEstimator.get_model_pricing(request.model)
+                if pricing:
+                    input_cost_per_token = pricing.get("input_cost_per_token", 0)
+                    output_cost_per_token = pricing.get("output_cost_per_token", 0)
+
+                    if token_estimate.get("input_tokens"):
+                        input_cost_usd = token_estimate["input_tokens"] * input_cost_per_token
+
+                    if token_estimate.get("estimated_output_tokens"):
+                        output_cost_usd = token_estimate["estimated_output_tokens"] * output_cost_per_token
+
+                    # For reasoning tokens (if reasoning_effort is set)
+                    # Note: In estimation, we don't calculate reasoning tokens separately yet
+                    # They would be included in output tokens
+                    reasoning_tokens = 0
+                    reasoning_cost_usd = 0.0
+
         return CostEstimateResponse(
             estimated_tokens=token_estimate.get("total_tokens", 0),
             estimated_cost_usd=cost,
@@ -248,6 +271,10 @@ async def estimate_classification_cost(
             num_texts=len(request.texts),
             input_tokens=token_estimate.get("input_tokens"),
             output_tokens=token_estimate.get("estimated_output_tokens"),
+            reasoning_tokens=reasoning_tokens,
+            input_cost_usd=input_cost_usd,
+            output_cost_usd=output_cost_usd,
+            reasoning_cost_usd=reasoning_cost_usd,
             input_cost_per_1m=pricing_per_million.get("input_per_million") if pricing_per_million else None,
             output_cost_per_1m=pricing_per_million.get("output_per_million") if pricing_per_million else None,
             warnings=warnings

@@ -39,6 +39,7 @@ class OutputFormatTemplate(BaseModel):
 
 class OutputFormatTemplates(BaseModel):
     yaml: OutputFormatTemplate
+    json: OutputFormatTemplate
 
 
 class OutputFormatInfo(BaseModel):
@@ -62,6 +63,7 @@ class OutputFormatInfo(BaseModel):
 
 class OutputFormat(enum.Enum):
     YAML: str = "yaml"
+    JSON: str = "json"
 
     @classmethod
     def infos(cls) -> OutputFormatInfo:

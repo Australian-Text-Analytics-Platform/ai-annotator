@@ -327,7 +327,7 @@ def render_sidebar(client: FastAPIClient):
             "Reasoning Effort",
             options=reasoning_effort_options,
             index=reasoning_effort_index,
-            help="Native reasoning mode for o1, o3-mini models (leave as 'None' for other models)"
+            help="Native reasoning mode for models that support it (leave as 'None' for models without native reasoning support)"
         )
         reasoning_effort = None if reasoning_effort_display == "None" else reasoning_effort_display.lower()
         st.session_state.reasoning_effort = reasoning_effort
@@ -347,12 +347,12 @@ def render_sidebar(client: FastAPIClient):
         The model will provide a brief rationale for its decisions.
 
         ### Reasoning Effort
-        For models like o1 and o3-mini that support native reasoning:
+        For models that support native reasoning:
         - **Low**: Faster, basic reasoning
         - **Medium**: Balanced reasoning depth
         - **High**: Most thorough reasoning (slower, more expensive)
 
-        Note: Reasoning effort only works with compatible models and will be ignored otherwise.
+        Note: Reasoning effort only works with compatible models and will be ignored for models without native reasoning support.
         """)
 
 
@@ -536,8 +536,12 @@ def render_job_submission(client: FastAPIClient):
                         "sample_size": len(sample_texts),
                         "input_tokens": int(sample_estimate.get("input_tokens", 0) * scaling_factor) if sample_estimate.get("input_tokens") else None,
                         "output_tokens": int(sample_estimate.get("output_tokens", 0) * scaling_factor) if sample_estimate.get("output_tokens") else None,
+                        "reasoning_tokens": int(sample_estimate.get("reasoning_tokens", 0) * scaling_factor) if sample_estimate.get("reasoning_tokens") else None,
                         "estimated_tokens": int(sample_estimate.get("estimated_tokens", 0) * scaling_factor) if sample_estimate.get("estimated_tokens") else None,
                         "estimated_cost_usd": sample_estimate.get("estimated_cost_usd") * scaling_factor if sample_estimate.get("estimated_cost_usd") else None,
+                        "input_cost_usd": sample_estimate.get("input_cost_usd") * scaling_factor if sample_estimate.get("input_cost_usd") else None,
+                        "output_cost_usd": sample_estimate.get("output_cost_usd") * scaling_factor if sample_estimate.get("output_cost_usd") else None,
+                        "reasoning_cost_usd": sample_estimate.get("reasoning_cost_usd") * scaling_factor if sample_estimate.get("reasoning_cost_usd") else None,
                         "input_cost_per_1m": sample_estimate.get("input_cost_per_1m"),
                         "output_cost_per_1m": sample_estimate.get("output_cost_per_1m"),
                         "warnings": sample_estimate.get("warnings", [])
@@ -765,6 +769,21 @@ def render_job_status_and_results(client: FastAPIClient):
 
         st.dataframe(results_df, use_container_width=True)
 
+        # Show info about reasoning features used
+        reasoning_info = []
+        if 'Confidence' in results_df.columns:
+            reasoning_info.append("✓ Confidence scores included")
+        if 'Reasoning' in results_df.columns:
+            reasoning_info.append("✓ Prompted reasoning included")
+        if 'Reasoning (Native)' in results_df.columns:
+            reasoning_info.append("✓ Native reasoning mode used")
+        elif st.session_state.reasoning_effort:
+            # User requested reasoning_effort but no reasoning_content in results
+            reasoning_info.append(f"ℹ️ Reasoning effort '{st.session_state.reasoning_effort}' was set, but no native reasoning content was returned")
+
+        if reasoning_info:
+            st.info(" | ".join(reasoning_info))
+
         # Download button
         csv_data = format_results_for_download(st.session_state.job_results)
         st.download_button(
@@ -808,30 +827,50 @@ def render_job_status_and_results(client: FastAPIClient):
                     st.markdown("**Cost Breakdown:**")
                     breakdown_data = []
 
+                    def format_cost(cost_val):
+                        """Format cost value, handling very small amounts"""
+                        if cost_val is None:
+                            return "N/A"
+                        elif cost_val == 0:
+                            return "$0.0000"
+                        elif cost_val < 0.00001:
+                            return f"${cost_val:.2e}"  # Scientific notation
+                        else:
+                            return f"${cost_val:.4f}"
+
                     if cost.get('input_cost_usd') is not None:
                         breakdown_data.append({
                             "Type": "Input",
                             "Tokens": f"{cost.get('input_tokens', 0):,}",
-                            "Cost": f"${cost['input_cost_usd']:.4f}"
+                            "Cost": format_cost(cost['input_cost_usd'])
                         })
 
                     if cost.get('output_cost_usd') is not None:
                         breakdown_data.append({
                             "Type": "Output",
                             "Tokens": f"{cost.get('output_tokens', 0):,}",
-                            "Cost": f"${cost['output_cost_usd']:.4f}"
+                            "Cost": format_cost(cost['output_cost_usd'])
                         })
 
                     if cost.get('reasoning_cost_usd') is not None and cost.get('reasoning_tokens'):
                         breakdown_data.append({
                             "Type": "Reasoning",
                             "Tokens": f"{cost['reasoning_tokens']:,}",
-                            "Cost": f"${cost['reasoning_cost_usd']:.4f}"
+                            "Cost": format_cost(cost['reasoning_cost_usd'])
                         })
 
                     if breakdown_data:
                         df_breakdown = pd.DataFrame(breakdown_data)
                         st.dataframe(df_breakdown, hide_index=True, width='content')
+
+                    # Show note if all costs are zero
+                    all_costs_zero = all(
+                        cost.get(key, 0) == 0
+                        for key in ['input_cost_usd', 'output_cost_usd', 'reasoning_cost_usd']
+                        if cost.get(key) is not None
+                    )
+                    if all_costs_zero:
+                        st.caption("Note: Cost breakdown shows $0 - pricing data may be unavailable for this model")
 
             else:
                 # Simple display

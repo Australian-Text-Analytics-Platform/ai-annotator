@@ -174,7 +174,10 @@ MAX_BATCH_SIZE=1000
 MAX_CONCURRENT_JOBS=100
 DEFAULT_WORKERS=5
 CORS_ORIGINS="*"
+LLM_OUTPUT_FORMAT=json  # Options: json (default), yaml
 ```
+
+**Note:** The default LLM output format is JSON for better reliability with structured outputs. YAML is also supported but may encounter parsing issues with certain models.
 
 ### API Endpoints
 

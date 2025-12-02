@@ -24,7 +24,7 @@ __all__ = [
 
 
 class Settings(BaseSettings):
-    LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.YAML
+    LLM_OUTPUT_FORMAT: OutputFormat = OutputFormat.JSON
 
 
 @lru_cache(maxsize=1)
