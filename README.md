@@ -5,6 +5,11 @@
 This repository provides an AI annotator tool for the LDaCA/ATAP Platform.
 The tool enables automated text classification using large language models with support for zero-shot, few-shot, and chain-of-thought prompting techniques.
 
+**Key Features:**
+- 🔒 **Privacy-First**: Process sensitive data locally with Ollama (no data leaves your machine)
+- 🧠 **Reasoning Support**: Confidence scores, reasoning explanations, and native reasoning modes
+- 🌐 **100+ LLM Providers**: Access via unified LiteLLM API
+
 Available as a **CLI tool**, **REST API service**, and **Streamlit web interface** for flexible integration.
 
 
@@ -53,7 +58,10 @@ atapllmc classify batch \
   --model 'gpt-4.1-mini' \
   --technique zero_shot \
   --user-schema 'user_schema.json' \
-  --api-key <your-api-key>
+  --api-key <your-api-key> \
+  --enable-reasoning \              # Optional: add reasoning explanations
+  --max-reasoning-chars 200 \       # Optional: limit reasoning length
+  --reasoning-effort medium         # Optional: native reasoning mode (low/medium/high)
 ```
 
 **Using Ollama (local):**
@@ -97,7 +105,11 @@ user_schema = {
 # Configure model
 provider = LLMProvider.OPENAI
 model_props = provider.properties.with_api_key("your-api-key").get_model_props("gpt-4.1-mini")
-llm_config = LLMConfig(temperature=0.7, top_p=0.9)
+llm_config = LLMConfig(
+    temperature=0.7,
+    top_p=0.9,
+    reasoning_effort="medium"  # Optional: native reasoning mode (low/medium/high)
+)
 
 # Run classification
 results = pipeline.batch(
@@ -107,6 +119,8 @@ results = pipeline.batch(
     technique=Technique.ZERO_SHOT,  # or FEW_SHOT, CHAIN_OF_THOUGHT
     user_schema=user_schema,
     modifier=Modifier.NO_MODIFIER,
+    enable_reasoning=True,  # Optional: add reasoning explanations
+    max_reasoning_chars=150,  # Optional: limit reasoning length
     on_result_callback=lambda result: print(f"Classified: {result.doc_idx}")
 )
 
@@ -117,7 +131,9 @@ print(f"Failed classifications: {len(results.fails)}")
 for success in results.successes:
     doc_idx = success.doc_idx
     classification = success.classification_result.classification
-    print(f"Document {doc_idx}: {classification}")
+    confidence = success.classification_result.confidence  # Confidence score (0-1)
+    reasoning = success.classification_result.reasoning  # Reasoning explanation (if enabled)
+    print(f"Document {doc_idx}: {classification} (confidence: {confidence})")
 ```
 
 ### Using Few-Shot with Examples
@@ -357,6 +373,7 @@ The Streamlit interface provides:
 - **CSV Upload**: Upload CSV files and select the text column to classify
 - **Schema Templates**: Pre-defined templates for common classification tasks or create custom schemas
 - **Classification Techniques**: Zero-shot and few-shot classification
+- **Reasoning Features**: Enable confidence scores, reasoning output, and native reasoning modes
 - **Cost Estimation**: Estimate costs before submitting jobs
 - **Job Management**: Real-time progress tracking with auto-refresh and job cancellation
 - **Results Export**: Download classification results as CSV
@@ -368,6 +385,7 @@ The Streamlit interface provides:
    - Enter API key (OpenAI) or endpoint URL (Ollama)
    - Choose model from available options
    - Select classification technique
+   - Enable reasoning features (confidence, reasoning output, native reasoning)
    - Adjust advanced settings (temperature, top_p)
 
 2. **Upload CSV File**:

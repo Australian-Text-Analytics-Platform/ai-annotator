@@ -511,27 +511,34 @@
             </p>
         </div>
 
+        <!-- Privacy Callout -->
+        <div style="background: white; color: #333; border-radius: 12px; padding: 15px 25px; margin-bottom: 30px; text-align: center; border: 2px solid #4CAF50; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <span style="font-size: 1.1em;">
+                🔒 <strong>Private data supported:</strong> Process sensitive data locally with Ollama (no data leaves your machine)
+            </span>
+        </div>
+
         <!-- Key Stats -->
         <div class="stats-grid">
             <div class="stat-card">
-                <span class="number">🔒</span>
-                <span class="label">Privacy Mode Supported</span>
+                <span class="number">100+</span>
+                <span class="label">LLM Providers via LiteLLM</span>
+            </div>
+            <div class="stat-card">
+                <span class="number">3</span>
+                <span class="label">Reasoning Features</span>
             </div>
             <div class="stat-card">
                 <span class="number">7</span>
                 <span class="label">REST API Endpoints</span>
             </div>
             <div class="stat-card">
-                <span class="number">100+</span>
-                <span class="label">LLM Providers via LiteLLM</span>
+                <span class="number">3</span>
+                <span class="label">Prompting Techniques</span>
             </div>
             <div class="stat-card">
                 <span class="number">5</span>
                 <span class="label">Concurrent Workers</span>
-            </div>
-            <div class="stat-card">
-                <span class="number">3</span>
-                <span class="label">Prompting Techniques</span>
             </div>
             <div class="stat-card">
                 <span class="number">125</span>
@@ -550,6 +557,8 @@
                     <li>CSV/XLSX dataset support</li>
                     <li>Multiple output formats (JSON, CSV, ZIP)</li>
                     <li>🔒 Local model support via Ollama for private data</li>
+                    <li>Confidence scores and reasoning output</li>
+                    <li>Native reasoning mode support (o1, o3-mini)</li>
                     <li>Model listing and discovery</li>
                     <li>Cost estimation before processing</li>
                     <li>Rich console output with status updates</li>
@@ -564,6 +573,8 @@
                     <li>7 comprehensive endpoints</li>
                     <li>Job management with UUID tracking</li>
                     <li>Real-time progress monitoring</li>
+                    <li>Confidence scores and reasoning output</li>
+                    <li>Native reasoning mode support</li>
                     <li>Cost estimation endpoint</li>
                     <li>Interactive Swagger UI documentation</li>
                     <li>API key authentication</li>
@@ -579,6 +590,8 @@
                     <li>CSV file upload with column selection</li>
                     <li>Schema templates and JSON editor</li>
                     <li>Real-time progress monitoring</li>
+                    <li>Confidence scores and reasoning output</li>
+                    <li>Native reasoning mode configuration</li>
                     <li>Cost estimation before processing</li>
                     <li>Results download as CSV</li>
                     <li>Built on top of FastAPI backend</li>
@@ -697,6 +710,108 @@
                         <strong>Best for:</strong> Complex reasoning tasks, interpretable classifications, high-stakes decisions requiring explanation
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Reasoning Features Section -->
+        <div class="examples-section">
+            <h2>Reasoning & Confidence Features</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Enhanced classification with confidence scores, reasoning explanations, and native reasoning modes
+            </p>
+
+            <div class="technique-examples">
+                <!-- Confidence Scores -->
+                <div class="technique-example">
+                    <h3>Confidence Scores</h3>
+                    <p class="description">
+                        Every classification automatically includes a confidence score (0.0 to 1.0) indicating the model's certainty.
+                    </p>
+
+                    <div class="schema-title">Example Output:</div>
+                    <div class="schema-box">{
+  <span class="json-key">"classification"</span>: <span class="json-string">"positive"</span>,
+  <span class="json-key">"confidence"</span>: 0.95,
+  <span class="json-key">"text"</span>: <span class="json-string">"This product is amazing!"</span>
+}</div>
+
+                    <div class="use-case">
+                        <strong>Always included:</strong> No configuration needed. Available in all results.
+                    </div>
+                </div>
+
+                <!-- Reasoning Output -->
+                <div class="technique-example">
+                    <h3>Reasoning Output</h3>
+                    <p class="description">
+                        Optional explanations from the LLM about why it made each classification decision. Enable with <code>--enable-reasoning</code> flag.
+                    </p>
+
+                    <div class="schema-title">Example Output:</div>
+                    <div class="schema-box">{
+  <span class="json-key">"classification"</span>: <span class="json-string">"positive"</span>,
+  <span class="json-key">"confidence"</span>: 0.92,
+  <span class="json-key">"reasoning"</span>: <span class="json-string">"The text uses strong positive language like 'amazing' and 'excellent', indicating high satisfaction."</span>
+}</div>
+
+                    <div class="use-case">
+                        <strong>Best for:</strong> Understanding model decisions, debugging misclassifications, providing explanations to end users
+                    </div>
+                </div>
+
+                <!-- Native Reasoning Modes -->
+                <div class="technique-example">
+                    <h3>Native Reasoning Modes</h3>
+                    <p class="description">
+                        For reasoning-capable models, enable deeper analysis with <code>--reasoning-effort</code> (low/medium/high).
+                    </p>
+
+                    <div class="schema-title">Example Output:</div>
+                    <div class="schema-box">{
+  <span class="json-key">"classification"</span>: <span class="json-string">"urgent"</span>,
+  <span class="json-key">"confidence"</span>: 0.98,
+  <span class="json-key">"reasoning_content"</span>: <span class="json-string">"After analyzing the context, the mention of 'server down' and 'clients can't access' indicates immediate business impact requiring urgent attention..."</span>
+}</div>
+
+                    <div class="use-case">
+                        <strong>Best for:</strong> Complex tasks requiring deep analysis, high-stakes decisions, maximum accuracy
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Comparison Table -->
+            <div style="margin-top: 40px; background: white; padding: 25px; border-radius: 10px; border: 2px solid #eee;">
+                <h3 style="text-align: center; color: #764ba2; margin-bottom: 20px;">Feature Comparison</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8f9fa; border-bottom: 2px solid #667eea;">
+                            <th style="padding: 12px; text-align: left;">Feature</th>
+                            <th style="padding: 12px; text-align: center;">Always Included</th>
+                            <th style="padding: 12px; text-align: center;">Parameter</th>
+                            <th style="padding: 12px; text-align: left;">Output Field</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 12px; font-weight: 600;">Confidence Score</td>
+                            <td style="padding: 12px; text-align: center; color: #4CAF50;">✓ Yes</td>
+                            <td style="padding: 12px; text-align: center;">-</td>
+                            <td style="padding: 12px; font-family: monospace;">confidence</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 12px; font-weight: 600;">Reasoning Output</td>
+                            <td style="padding: 12px; text-align: center;">Optional</td>
+                            <td style="padding: 12px; text-align: center; font-family: monospace;">--enable-reasoning</td>
+                            <td style="padding: 12px; font-family: monospace;">reasoning</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; font-weight: 600;">Native Reasoning</td>
+                            <td style="padding: 12px; text-align: center;">Optional</td>
+                            <td style="padding: 12px; text-align: center; font-family: monospace;">--reasoning-effort</td>
+                            <td style="padding: 12px; font-family: monospace;">reasoning_content</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -842,16 +957,6 @@
             </div>
 
             <div class="feature-card">
-                <h3><span class="emoji">🎯</span>Response Modifiers</h3>
-                <ul>
-                    <li><strong>No Modifier:</strong> Single pass classification</li>
-                    <li><strong>Self-Consistency:</strong> Multiple passes with voting</li>
-                    <li>Configurable completion multipliers</li>
-                    <li>Pre/post-processing hooks</li>
-                </ul>
-            </div>
-
-            <div class="feature-card">
                 <h3><span class="emoji">📝</span>Output & Validation</h3>
                 <ul>
                     <li>JSON structured output format (YAML also supported)</li>
@@ -859,6 +964,17 @@
                     <li>User schema validation</li>
                     <li>Comprehensive error messages</li>
                     <li>Multiple output file formats</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3><span class="emoji">🧠</span>Reasoning & Confidence</h3>
+                <ul>
+                    <li><strong>Confidence Scores:</strong> Automatic confidence metrics (0-1) for every classification</li>
+                    <li><strong>Reasoning Output:</strong> Optional explanations for classification decisions</li>
+                    <li><strong>Native Reasoning:</strong> Support for o1/o3-mini models with configurable effort levels</li>
+                    <li>Configurable reasoning length limits</li>
+                    <li>Available across CLI, Python API, and REST API</li>
                 </ul>
             </div>
 
@@ -872,6 +988,8 @@
                     <li>CSV preview and column selector</li>
                     <li>One-click job cancel and refresh</li>
                     <li>Results download as CSV</li>
+                    <li>Confidence scores and reasoning output support</li>
+                    <li>Native reasoning mode configuration</li>
                     <li>No coding required</li>
                 </ul>
             </div>
@@ -927,9 +1045,13 @@
                     <div class="tech-name">Streamlit</div>
                     <div class="tech-type">Web App Framework</div>
                 </div>
-                <div class="tech-item" style="border-color: #667eea; background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));">
-                    <div class="tech-name" style="color: #667eea;">LiteLLM</div>
+                <div class="tech-item">
+                    <div class="tech-name">LiteLLM</div>
                     <div class="tech-type">Unified LLM API (100+ Providers)</div>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-name">Ollama</div>
+                    <div class="tech-type">Local LLM Runtime</div>
                 </div>
                 <div class="tech-item">
                     <div class="tech-name">Pydantic</div>
@@ -961,8 +1083,7 @@
         <!-- Footer -->
         <div class="footer">
             <h3>Built for LDaCA/ATAP Platform</h3>
-            <p>Enterprise-grade AI text classification with flexibility, reliability, and transparency</p>
-            <p style="margin-top: 15px; font-size: 0.9em;">Powered by Python 3.11+ • FastAPI • Streamlit • LiteLLM</p>
+            <p>Research-grade AI text classification with flexibility, reliability, and transparency</p>
         </div>
     </div>
 </body>
