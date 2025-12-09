@@ -174,9 +174,9 @@ async def a_classify(
             if len(reasoning) > max_len:
                 reasoning = reasoning[:max_len]
 
-    # Extract native reasoning_content from response
+    # Extract native reasoning_content from response (only if reasoning_effort was requested)
     reasoning_content = None
-    if hasattr(response.choices[0].message, 'reasoning_content'):
+    if reasoning_effort_used and hasattr(response.choices[0].message, 'reasoning_content'):
         reasoning_content = response.choices[0].message.reasoning_content
         if reasoning_content:
             logger.info(f"Extracted reasoning_content from response (length: {len(reasoning_content)})")
