@@ -27,6 +27,8 @@ atapllmc classify batch --help
 
 ## Quick Start
 
+> **Prefer a GUI?** See the [Streamlit Web Interface](#streamlit-web-interface) section for a browser-based approach.
+
 ### 1. Create a User Schema
 
 Create a JSON file defining your classification classes:
@@ -338,7 +340,25 @@ Test coverage report will be generated in `htmlcov/index.html`.
 
 A minimal web interface is available for interactive batch classification through a Streamlit app. The app provides a user-friendly interface on top of the FastAPI service.
 
-### Prerequisites
+### Quick Start (Recommended)
+
+Use the provided scripts to start both the FastAPI backend and Streamlit frontend:
+
+```bash
+./scripts/start.sh    # Start all services
+./scripts/status.sh   # Check if services are running
+./scripts/stop.sh     # Stop all services
+```
+
+Once started, open http://localhost:8501 in your browser.
+
+> See `scripts/README.md` for more details.
+
+### Manual Setup
+
+If you prefer to run services individually:
+
+#### Prerequisites
 
 1. Ensure the FastAPI server is running:
    ```bash
@@ -356,7 +376,7 @@ A minimal web interface is available for interactive batch classification throug
    poetry install
    ```
 
-### Starting the Streamlit App
+#### Starting the Streamlit App
 
 ```bash
 streamlit run streamlit_app/app.py
