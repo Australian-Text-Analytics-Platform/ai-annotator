@@ -500,9 +500,9 @@ Available providers and their supported models:
 - Example: `--provider gemini --model gemini-2.5-flash-lite --api-key <your-key>`
 
 #### Anthropic Claude (`anthropic`)
-- Models, e.g.: `claude-4.5-haiku`, `claude-4.5-sonnet`, etc.
+- Models, e.g.: `claude-haiku-4-5`, `claude-4.5-sonnet`, etc.
 - Requires: `--api-key`
-- Example: `--provider anthropic --model claude-4.5-haiku --api-key <your-key>`
+- Example: `--provider anthropic --model claude-haiku-4-5 --api-key <your-key>`
 
 #### Ollama (`ollama`)
 - Models: `llama3:8b`, `llama3:70b`, `mistral`, etc. (depends on local installation)
