@@ -55,7 +55,7 @@ atapllmc classify batch \
   --column 'text' \
   --out-dir './out' \
   --provider openai \
-  --model 'gpt-4.1-mini' \
+  --model 'gpt-5-mini' \
   --technique zero_shot \
   --user-schema 'user_schema.json' \
   --api-key <your-api-key> \
@@ -104,7 +104,7 @@ user_schema = {
 
 # Configure model
 provider = LLMProvider.OPENAI
-model_props = provider.properties.with_api_key("your-api-key").get_model_props("gpt-4.1-mini")
+model_props = provider.properties.with_api_key("your-api-key").get_model_props("gpt-5-mini")
 llm_config = LLMConfig(
     temperature=0.7,
     top_p=0.9,
@@ -226,7 +226,7 @@ curl -X POST http://localhost:8002/classify/batch \
       ]
     },
     "provider": "openai",
-    "model": "gpt-4.1-mini",
+    "model": "gpt-5-mini",
     "technique": "zero_shot",
     "temperature": 0.7,
     "llm_api_key": "your-key"
@@ -470,17 +470,17 @@ The main entry point is `atapllmc` with the following subcommands:
 Available providers and their supported models:
 
 #### OpenAI (`openai`)
-- Models: `gpt-3.5-turbo`, `gpt-4.1-mini`, `gpt-4o`, `gpt-4-turbo`, etc.
+- Models, e.g.:  `gpt-5-mini`, `gpt-4.1`, `gpt-5.2`, etc.
 - Requires: `--api-key`
-- Example: `--provider openai --model gpt-4.1-mini --api-key <your-key>`
+- Example: `--provider openai --model gpt-5-mini --api-key <your-key>`
 
 #### Google Gemini (`gemini`)
-- Models: `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-pro`, etc.
+- Models, e.g.: `gemini-2.5-flash-lite`, `gemini-3-flash-preview`, etc.
 - Requires: `--api-key`
-- Example: `--provider gemini --model gemini-2.5-flash --api-key <your-key>`
+- Example: `--provider gemini --model gemini-2.5-flash-lite --api-key <your-key>`
 
 #### Anthropic Claude (`anthropic`)
-- Models: `claude-4.5-haiku`, `claude-4.5-sonnet`, `claude-3-5-sonnet`, etc.
+- Models, e.g.: `claude-4.5-haiku`, `claude-4.5-sonnet`, etc.
 - Requires: `--api-key`
 - Example: `--provider anthropic --model claude-4.5-haiku --api-key <your-key>`
 

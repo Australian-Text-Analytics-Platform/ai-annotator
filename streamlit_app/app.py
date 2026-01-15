@@ -244,10 +244,10 @@ def render_sidebar(client: FastAPIClient):
         # Set default model if not set or if it's not in available models
         if st.session_state.model not in available_models:
             # Set provider-specific defaults
-            if provider == "openai" and "gpt-4.1-mini" in available_models:
-                st.session_state.model = "gpt-4.1-mini"
-            elif provider == "gemini" and "gemini-2.5-flash" in available_models:
-                st.session_state.model = "gemini-2.5-flash"
+            if provider == "openai" and "gpt-5-mini" in available_models:
+                st.session_state.model = "gpt-5-mini"
+            elif provider == "gemini" and "gemini-2.5-flash-lite" in available_models:
+                st.session_state.model = "gemini-2.5-flash-lite"
             elif provider == "anthropic" and "claude-4.5-haiku" in available_models:
                 st.session_state.model = "claude-4.5-haiku"
             else:
