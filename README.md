@@ -12,6 +12,48 @@ The tool enables automated text classification using large language models with 
 
 Available as a **CLI tool**, **REST API service**, and **Streamlit web interface** for flexible integration.
 
+---
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+  - [1. Create a User Schema](#1-create-a-user-schema)
+  - [2. Run Classification](#2-run-classification)
+- [Python API Usage](#python-api-usage)
+  - [Using Few-Shot with Examples](#using-few-shot-with-examples)
+- [FastAPI REST API](#fastapi-rest-api)
+  - [Starting the API Server](#starting-the-api-server)
+  - [Configuration](#configuration)
+  - [API Endpoints](#api-endpoints)
+  - [Example Usage](#example-usage)
+  - [Python Client Example](#python-client-example)
+  - [Testing the FastAPI Service](#testing-the-fastapi-service)
+- [Streamlit Web Interface](#streamlit-web-interface)
+  - [Quick Start (Recommended)](#quick-start-recommended)
+  - [Manual Setup](#manual-setup)
+  - [Features](#features)
+  - [Usage Flow](#usage-flow)
+  - [Schema Templates](#schema-templates)
+  - [Environment Variables](#environment-variables)
+- [CLI Reference](#cli-reference)
+  - [Commands](#commands)
+  - [Batch Classification Arguments](#batch-classification-arguments)
+  - [Providers](#providers)
+  - [Classification Techniques](#classification-techniques)
+  - [Response Modifiers](#response-modifiers)
+  - [User Schema Examples](#user-schema-examples)
+- [Reasoning Features](#reasoning-features)
+  - [Confidence Scores](#confidence-scores)
+  - [Enable Reasoning Output](#enable-reasoning-output)
+  - [Native Reasoning Modes](#native-reasoning-modes)
+  - [CLI Arguments for Reasoning](#cli-arguments-for-reasoning)
+  - [Result Fields](#result-fields)
+  - [Output Files](#output-files)
+- [Author](#author)
+- [Acknowledgments](#acknowledgments)
+
+---
 
 ## Installation 
 
@@ -167,6 +209,8 @@ results = pipeline.batch(
 ## FastAPI REST API
 
 The classifier is also available as a REST API service for integration with other applications and services.
+
+> **Detailed Documentation:** See [`classifier_fastapi/README.md`](classifier_fastapi/README.md) for complete API documentation including batch processing architecture, rate limiting, and all endpoint parameters.
 
 ### Starting the API Server
 
