@@ -144,3 +144,13 @@ class ModelsListResponse(BaseModel):
     """Response for model listing"""
     models: List[ModelInfo]
     providers: List[str]
+
+
+class JobSummary(BaseModel):
+    """Summary of a job for listing"""
+    job_id: str
+    status: JobStatus
+    progress: JobProgress
+    created_at: str
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None

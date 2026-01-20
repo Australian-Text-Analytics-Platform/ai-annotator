@@ -58,6 +58,7 @@ def batch(
     user_schema: BaseModel,
     modifier: Modifier,
     on_progress_callback: Callable | Coroutine | None = None,
+    on_result_callback: Callable | Coroutine | None = None,
     enable_reasoning: bool = False,
     max_reasoning_chars: int = 150,
 ) -> BatchResults:
@@ -73,6 +74,7 @@ def batch(
             user_schema,
             modifier,
             on_progress_callback,
+            on_result_callback,
             enable_reasoning,
             max_reasoning_chars,
         ),
@@ -108,6 +110,7 @@ async def a_batch(
     user_schema: BaseModel,
     modifier: Modifier,
     on_progress_callback: Callable | Coroutine | None = None,
+    on_result_callback: Callable | Coroutine | None = None,
     enable_reasoning: bool = False,
     max_reasoning_chars: int = 150,
 ) -> BatchResults:
@@ -118,6 +121,10 @@ async def a_batch(
     cb_info: tuple[Callable | Coroutine, bool] | None = None
     if on_progress_callback is not None:
         cb_info = (on_progress_callback, inspect.iscoroutinefunction(on_progress_callback))
+
+    result_cb_info: tuple[Callable | Coroutine, bool] | None = None
+    if on_result_callback is not None:
+        result_cb_info = (on_result_callback, inspect.iscoroutinefunction(on_result_callback))
 
     prompt_maker: BaseTechnique = technique.get_prompt_maker(
         user_schema,
@@ -208,6 +215,14 @@ async def a_batch(
                         reasoning_content=res.reasoning_content,
                     )
                     successes.append(batch_res)
+
+                    # Result callback (for incremental storage)
+                    if result_cb_info is not None:
+                        cb, iscoro = result_cb_info
+                        if iscoro:
+                            await cb(batch_res)
+                        else:
+                            cb(batch_res)
 
                     # Progress callback
                     if cb_info is not None:

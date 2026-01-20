@@ -35,6 +35,9 @@ pyproject-fastapi.toml
 # Example outputs
 example_out*/
 
+# Job persistence data
+data/jobs/*.json
+
 # Test copies
 tests/example_run2 copy.sh
 tests/example_run_ollama.sh

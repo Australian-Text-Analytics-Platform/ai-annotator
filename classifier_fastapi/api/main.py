@@ -10,8 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import time
 
+from loguru import logger
+
 from classifier_fastapi.settings import get_settings
 from classifier_fastapi.api.routes import health, classify, jobs, models
+from classifier_fastapi.job_manager import get_job_manager
 
 settings = get_settings()
 
@@ -20,6 +23,14 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     # Startup
     app.state.start_time = time.time()
+
+    # Load persisted jobs from storage
+    if settings.JOB_LOAD_ON_STARTUP:
+        job_manager = get_job_manager()
+        loaded = await job_manager.load_jobs_from_storage()
+        if loaded > 0:
+            logger.info(f"Loaded {loaded} jobs from storage")
+
     yield
     # Shutdown
     pass

@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     # Rate limiting
     DEFAULT_WORKERS: int = 5
 
+    # Job persistence
+    JOB_STORAGE_DIR: str = "data/jobs"
+    JOB_PERSIST_ENABLED: bool = True
+    JOB_LOAD_ON_STARTUP: bool = True
+    JOB_PERSIST_BATCH_SIZE: int = 50  # Persist every N results
+    JOB_MEMORY_THRESHOLD_MB: int = 100  # Switch to disk-only mode above this
+
     # CORS (comma-separated origins)
     CORS_ORIGINS: str = "*"
 

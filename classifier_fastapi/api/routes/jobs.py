@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from classifier_fastapi.api.models import (
     JobStatusResponse,
     JobProgress,
+    JobSummary,
     ClassificationResultItem,
     JobStatus,
 )
@@ -15,6 +16,18 @@ from classifier_fastapi.api.dependencies import get_current_api_key
 from classifier_fastapi.job_manager import get_job_manager
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
+
+
+@router.get("/", response_model=list[JobSummary])
+async def list_jobs(
+    status: JobStatus | None = None,
+    limit: int = 100,
+    api_key: str = Depends(get_current_api_key),
+):
+    """List all jobs, optionally filtered by status."""
+    job_manager = get_job_manager()
+    jobs = await job_manager.list_jobs(status=status, limit=limit)
+    return [JobSummary(**job) for job in jobs]
 
 
 @router.get("/{job_id}", response_model=JobStatusResponse)

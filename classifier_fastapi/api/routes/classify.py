@@ -67,6 +67,18 @@ async def process_classification_job(job_id: str, request: ClassificationRequest
         async def on_progress(completed: int, failed: int):
             await job_manager.update_progress(job_id, completed, failed)
 
+        # Result callback for incremental storage (batched internally)
+        async def on_result(result):
+            await job_manager.add_result(job_id, {
+                "index": result.text_idx,
+                "text": result.text,
+                "classification": result.classification,
+                "prompt": result.prompt,
+                "confidence": result.confidence,
+                "reasoning": result.reasoning,
+                "reasoning_content": result.reasoning_content,
+            })
+
         # Run classification
         results = await pipeline.a_batch(
             texts=request.texts,
@@ -76,21 +88,13 @@ async def process_classification_job(job_id: str, request: ClassificationRequest
             user_schema=user_schema,
             modifier=modifier,
             on_progress_callback=on_progress,
+            on_result_callback=on_result,
             enable_reasoning=request.enable_reasoning,
             max_reasoning_chars=request.max_reasoning_chars,
         )
 
-        # Store results
-        for success in results.successes:
-            await job_manager.add_result(job_id, {
-                "index": success.text_idx,
-                "text": success.text,
-                "classification": success.classification,
-                "prompt": success.prompt,
-                "confidence": success.confidence,
-                "reasoning": success.reasoning,
-                "reasoning_content": success.reasoning_content,
-            })
+        # Flush any remaining buffered results
+        await job_manager.flush_all_pending(job_id)
 
         for idx, error in results.fails:
             await job_manager.add_error(job_id, {

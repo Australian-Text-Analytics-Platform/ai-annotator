@@ -13,7 +13,7 @@ import os
 
 from classifier_fastapi.api.main import app
 from classifier_fastapi.settings import Settings
-from classifier_fastapi.job_manager import JobManager, get_job_manager
+from classifier_fastapi.job_manager import JobManager, get_job_manager, reset_job_manager
 from classifier_fastapi.auth import AuthService, get_auth_service
 
 
@@ -190,10 +190,9 @@ def sample_cost_estimate_request(sample_texts, sample_user_schema) -> dict:
 @pytest.fixture(autouse=True)
 def reset_job_manager_singleton():
     """Reset job manager singleton between tests"""
-    import classifier_fastapi.job_manager
-    classifier_fastapi.job_manager._job_manager = None
+    reset_job_manager()
     yield
-    classifier_fastapi.job_manager._job_manager = None
+    reset_job_manager()
 
 
 @pytest.fixture(autouse=True)
