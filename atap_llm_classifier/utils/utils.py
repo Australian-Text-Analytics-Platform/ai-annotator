@@ -31,12 +31,15 @@ def is_jupyter_context() -> bool:
     try:
         from IPython import get_ipython
 
-        shell = get_ipython().__class__.__name__
+        ipython = get_ipython()
+        if ipython is None:
+            return False
+        shell = ipython.__class__.__name__
         if "ZMQInteractiveShell" in shell:
             return True
         else:
             return False
-    except NameError:
+    except (NameError, ModuleNotFoundError):
         return False
 
 
